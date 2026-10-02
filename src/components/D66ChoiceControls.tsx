@@ -4,7 +4,7 @@ import type { Member, PlayerState, Sector, Unit } from '../types'
 
 type CampaignEvent={id:string;kind:string;code:string|null;title:string;payload:any;resolved:boolean;created_at:string}
 
-const CHOICE_CODES=new Set(['24','31','33','41','52','53','54','56'])
+const CHOICE_CODES=new Set(['11','24','31','32','33','41','52','53','54','56'])
 
 export default function D66ChoiceControls({
   event,member,players,sectors,units
@@ -21,6 +21,10 @@ export default function D66ChoiceControls({
   const resolvedSides=(event.payload?.resolved_sides??[]) as string[]
   const done=resolvedSides.includes(member.side)
   const controlsG=sectors.find(s=>s.sector_key==='G')?.owner_side===member.side
+  const sectorCounts={
+    necrons:sectors.filter(s=>s.owner_side==='necrons').length,
+    deathwatch:sectors.filter(s=>s.owner_side==='deathwatch').length
+  }
 
   if(!CHOICE_CODES.has(code)||event.resolved)return null
   if(done)return <div className="d66-choice done">Ваша сторона уже разрешила этот event.</div>
@@ -35,13 +39,43 @@ export default function D66ChoiceControls({
     setMsg(data.event_complete?'Event полностью разрешён.':'Ваш выбор сохранён. Ожидается вторая сторона.')
   }
 
+  async function globalChoice(choice:'supply'|'intelligence'){
+    setWorking(true);setMsg('')
+    const{data,error}=await supabase.rpc('resolve_d66_global_choice',{p_event:event.id,p_choice:choice})
+    setWorking(false)
+    if(error){setMsg(error.message);return}
+    setMsg(`Выбор ${data.choice} применён для ${data.chooser}.`)
+  }
+
   const unitSelect=(rows:Unit[],placeholder:string)=><select value={selectedUnit} onChange={e=>setSelectedUnit(e.target.value)}>
     <option value="">{placeholder}</option>
     {rows.map(u=><option key={u.id} value={u.id}>{u.name} · {u.datasheet} · XP {u.xp} · Damage {u.damage}</option>)}
   </select>
 
   let body:React.ReactNode=null
-  if(code==='24'){
+
+  if(code==='11'){
+    const chooser=sectorCounts.necrons===sectorCounts.deathwatch
+      ?null
+      :sectorCounts.necrons<sectorCounts.deathwatch?'necrons':'deathwatch'
+    body=<>
+      <p className="muted">{chooser
+        ?`Выбор делает ${chooser==='necrons'?'Necrons':'Deathwatch'} как сторона с меньшим числом секторов.`
+        :'Количество секторов равно. Rules source не определяет tie-break; событие оставлено unresolved.'}</p>
+      <div className="button-row">
+        <button className="ghost compact" disabled={working||member.side!==chooser} onClick={()=>globalChoice('intelligence')}>+1 Intel</button>
+        <button className="ghost compact" disabled={working||member.side!==chooser} onClick={()=>globalChoice('supply')}>+25 Supply · BLACK CHOIR +1</button>
+      </div>
+    </>
+  }else if(code==='32'){
+    body=<>
+      <p className="muted">Winner выбирает одну награду; другая автоматически уходит проигравшему. При Draw выбор у стороны с меньшим числом секторов. Сервер проверит право выбора.</p>
+      <div className="button-row">
+        <button className="ghost compact" disabled={working} onClick={()=>globalChoice('supply')}>Выбрать +25 Supply</button>
+        <button className="ghost compact" disabled={working} onClick={()=>globalChoice('intelligence')}>Выбрать +1 Intel</button>
+      </div>
+    </>
+  }else if(code==='24'){
     body=member.side==='deathwatch'
       ?<button className="ghost compact" disabled={working} onClick={()=>act('claim')}>Получить +20 Supply</button>
       :<div className="d66-choice-row">{unitSelect(mine.filter(u=>u.damage>0),'Повреждённый Necron unit')}<button className="ghost compact" disabled={working||!selectedUnit} onClick={()=>act('heal',selectedUnit)}>Снять 1 Damage</button></div>
