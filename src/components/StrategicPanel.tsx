@@ -59,6 +59,7 @@ export default function StrategicPanel({
   const[working,setWorking]=useState(false)
   const[sabotageTarget,setSabotageTarget]=useState('')
   const[showReorganise,setShowReorganise]=useState(false)
+  const[doctrineText,setDoctrineText]=useState('')
 
   const me=players.find(p=>p.side===member.side)
   const stage=STAGES[stageIndexForBattles(campaign.battle_count)]
@@ -248,6 +249,12 @@ export default function StrategicPanel({
         <button disabled={working||!canAct||!actionAllowed('reorganise')||actionUsed('reorganise')} onClick={openReorganise}><Wrench/><span><strong>Reorganise Forces</strong><small>Field Roster ↔ local garrison</small></span></button>
         {revealII&&<button disabled={working||!canAct||!actionAllowed('investigate_choir')||!canInvestigate||actionUsed('investigate_choir')||(me?.intelligence??0)<1} onClick={()=>runStrategicAction('investigate_choir','activation_investigate_choir',{p_activation:activation.id},'Investigate Choir resolved.')}><Radio/><span><strong>Investigate Choir</strong><small>1 Intel · у G после Reveal II</small></span></button>}
         {conditionList.filter(c=>c==='Exhausted'||c==='Sabotaged').map(c=><button key={c} disabled={working||!canAct||!actionAllowed('repair_network')} onClick={()=>runStrategicAction('repair_network','activation_repair_network',{p_activation:activation.id,p_condition:c},'Снято состояние '+c+'.')}><Wrench/><span><strong>Repair Network</strong><small>Снять {c}</small></span></button>)}
+      </div>
+      <div className="doctrine-refit">
+        <div className="eyebrow">DOCTRINE REFIT</div>
+        <p className="muted">Вне Stage transition: 1 Strategic Action + 25 Supply, только в controlled supplied sector.</p>
+        <input value={doctrineText} onChange={e=>setDoctrineText(e.target.value)} placeholder={Array.isArray(me?.detachment_package)&&me!.detachment_package.length?me!.detachment_package.join(', '):'Detachments через запятую'}/>
+        <button className="ghost action-main" disabled={working||!canAct||!actionAllowed('doctrine_refit')||!currentSupplied||(me?.supply??0)<25||!doctrineText.trim()} onClick={()=>runStrategicAction('doctrine_refit','activation_doctrine_refit',{p_activation:activation.id,p_package:doctrineText.split(',').map(x=>x.trim()).filter(Boolean)},'Doctrine Refit применён за 25 Supply.')}><Wrench/><span><strong>Doctrine Refit</strong><small>1 Action · 25 Supply</small></span></button>
       </div>
     </section>
 
