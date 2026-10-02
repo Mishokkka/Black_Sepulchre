@@ -10,6 +10,8 @@ Repository: `Mishokkka/Black_Sepulchre`
 
 Reference rules PDF: `Black_Sepulchre_40k11_Campaign_Rules_v2.0_RU.pdf`
 
+Canonical extracted text: `docs/Black_Sepulchre_v2.0_source.txt`
+
 Supabase project ref: `xjmzsnvztqhjttcxeknf`
 
 Current campaign snapshot date in DB: `2026-09-30`.
@@ -21,13 +23,16 @@ Current campaign snapshot date in DB: `2026-09-30`.
 При разработке используйте такой приоритет:
 
 1. `Black_Sepulchre_40k11_Campaign_Rules_v2.0_RU.pdf` в корне репозитория.
-2. Явные решения владельца проекта, зафиксированные в текущей задаче/обсуждении.
-3. Серверная логика Supabase RPC.
-4. Клиентский UI.
+2. `docs/Black_Sepulchre_v2.0_source.txt`, автоматически извлечённый из того же PDF для поиска и аудита. При расхождении верстки с текстом PDF имеет приоритет.
+3. Явные решения владельца проекта, зафиксированные после v2.0.
+4. Серверная логика Supabase RPC.
+5. Клиентский UI.
 
 Если UI и RPC расходятся, **RPC должен защищать правила**. Клиент не должен иметь возможность записать нелегальное состояние только потому, что кнопка или форма это позволила.
 
 Не переносите кампанийную бизнес-логику только в React. Всё, что меняет ресурсы, владение секторами, Damage, XP, Campaign Rating, состав roster, battle outcome или состояние activation, должно проверяться на сервере.
+
+**Старый PDF v1.2.1 не является источником правил и не должен использоваться для разработки или аудита.** Исторические реализации, появившиеся до полной сверки, должны проверяться по v2.0 source перед изменением.
 
 ---
 
@@ -122,7 +127,10 @@ GitHub Pages должен быть настроен на:
 ```text
 .
 ├─ .github/workflows/deploy.yml
+├─ .github/workflows/extract-rules-source.yml
 ├─ Black_Sepulchre_40k11_Campaign_Rules_v2.0_RU.pdf
+├─ docs/
+│  └─ Black_Sepulchre_v2.0_source.txt
 ├─ README.md
 ├─ package.json
 ├─ vite.config.ts
@@ -144,6 +152,8 @@ GitHub Pages должен быть настроен на:
       ├─ BattleAssets.tsx
       ├─ LogisticsPanel.tsx
       ├─ LogisticsUpgrades.tsx
+      ├─ ForceDoctrinePanel.tsx
+      ├─ MissionRewardControls.tsx
       ├─ HonourClaims.tsx
       ├─ EventsPanel.tsx
       └─ D66ChoiceControls.tsx
@@ -346,7 +356,7 @@ Persistent campaign units.
 
 Ключевые поля:
 
-- `reference_cost`: Base Points
+- `reference_cost`: Reference Cost (RC)
 - `campaign_rating`: процент CR
 - `xp`
 - `damage`: 0–3
@@ -388,6 +398,8 @@ Snapshot участия persistent units в конкретной battle.
 
 - role
 - participated/resting
+- Official Battle Cost
+- Effective Cost snapshot
 - destroyed
 - Deed
 - Distinguished
@@ -395,7 +407,7 @@ Snapshot участия persistent units в конкретной battle.
 - Damage before/after
 - XP gained
 - Scar
-- Critical Injury marker
+- Critical Injury result/roll metadata
 
 ### `reactions`
 
@@ -524,7 +536,8 @@ Friendly Orbital Ossuary Lift.
 - принадлежности unit;
 - Damage 3;
 - Army Limit;
-- Effective Cost;
+- per-unit OBC;
+- Effective Cost = OBC + RC-based Campaign surcharge;
 - Field/Garrison location;
 - Initial Garrison tier;
 - Reinforcement Capacity;
@@ -534,7 +547,7 @@ Friendly Orbital Ossuary Lift.
 
 `battle_set_assets(battle, tactical[], defensive, breach[])`
 
-Проверяет и сохраняет Tactical/Defensive/Breach Assets после фиксации Muster. Underdog считается по разнице первоначального Effective Cost относительно Army Limit.
+Проверяет и сохраняет Tactical/Defensive/Breach Assets после фиксации Muster. Underdog применяется только к чистому Field Battle без local garrison и считается по разнице первоначальных Field forces относительно большей силы, как в v2.0.
 
 `battle_use_recon_lock(battle)`
 
@@ -612,10 +625,34 @@ Paid Recovery, Emergency Overhaul, Emergency Field Repair, sector discounts и R
 
 `logistics_rehabilitate_scar(activation, unit, scar_code, deep)`
 
-- `deep=false`: Rehabilitation, 25% Base Points, D6 4+
-- `deep=true`: Deep Reconstruction, 50% Base Points, auto-success
+- `deep=false`: Rehabilitation, 25% RC, D6 4+
+- `deep=true`: Deep Reconstruction, 50% RC, auto-success
 
-При успешном удалении Scar снимается `scar_lock`.
+При успешном удалении Scar снимается `scar_lock` и очищаются связанные persistent flags.
+
+`logistics_veteran_drill(activation, units[])`
+
+30 Supply, до двух persistent units, +1 XP; один unit не чаще одного раза за Stage.
+
+`logistics_resolve_critical_choice(activation, unit, choice)` / `logistics_pay_character_evacuation(...)`
+
+Полный v2.0 Lost / Evacuation flow Critical Injury.
+
+`logistics_set_stage_detachment_package(...)`, `activation_doctrine_refit(...)`
+
+Stage-locked Detachment Package и Doctrine Refit 1 Action + 25 Supply.
+
+`logistics_assign_enhancement(...)`, `logistics_reassign_enhancement(...)`
+
+Persistent Enhancement assignments; вне Stage reassignment стоит 15 Supply.
+
+`logistics_refit_unit(...)`
+
+Persistent size/loadout refit, включая RC delta, 5 Supply loadout fee вне бесплатного Stage reset и Foundry J discount.
+
+`logistics_set_protocol_obsession(...)`, `logistics_resolve_ammunition_debt(...)`
+
+Campaign-facing последствия соответствующих Battle Scars.
 
 ### Advancement
 
@@ -639,17 +676,20 @@ Client reference находится в `STAGES`.
 | 10–11 | 1750 | 2625 |
 | 12+ | 2000 | 3000 |
 
-Field Roster Cap считается по Base Points.
+Field Roster Cap считается по Reference Cost (RC).
 
 Battle Deployment limits считаются по Effective Cost:
 
 ```text
+Campaign surcharge =
+ROUNDUP_TO_5(RC × Campaign Rating %)
+
 Effective Cost =
-Base Points
-+ ROUNDUP(Base Points × Campaign Rating %, nearest 5)
+Official Battle Cost (OBC)
++ Campaign surcharge
 ```
 
-Campaign Rating увеличивают Battle Honours, Signature Honours и отдельные Campaign Armoury/Relic effects.
+Reference Cost используется для purchase/roster/recovery. OBC вводится для конкретной Committed Force по Season Snapshot и включает contextual duplicate pricing, платный wargear и официальный Enhancement. Campaign Rating увеличивают Battle Honours, Signature Honours и Campaign Relics/Armoury, где это указано.
 
 ---
 
@@ -682,152 +722,83 @@ Unsupplied/Exhausted уменьшают Reserve Capacity на 10 процент�
 
 ## 12. Что уже автоматизировано
 
-На текущем этапе приложение умеет провести основной цикл кампании:
+Приложение проводит основной цикл v2.0:
 
 ```text
 login
 → create/join campaign
 → first player
 → Strategic Activation
-→ movement / actions
-→ reaction windows
+→ movement / actions / reactions
 → occupation or battle
 → mission
-→ Muster обеих сторон
+→ secret Muster / Recon Lock
+→ Battle Assets
 → tabletop result
 → automatic Aftermath
-→ Logistics
-→ next player
+→ обе стороны получают post-battle Logistics
+→ active side передаёт ход
 ```
 
-Работают:
+Server-authoritative логика уже покрывает:
 
-- Supply Lines;
-- regular movement;
-- Occupation;
-- Field/Garrison/Stronghold contact;
-- Recon;
-- Mobilise;
-- Forced March;
-- Fortify;
-- Repair Network;
-- Sabotage + Counter-Sabotage;
-- Reorganise Forces;
-- Investigate Choir;
-- Deep Raid;
-- Orbital Airlift;
-- Glass Wastes route;
-- Cathedral G: первый Deep Raid **или Hidden Route** стадии дешевле на 1 Intel;
-- Cathedral G: каждая tabletop battle в G после первой повышает BLACK CHOIR на 1;
-- Basilica B: +1 Intel за соседнюю победу, максимум раз между своими Activations;
-- Noctis Relay F: +1 Intel на объявление атаки противником, максимум раз между своими Activations;
-- Home A/K: при вражеском контроле соответствующая сторона получает +1 Intel после каждой tabletop battle;
-- Noctis Relay F: двойной mission roll и выбор одного результата;
-- Necropolis I: Deathwatch Intel bonus при победах в I/K при активном контроле I;
-- Necropolis I: enhanced Necron Rest снимает 2 Damage одному подходящему resting unit;
-- Necropolis I: первый переход сектора к новому владельцу выдаёт 25 Supply salvage один раз;
-- Canoptek Foundry J: скидка на одну qualifying garrison purchase за Activation;
-- Stronghold Assault guards;
-- Fortress Integrity;
-- mission anti-repeat;
-- Recon Lock;
-- Interdict Tactical/Breach Asset;
-- Muster locks обеих сторон;
-- Tactical Assets / Underdog selection;
-- Fortified Defensive Asset selection;
-- Breach Asset selection;
-- post-battle Casualty modifiers from Hard Evacuation, Hardened Stores and Extraction Beacon, with server-side target validation;
-- Field Roster / garrison role checks;
-- 50/75/100 Initial tiers;
-- 25/35/50/75 Reserve tiers;
-- Unit Limits;
-- Rest;
-- VP validation;
-- Participation/Deed/Distinguished XP;
-- Hybrid Attrition roll;
-- Damage 0–3;
-- Battle Scars;
-- fourth-Scar lock;
-- Battle Honours;
-- Signature Honours;
-- Campaign Rating / Effective Cost;
-- Paid Recovery;
-- Emergency Overhaul;
-- Emergency Field Repair;
-- Rehabilitation;
-- Deep Reconstruction;
-- Campaign Armoury purchases;
-- Recovery Cache;
-- Field Medicae;
-- Disband;
-- retreat and Emergency Evacuation;
-- garrison displacement;
-- base battle income;
-- winner/loser income;
-- stage grants;
-- Ash Meridian income;
-- Salvage roll и 1-Intel re-roll с обязательным вторым результатом;
-- D66 roll/history и 2-Intel re-roll с обязательным вторым результатом;
-- Fleshworks IX: два D66 и выбор winner/Defender;
-- D66 automatic/delayed resolver для 15, 21, 22, 23, 25, 26, 34, 35, 36, 42, 43, 44, 45, 46, 51, 55, 61, 62, 64, 65, 66;
-- D66 player-choice resolver для 11, 12, 13, 14, 24, 31, 32, 33, 41, 52, 53, 54, 56, 63;
-- delayed campaign effects store в `campaigns.settings.pending_effects`;
-- False Orders, Noosphere Static, Broken Map и Ceasefire стратегически применяются автоматически;
-- The Missing Hour: next-own-Activation first Strategic Action roll is server-authoritative; 1–3 consumes the Action without resource cost, 4+ authorizes exactly the chosen action;
-- Hidden Route (35): по одной дальней атаке каждой стороне с server-side Intel spend/usage tracking до следующей battle;
-- The Door Behind the Door (64): случайный SECRET ROUTE token, одно виртуальное соседство для текущего владельца token sector, автоматическое истечение при capture/use;
-- Names in the Static (63): выбор CHARACTER каждой стороной, -1 Casualty при уничтожении или +1 XP при участии и выживании в следующей battle;
-- Auspex Ghost прикрепляется к следующей battle, даёт free Recon Lock и +1 Intel обеим сторонам при двойном использовании;
-- Ammunition Rot прикрепляется к следующей battle и блокирует Campaign Armoury выбранного unit;
-- Bone Bloom автоматически выдаёт winner +10 Supply;
-- Corpse Ledger даёт и расходует +1 к следующему Rehabilitation roll;
-- часть простых mission outcomes: B3, C2, E1, E2, F1, F2, G2, G3, H1, I2;
-- BLACK CHOIR Reveal display;
-- realtime state sync;
-- audit log.
+- Strategic Resource Window Recon/Mobilise и сброс обоих flags после любой tabletop battle;
+- movement, Occupation, Origin, Supply Line, Forced March, Fortify, Sabotage/Counter-Sabotage, Repair Network, Reorganise;
+- Deep Raid, Orbital Lift/Airlift, Glass Wastes, Hidden Route и SECRET ROUTE;
+- Stronghold requirements v2.0: Stage 1000+, adjacent Home, Supplied, контроль G **или 3 Secret Fragments**; War of Attrition; unmanned Home; Integrity 2→1→0; temporary 60% Home Capacity;
+- sector states, включая некумулятивный Unsupplied/Exhausted reinforcement penalty, Disrupted, Contested, Ruined Fortifications и F3 short Sabotage;
+- OBC/RC/Effective Cost split: per-unit OBC фиксируется в Muster, CR surcharge считается от RC;
+- secret Muster с RLS: до reveal соперник не читает чужой `battle_units`; Recon Lock реально раскрывает opponent Committed Force первым;
+- Unit Limits, Initial/Capacity tiers, local-garrison replacement в Field Battle, RESTING, DISPLACED;
+- Tactical/Defensive/Breach Assets, Interdict и post-battle Hard Evacuation/Hardened Stores/Extraction Beacon;
+- Hybrid Attrition, Damage, D12 Battle Scars, fourth-Scar lock;
+- полный Critical Injury D6, Lost/Evacuation, Epic Hero rule, Evacuation payment, Out of Action/Systemic Failure;
+- Participation/Deed/Distinguished XP, Honours, Signature Honours, Campaign Rating;
+- Campaign Armoury, Random Minor Armoury D6, Campaign Relics D6, Veteran Drill;
+- Paid Recovery, Emergency Overhaul, Emergency Field Repair, Recovery Supply, Recovery Cache, Field Medicae, Rehabilitation/Deep Reconstruction;
+- persistent size/loadout refit, Stage Detachment Package, Doctrine Refit и Enhancement assignments/reassignment;
+- campaign-facing Scar effects: Legendary Bounty, Marked by the Watch, Gene-seed Shock, Memory Bleed, Severed Command Link/Node Redemption, Protocol Obsession и Ammunition Debt;
+- retreat/Emergency Evacuation, garrison displacement и post-battle Logistics обеих сторон;
+- Salvage, mandatory rerolls, global D66, Fleshworks 2-roll/D3 3-roll procedure, D66 choice flows и delayed effects;
+- D66 16 по таблице Minor Armoury из v2.0;
+- BLACK CHOIR track, forced Reveals, Investigate Choir, Secret Fragments;
+- основные sector bonuses A–K: A/K recovery/enemy Intel, B victory Intel, C Lift, D recovery/event amplification, E income, F Noctis mission/reactive Intel, G Stronghold/raid/Choir, H long attack, I Rest/Deathwatch Intel/capture salvage, J qualifying garrison discount;
+- campaign outcomes и tabletop-fact inputs для sector missions, включая C1, C3, D1/D2/D3, F3, G1, I1/I3, J2/J3 и остальные простые rewards;
+- Realtime state sync, audit_log и resource_ledger.
+
+Tabletop-only effects не моделируются как виртуальный Warhammer. Сайт хранит/показывает их как reminders или принимает факты после физической battle.
 
 ---
 
 ## 13. Что ещё НЕ считать завершённым
 
-Это важный раздел для handoff. Наличие текста правила в UI не означает, что effect автоматизирован.
+Оставшиеся пункты делятся на реальные source gaps и optional/unsupported automation.
 
-### Высокий приоритет
+### Реальные пробелы самого v2.0 source
 
-1. **Critical Injury CHARACTER.**
-   Сейчас battle aftermath может поставить marker `PENDING CRITICAL INJURY`, но полный Critical Injury flow ещё не автоматизирован.
+1. **Scavenge.** В разделе Strategic Actions сказано только «если sector/mission/event прямо разрешает», а J определяет лишь дополнительное последствие натуральной 1 при Exhausted. Ни reward table, ни сам roll/procedure в v2.0 не определены. Сайт намеренно не выдумывает механику.
+2. **D66 11 и Draw-ветка D66 32 при полном равенстве числа секторов.** PDF выбирает игрока с меньшим числом sectors, но не задаёт tie-break. Сервер намеренно останавливает resolver с понятной ошибкой.
 
-2. **Полное применение D66.**
-   Основной resolver уже существует. Специализированные flows добавлены для 11–14, 24, 31–33, 41, 52–56, 63 и 64; большинство остальных либо применяется сервером, либо превращается в явно показанный next-battle/next-activation effect. D66 16 остаётся намеренно неавтоматизированным: rules source упоминает случайный `Minor Armoury item`, но не даёт таблицу таких предметов. Для D66 11 и Draw-варианта D66 32 источник также не задаёт tie-break при равном числе секторов, поэтому сервер не придумывает его.
+### Опциональная механика v2.0, ещё не реализованная
 
-3. **Sector rules.**
-   Основные persistent bonuses A–K уже закрыты заметно плотнее: A/K recovery и enemy-control Intel, B adjacent-victory Intel, C Airlift, D recovery/D66, E income, F mission/reactive Intel, G Stronghold/raid discount/BLACK CHOIR escalation, H long attack, I Rest/Deathwatch Intel/owner-change salvage, J qualifying garrison discount. Основной крупный пробел сектора J сейчас связан со Scavenge и его interaction с Exhausted; tabletop-only modifiers B/H и отдельные mission-facing bonuses остаются памятками.
+- **Optional Secondary Task Force (STF)** из раздела 35. Основная кампания полностью использует одну Main Force, как базовые правила. STF требует отдельного strategic token/roster/activation selector и должен внедряться отдельным migration pass.
 
-4. **Battle Assets effects.**
-   Tactical/Defensive/Breach Assets рассчитываются, выбираются и сохраняются. Post-battle Casualty effects Hard Evacuation / Hardened Stores / Extraction Beacon уже привязаны к конкретному destroyed unit и валидируются сервером. Остальные tabletop effects, которые происходят непосредственно на столе, остаются памяткой.
+### Сознательно не автоматизируется как tabletop simulator
 
-5. **Mission-specific campaign outcomes.**
-   Автоматически применяются простые outcomes, однозначно выводимые из winner/result: B3, C2, E1, E2, F1, F2, G2, G3, H1, I2. Остальные outcomes, требующие tabletop facts или выбора target/reward, пока должны получать специализированный input.
+- movement, attacks, saves, Battle-shock, CP, objective control и Named Actions во время физической battle;
+- большинство Honour/Relic/Armoury/Battle Scar эффектов, которые непосредственно меняют tabletop roll/position;
+- DP legality и официальный Enhancement legality по Codex/MFM: сайт хранит Detachment Package/assignments и OBC, но официальный army legality остаётся за актуальным Season Snapshot, потому что datasheets/Codex data в проект не импортированы;
+- эффекты, требующие факта с tabletop, заполняются через Battle Report либо остаются явной памяткой.
 
-### Средний приоритет
+### Следующий технический приоритет
 
-- Scavenge.
-- Campaign Relics.
-- Redemption conditions для Scar.
-- Combat Auspex / Veteran Drill, если сохраняются в финальной версии rules.
-- unit size upgrades и points-difference purchase flow.
-- отдельно оцениваемый wargear.
-- Detachment Package / Doctrine Refit UI.
-- Enhancement assignment / reassignment UI.
-- полный legality validator Detachment Points/Enhancements.
-- sector-specific first-capture salvage.
-- complete BLACK CHOIR automatic effects.
-- Legendary Bounty.
-- автоматические Scar-specific XP/behaviour consequences.
+- Optional STF, если вы решаете включать это приложение кампании;
+- добавить automated integration tests для двухаккаунтного state machine;
+- зеркалировать production Supabase schema/migration snapshot в Git для полностью воспроизводимого disaster recovery.
 
 ### Не подменять правила догадками
 
-Если механика в PDF неоднозначна или плохо извлекается, не придумывайте «разумную» реализацию молча. Сначала сверить точную формулировку, затем зафиксировать выбранную интерпретацию в README/коде.
+Если v2.0 PDF не задаёт механику, сервер не должен молча выбирать «разумный» вариант. Зафиксируйте новое правило в PDF/README как проектное решение, затем реализуйте его.
 
 ---
 
@@ -1043,9 +1014,9 @@ Account A creates campaign
 
 Это дефект. Убрать прямую write policy и вынести mutation в RPC.
 
-### «Effective Cost не совпадает с Base Points»
+### «Effective Cost не совпадает с RC»
 
-Это ожидаемо. Покупка идёт по Base Points, battle caps используют Base Points + Campaign Rating surcharge.
+Это ожидаемо. Покупка и Field Roster Cap используют Reference Cost. В конкретной battle игрок указывает Official Battle Cost по Season Snapshot, а сервер добавляет Campaign surcharge от RC.
 
 ### «После боя ход сразу передался»
 
@@ -1146,27 +1117,23 @@ garrison_reinforcement
 - Не переводить authoritative checks из Postgres в React.
 - Не давать authenticated client прямые write policies к campaign state.
 - Не считать текст D66/Asset/mission в UI доказательством автоматизации эффекта. Проверять соответствующий RPC/queued-effect path.
-- Не придумывать недостающие правила. В частности, полный обычный Critical Injury CHARACTER flow пока не подтверждён исходным документом.
+- Не придумывать недостающие правила. Critical Injury, Minor Armoury D6, Relics и прочие механики сначала ищите в `docs/Black_Sepulchre_v2.0_source.txt`; старый v1.2.1 не использовать.
 - Не считать старый успешный Pages deploy доказательством, что последний commit собрался. Всегда сопоставляйте SHA.
 
 ---
 
 ## 23. Current handoff summary
 
-На 2026-10-02 проект уже является рабочим multiplayer campaign command layer, а не макетом.
+На 2026-10-02 production является рабочим multiplayer Campaign Command для **The Black Sepulchre v2.0**. После обнаружения ошибочного обращения к старому v1.2.1 выполнен отдельный reconciliation pass по каноническому v2.0 source.
 
-Главная задача следующего этапа: не переписывать существующий flow, а **закрывать оставшиеся rules gaps поверх текущей server-authoritative архитектуры**.
+Критические v2.0 системы, которые раньше были неполными, уже доведены: RC/OBC/Effective Cost, secret Muster/Recon Lock, Critical Injury, Relics/Minor Armoury, mission reports, Stronghold rules, Resource Window, shared post-battle Logistics, persistent Refit/Doctrine/Enhancements и campaign-facing Scar consequences.
 
-Лучший следующий порядок работ:
+Перед любой следующей задачей:
 
-1. Critical Injury CHARACTER, только после подтверждения полной формулировки в rules source.
-2. D66 16 требует отдельного уточнения таблицы `Minor Armoury item`; отдельно решить tie-break для 11/32 при равном числе секторов. `The Missing Hour` уже автоматизирован.
-3. Расширить mission-specific outcomes, особенно те, которым нужен target/tabletop fact input.
-4. Довести delayed D66 battle effects от UI-reminder до полного automatic enforcement там, где это возможно без моделирования самой tabletop игры.
-5. J Scavenge и оставшиеся sector-specific interactions.
-6. Довести оставшиеся Battle Asset effects, которые можно автоматизировать без моделирования tabletop; Casualty effects Hard Evacuation / Hardened Stores / Extraction Beacon уже работают.
-7. Relics, Detachment/Enhancement management.
-8. unit size upgrades / paid wargear changes.
-9. Автоматические tests для основных state transitions.
+1. считать `Black_Sepulchre_40k11_Campaign_Rules_v2.0_RU.pdf` нормативным документом;
+2. для поиска использовать `docs/Black_Sepulchre_v2.0_source.txt`;
+3. проверить последние production migrations через Supabase;
+4. проверить последний GitHub SHA и оба workflow;
+5. не использовать v1.2.1 как источник.
 
-Перед изменениями сначала проверить последние GitHub commits, `Supabase list_migrations` и production schema. Не предполагать, что этот README новее базы данных.
+Из rules coverage остаются два специально отмеченных source ambiguity: Scavenge и equal-sector tie для D66 11/32. Optional Secondary Task Force пока не реализован. Всё остальное, что происходит непосредственно на tabletop, сайт не симулирует, а хранит как rule reminder или post-battle fact input.
