@@ -93,9 +93,9 @@ function RosterView({units,member,reload}:{units:Unit[];member:Member;reload:()=
  const rank=(xp:number)=>xp>=18?'Legendary':xp>=12?'Elite':xp>=7?'Veteran':xp>=3?'Blooded':'Recruit'
  const render=(rows:Unit[])=><div className="unit-list">{rows.map(u=><div className="unit-row" key={u.id}>
   <div><strong>{u.name}</strong><small>{u.datasheet} · {u.location_type==='field'?'Field Roster':'Garrison '+u.sector_key}</small></div>
-  <div className="stat"><span>Base</span>{u.reference_cost}</div>
+  <div className="stat"><span>RC</span>{u.reference_cost}</div>
   <div className="stat"><span>CR</span>+{u.campaign_rating}%</div>
-  <div className="stat"><span>Effective</span>{u.reference_cost+campaignSurcharge(u.reference_cost,u.campaign_rating)}</div>
+  <div className="stat" title="До Muster OBC не зафиксирован; показана оценка при OBC = RC"><span>EC*</span>{u.reference_cost+campaignSurcharge(u.reference_cost,u.campaign_rating)}</div>
   <div className="stat"><span>XP</span>{u.xp}</div>
   <div className="stat"><span>Rank</span>{rank(u.xp)}</div>
   <div className={'status-pill d'+u.damage}>{u.damage===3?'Shattered':'Damage '+u.damage}</div>
