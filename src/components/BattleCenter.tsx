@@ -266,7 +266,8 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
         auspex_ghost:'Обе стороны получают Recon Lock бесплатно. Если оба используют его, каждый получает +1 Intel после Muster.',
         delayed_reinforcements:'Первый campaign-granted Reserve/Garrison Reinforcement каждой стороны прибывает на round позже.',
         nine_seconds:'В начале round 2 повторите эффект round 1 одной sector Catastrophe; если неприменимо, каждый +1 CP.',
-        black_sun:'Battle round 4 проходит без Benefit of Cover по всему полю.'
+        black_sun:'Battle round 4 проходит без Benefit of Cover по всему полю.',
+        ammunition_rot:`${e.unit_name??'Выбранный unit'} не может использовать Campaign Armoury item в этой battle.`
       } as Record<string,string>)[e.code]??'Campaign effect'}</span>{e.side&&<small>{sideLabel(e.side)}</small>}</div>)}</div>
     </section>}
 
@@ -297,7 +298,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     {bothLocked&&<section className="panel">
       <div className="section-head"><div><div className="eyebrow">TABLETOP RESULT</div><h2>Battle Report</h2></div><Skull/></div>
       <div className="score-grid"><label>{attacker} VP<input type="number" min={0} max={100} value={attVp} onChange={e=>setAttVp(Number(e.target.value))}/></label><label>{defender} VP<input type="number" min={0} max={100} value={defVp} onChange={e=>setDefVp(Number(e.target.value))}/></label><label>Outcome<select value={outcome} onChange={e=>setOutcome(e.target.value)}><option value={scoreOutcome}>{outcomeLabel[scoreOutcome]}</option><option value="attacker_withdrawal">{outcomeLabel.attacker_withdrawal}</option><option value="defender_withdrawal">{outcomeLabel.defender_withdrawal}</option></select></label></div>
-      <div className="result-list">{battleUnits.map(bu=>{const u=units.find(x=>x.id===bu.unit_id);if(!u)return null;const r=resultPicks[bu.unit_id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false};return <div className="result-unit" key={bu.unit_id}>
+      <div className="result-list">{battleUnits.map(bu=>{const u=units.find(x=>x.id===bu.unit_id);if(!u)return null;const r=resultPicks[bu.unit_id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false};const ammoRot=battleEffects.some((e:any)=>e?.code==='ammunition_rot'&&e?.unit_id===bu.unit_id);return <div className="result-unit" key={bu.unit_id}>
         <div><strong>{u.name}</strong><small>{sideLabel(bu.side)} · {bu.resting?'RESTING':bu.role}</small></div>
         {bu.resting&&bu.side==='necrons'&&khepraRestActive&&u.damage>0&&<label title="Necropolis Khepra: один Necron unit за эту Logistics снимает 2 Damage вместо 1."><input type="checkbox" checked={r.khepra_rest} onChange={e=>setKhepraRest(bu.unit_id,e.target.checked)}/> Khepra Rest ×2</label>}
         {!bu.resting&&<><label><input type="checkbox" checked={r.destroyed} onChange={e=>resultPatch(bu.unit_id,{destroyed:e.target.checked})}/> Destroyed</label>
@@ -305,7 +306,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
         <label title={u.damage>=2?'Damage 2+ units cannot be Distinguished':''}><input type="checkbox" checked={r.distinguished} disabled={u.damage>=2} onChange={e=>resultPatch(bu.unit_id,{distinguished:e.target.checked})}/> Distinguished</label>
         <label>Casualty mod<input className="mini" type="number" min={-3} max={3} value={r.casualty_modifier} disabled={!r.destroyed} onChange={e=>resultPatch(bu.unit_id,{casualty_modifier:Number(e.target.value)})}/></label>
         <label>Mission XP<input className="mini" type="number" min={0} max={5} value={r.mission_xp} onChange={e=>resultPatch(bu.unit_id,{mission_xp:Number(e.target.value)})}/></label>
-        {r.destroyed&&u.armoury?.some((a:any)=>a?.code==='field_medicae')&&<label><input type="checkbox" checked={r.use_medicae} onChange={e=>resultPatch(bu.unit_id,{use_medicae:e.target.checked})}/> Auto-use Medicae if Damage</label>}</>}
+        {r.destroyed&&u.armoury?.some((a:any)=>a?.code==='field_medicae')&&<label title={ammoRot?'Ammunition Rot blocks Campaign Armoury this battle':''}><input type="checkbox" checked={r.use_medicae} disabled={ammoRot} onChange={e=>resultPatch(bu.unit_id,{use_medicae:e.target.checked})}/> {ammoRot?'Medicae blocked · Ammunition Rot':'Auto-use Medicae if Damage'}</label>}</>}
       </div>})}</div>
 
       {(outcome==='attacker_win'||outcome==='defender_withdrawal')&&pending.battle_type!=='Stronghold Assault'&&<div className="retreat-grid">
