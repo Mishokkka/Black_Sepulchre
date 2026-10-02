@@ -59,7 +59,7 @@ export default function SpecialMovementPanel({
     const{data,error}=await supabase.rpc('activation_hidden_route_attack',{p_activation:activationId,p_target:hiddenTarget})
     setWorking(false)
     if(error){setMsg(error.message);return}
-    onResolved(data,`Hidden Route attack declared on sector ${hiddenTarget} for 1 Intel.`)
+    onResolved(data,`Hidden Route attack declared on sector ${hiddenTarget}. Intel cost ${data.intel_cost}${data.g_discount?' · G stage discount':''}.`)
   }
 
   const canC=startSector==='C'&&currentSector==='C'&&!orbitalDisabled
@@ -74,7 +74,7 @@ export default function SpecialMovementPanel({
         {routeOwner===member.side&&<div className="inline-control"><select value={routeTarget} onChange={e=>setRouteTarget(e.target.value)}><option value="">Destination</option>{routeTargets.map(s=><option key={s.sector_key} value={s.sector_key}>{s.sector_key} · {s.name}{s.owner_side===member.side?' · friendly':s.owner_side?' · enemy':' · neutral'}</option>)}</select><button className="ghost" disabled={working||!routeTarget} onClick={secretRouteMove}>Use route</button></div>}
       </div>}
       {hiddenRouteAvailable&&<div><div><Radar/><span><strong>Hidden Route</strong><small>D66 35 · один раз вашей стороне до следующей tabletop battle: enemy sector ровно в двух связях за 1 Intel.</small></span></div>
-        <div className="inline-control"><select value={hiddenTarget} onChange={e=>setHiddenTarget(e.target.value)}><option value="">Цель</option>{enemyTwo.map(s=><option key={s.sector_key} value={s.sector_key}>{s.sector_key} · {s.name}</option>)}</select><button className="ghost" disabled={working||intelligence<1||!hiddenTarget} onClick={hiddenRouteAttack}>1 Intel</button></div>
+        <div className="inline-control"><select value={hiddenTarget} onChange={e=>setHiddenTarget(e.target.value)}><option value="">Цель</option>{enemyTwo.map(s=><option key={s.sector_key} value={s.sector_key}>{s.sector_key} · {s.name}</option>)}</select><button className="ghost" disabled={working||!hiddenTarget} onClick={hiddenRouteAttack}>0–1 Intel</button></div>
       </div>}
       {orbitalDisabled&&startSector==='C'&&currentSector==='C'&&<div className="notice">Broken Map: Orbital Ossuary Lift отключён до конца следующей tabletop battle.</div>}
       {canC&&<><div><div><Orbit/><span><strong>Orbital Airlift</strong><small>1 MP · controlled supplied sector до двух связей от C</small></span></div>
