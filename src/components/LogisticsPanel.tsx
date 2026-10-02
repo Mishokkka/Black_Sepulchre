@@ -31,7 +31,7 @@ export default function LogisticsPanel({
   }
   async function buy(){
     const cost=Number(form.cost)
-    if(!form.name.trim()||!form.datasheet.trim()||!Number.isFinite(cost)||cost<=0){setMsg('Укажите имя, datasheet и Base Points.');return}
+    if(!form.name.trim()||!form.datasheet.trim()||!Number.isFinite(cost)||cost<=0){setMsg('Укажите имя, datasheet и Reference Cost (RC).');return}
     const r=await rpc('logistics_buy_unit',{
       p_activation:activationId,p_name:form.name,p_datasheet:form.datasheet,p_reference_cost:cost,p_location_type:form.location,
       p_garrison_class:form.garrisonClass,p_size_label:form.size,
@@ -77,7 +77,7 @@ export default function LogisticsPanel({
       <div className="buy-form">
         <label>Имя<input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Immortals Alpha"/></label>
         <label>Datasheet<input value={form.datasheet} onChange={e=>setForm({...form,datasheet:e.target.value})} placeholder="Immortals"/></label>
-        <label>Base Points<input type="number" min={1} value={form.cost} onChange={e=>setForm({...form,cost:e.target.value})}/></label>
+        <label>Reference Cost (RC)<input type="number" min={1} value={form.cost} onChange={e=>setForm({...form,cost:e.target.value})}/></label>
         <label>Размер / заметка<input value={form.size} onChange={e=>setForm({...form,size:e.target.value})} placeholder="10 models"/></label>
         <label>Куда<select value={form.location} onChange={e=>setForm({...form,location:e.target.value})}><option value="field">Field Roster</option><option value="garrison">Local Garrison</option></select></label>
         {form.location==='garrison'&&<label>Garrison class<select value={form.garrisonClass} onChange={e=>setForm({...form,garrisonClass:e.target.value})}><option value="core">Core</option><option value="heavy">Heavy</option></select></label>}
@@ -90,7 +90,7 @@ export default function LogisticsPanel({
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">RECOVERY</div><h2>Persistent units</h2></div><RotateCcw/></div>
       <div className="logistics-units">{mine.map(u=><div key={u.id} className="logistics-unit">
-        <div><strong>{u.name}</strong><small>{u.location_type==='field'?'Field Roster':`Garrison ${u.sector_key}`} · Base {u.reference_cost} · XP {u.xp}</small></div>
+        <div><strong>{u.name}</strong><small>{u.location_type==='field'?'Field Roster':`Garrison ${u.sector_key}`} · RC {u.reference_cost} · XP {u.xp}</small></div>
         <span className={'damage-badge d'+u.damage}>Damage {u.damage}</span>
         <button className="ghost compact" disabled={working||u.damage===0} onClick={()=>recover(u)}><RotateCcw size={14}/> Recover</button>
         <button className="ghost compact danger" disabled={working} onClick={()=>disband(u)}><Trash2 size={14}/></button>
