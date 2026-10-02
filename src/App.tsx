@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { Activity, BookOpen, Copy, LogOut, Map, RefreshCw, Shield, Skull, Swords, Users, Footprints } from 'lucide-react'
 import StrategicPanel from './components/StrategicPanel'
+import BattleCenter from './components/BattleCenter'
 import { supabase } from './lib/supabase'
 import { ADJACENCY, SECTOR_META, STAGES, campaignSurcharge, recoveryCost, stageIndexForBattles } from './data/campaign'
 import type { Campaign, Member, PlayerState, Sector, Unit } from './types'
@@ -118,7 +119,7 @@ function App(){
   supabase.from('campaigns').select('*').eq('id',campaignId).single(),supabase.from('campaign_members').select('*').eq('campaign_id',campaignId).eq('user_id',session.user.id).single(),supabase.from('players').select('*').eq('campaign_id',campaignId).order('side'),supabase.from('sectors').select('*').eq('campaign_id',campaignId).order('sector_key'),supabase.from('units').select('*').eq('campaign_id',campaignId).order('side').order('created_at'),supabase.from('audit_log').select('*').eq('campaign_id',campaignId).order('created_at',{ascending:false}).limit(40)])
   if(c.data)setCampaign(c.data as Campaign);if(m.data)setMember(m.data as Member);setPlayers((p.data??[]) as PlayerState[]);setSectors((s.data??[]) as Sector[]);setUnits((u.data??[]) as Unit[]);setLogs(l.data??[]);setBusy(false)},[campaignId,session])
  useEffect(()=>{load()},[load])
- useEffect(()=>{if(!campaignId)return;const ch=supabase.channel('campaign-'+campaignId);['players','sectors','units','activations','battles','audit_log'].forEach(table=>{ch.on('postgres_changes',{event:'*',schema:'public',table,filter:'campaign_id=eq.'+campaignId},()=>load())});ch.on('postgres_changes',{event:'*',schema:'public',table:'campaigns',filter:'id=eq.'+campaignId},()=>load());ch.subscribe();return()=>{supabase.removeChannel(ch)}},[campaignId,load])
+ useEffect(()=>{if(!campaignId)return;const ch=supabase.channel('campaign-'+campaignId);['players','sectors','units','activations','battles','battle_units','campaign_events','audit_log'].forEach(table=>{ch.on('postgres_changes',{event:'*',schema:'public',table,filter:'campaign_id=eq.'+campaignId},()=>load())});ch.on('postgres_changes',{event:'*',schema:'public',table:'campaigns',filter:'id=eq.'+campaignId},()=>load());ch.subscribe();return()=>{supabase.removeChannel(ch)}},[campaignId,load])
  if(!session)return <AuthScreen/>;if(!campaignId)return <CampaignGate onReady={setCampaignId}/>;if(!campaign||!member)return <main className="loading"><RefreshCw className="spin"/>Загрузка кампании…</main>
  const stage=STAGES[stageIndexForBattles(campaign.battle_count)],me=players.find(p=>p.side===member.side),enemy=players.find(p=>p.side!==member.side)
  const rosterRC=units.filter(u=>u.side===member.side&&u.location_type==='field').reduce((a,u)=>a+u.reference_cost,0)
@@ -133,7 +134,7 @@ function App(){
    {tab==='strategy'&&<StrategicPanel campaign={campaign} member={member} players={players} sectors={sectors} reload={load} onOpenBattles={()=>setTab('battles')}/>} 
    {tab==='map'&&<section className="panel map-page"><MapView sectors={sectors} players={players} selected={selectedSector} onSelect={setSelectedSector}/></section>}
    {tab==='rosters'&&<RosterView units={units} member={member} reload={load}/>}
-   {tab==='battles'&&<section className="panel empty-state"><Swords size={42}/><h2>Battle workflow</h2><p>Muster → ввод результата tabletop battle → automatic Aftermath. Схема battle/battle_units уже создана; интерфейс будет подключён следующим модулем.</p></section>}
+   {tab==='battles'&&<BattleCenter campaign={campaign} member={member} players={players} sectors={sectors} units={units} reload={load}/>}
    {tab==='log'&&<section className="panel"><div className="section-head"><div><div className="eyebrow">AUDIT LOG</div><h2>История кампании</h2></div></div><div className="log-list">{logs.map(l=><div key={l.id}><time>{new Date(l.created_at).toLocaleString('ru')}</time><strong>{l.action}</strong><span>{l.entity_type} {l.entity_id??''}</span></div>)}</div></section>}
   </main></div>
 }
