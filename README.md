@@ -766,10 +766,13 @@ login
 - Salvage roll и 1-Intel re-roll с обязательным вторым результатом;
 - D66 roll/history и 2-Intel re-roll с обязательным вторым результатом;
 - Fleshworks IX: два D66 и выбор winner/Defender;
-- D66 automatic/delayed resolver для 15, 21, 22, 23, 25, 26, 34, 35, 36, 42, 43, 44, 45, 46, 51, 55, 61, 62, 65, 66;
-- D66 player-choice resolver для 24, 31, 33, 41, 52, 53, 54, 56;
+- D66 automatic/delayed resolver для 15, 21, 22, 23, 25, 26, 34, 35, 36, 42, 43, 44, 45, 46, 51, 55, 61, 62, 64, 65, 66;
+- D66 player-choice resolver для 11, 12, 13, 14, 24, 31, 32, 33, 41, 52, 53, 54, 56, 63;
 - delayed campaign effects store в `campaigns.settings.pending_effects`;
 - False Orders, Noosphere Static, Broken Map и Ceasefire стратегически применяются автоматически;
+- Hidden Route (35): по одной дальней атаке каждой стороне с server-side Intel spend/usage tracking до следующей battle;
+- The Door Behind the Door (64): случайный SECRET ROUTE token, одно виртуальное соседство для текущего владельца token sector, автоматическое истечение при capture/use;
+- Names in the Static (63): выбор CHARACTER каждой стороной, -1 Casualty при уничтожении или +1 XP при участии и выживании в следующей battle;
 - Auspex Ghost прикрепляется к следующей battle, даёт free Recon Lock и +1 Intel обеим сторонам при двойном использовании;
 - Ammunition Rot прикрепляется к следующей battle и блокирует Campaign Armoury выбранного unit;
 - Bone Bloom автоматически выдаёт winner +10 Supply;
@@ -791,7 +794,7 @@ login
    Сейчас battle aftermath может поставить marker `PENDING CRITICAL INJURY`, но полный Critical Injury flow ещё не автоматизирован.
 
 2. **Полное применение D66.**
-   Основной resolver уже существует. Полностью или частично автоматизированы 28/36 результатов. Ещё требуют специализированного flow события 11, 12, 13, 14, 16, 32, 63, 64. Для 16 rules source не определяет таблицу `Minor Armoury item`, поэтому реализацию нельзя додумывать.
+   Основной resolver уже существует. Специализированные flows добавлены для 11–14, 24, 31–33, 41, 52–56, 63 и 64; большинство остальных либо применяется сервером, либо превращается в явно показанный next-battle/next-activation effect. D66 16 остаётся намеренно неавтоматизированным: rules source упоминает случайный `Minor Armoury item`, но не даёт таблицу таких предметов. Для D66 11 и Draw-варианта D66 32 источник также не задаёт tie-break при равном числе секторов, поэтому сервер не придумывает его.
 
 3. **Sector rules.**
    D double-D66, F double mission choice и I enhanced Rest уже работают. Основной крупный пробел сектора J сейчас связан со Scavenge и его interaction с Exhausted; остаются отдельные mission-facing bonuses/penalties.
@@ -915,6 +918,12 @@ Realtime используется не только для удобства. К�
 - `d66_player_choice_events`
 - `ammunition_rot_next_battle_enforcement`
 - `automatic_mission_campaign_outcomes`
+- `d66_global_reward_choices`
+- `d66_cache_shards_recovery_crew`
+- `d66_names_in_static`
+- `d66_secret_route`
+- `d66_hidden_route_attack`
+- `fix_names_in_static_survival`
 
 Перед новым handoff первым делом выполните Supabase `list_migrations`, потому что production DB может быть новее этого README.
 
@@ -1143,7 +1152,7 @@ garrison_reinforcement
 Лучший следующий порядок работ:
 
 1. Critical Injury CHARACTER, только после подтверждения полной формулировки в rules source.
-2. Закрыть оставшиеся D66 11/12/13/14/32/63/64; D66 16 требует отдельного уточнения rules source.
+2. D66 16 требует отдельного уточнения таблицы `Minor Armoury item`; отдельно решить tie-break для 11/32 при равном числе секторов. Довести `The Missing Hour` до полного automatic first-Strategic-Action gate.
 3. Расширить mission-specific outcomes, особенно те, которым нужен target/tabletop fact input.
 4. Довести delayed D66 battle effects от UI-reminder до полного automatic enforcement там, где это возможно без моделирования самой tabletop игры.
 5. J Scavenge и оставшиеся sector-specific interactions.
