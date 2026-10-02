@@ -21,6 +21,9 @@ interface Activation {
   actions:any[]
   movement:any[]
   status:'open'|'reaction_pending'|'battle_pending'|'logistics'|'completed'|'cancelled'
+  missing_hour_status:string|null
+  missing_hour_action:string|null
+  missing_hour_roll:number|null
 }
 
 const label=(s:string|null)=>s==='necrons'?'Necrons':s==='deathwatch'?'Deathwatch':'Neutral'
@@ -96,6 +99,47 @@ export default function StrategicPanel({
     return {data,error}
   }
 
+  async function runStrategicAction(type:string,name:string,args:Record<string,unknown>,success:string){
+    if(!activation)return
+    setWorking(true);setMsg('')
+    let prefix=''
+    if(activation.missing_hour_status==='pending'){
+      const prep=await supabase.rpc('activation_missing_hour_prepare',{p_activation:activation.id,p_action:type})
+      if(prep.error){setWorking(false);setMsg(prep.error.message);return}
+      prefix=`The Missing Hour D6=${prep.data.roll}: `
+      if(!prep.data.success){
+        setWorking(false)
+        setMsg(prefix+'действие потеряно, resource cost не платится.')
+        await refresh()
+        return
+      }
+    }
+    const{error}=await supabase.rpc(name,args)
+    setWorking(false)
+    if(error){setMsg(prefix+error.message);await refresh();return}
+    setMsg(prefix+success)
+    await refresh()
+  }
+
+  async function openReorganise(){
+    if(!activation)return
+    setWorking(true);setMsg('')
+    if(activation.missing_hour_status==='pending'){
+      const prep=await supabase.rpc('activation_missing_hour_prepare',{p_activation:activation.id,p_action:'reorganise'})
+      if(prep.error){setWorking(false);setMsg(prep.error.message);return}
+      if(!prep.data.success){
+        setWorking(false)
+        setMsg(`The Missing Hour D6=${prep.data.roll}: Reorganise Forces потеряно без resource cost.`)
+        await refresh()
+        return
+      }
+      setMsg(`The Missing Hour D6=${prep.data.roll}: Reorganise Forces может быть выполнено.`)
+    }
+    setWorking(false)
+    setShowReorganise(true)
+    await fetchActivation()
+  }
+
   async function setFirst(side:'necrons'|'deathwatch'){
     await rpc('set_first_player',{p_campaign:campaign.id,p_side:side},'Первый игрок зафиксирован.')
   }
@@ -160,6 +204,9 @@ export default function StrategicPanel({
   }
 
   const actionUsed=(type:string)=>activation.actions?.some(a=>a.type===type)
+  const missingHourPending=activation.missing_hour_status==='pending'
+  const missingHourAuthorized=activation.missing_hour_status==='authorized'?activation.missing_hour_action:null
+  const actionAllowed=(type:string)=>!missingHourAuthorized||missingHourAuthorized===type
   const canAct=isMyTurn&&activation.side===member.side&&activation.actions_available>0
   const mobiliseBlocked=!!me?.resource_mobilise_used
   const reconBlocked=!!me?.resource_recon_used
@@ -191,14 +238,16 @@ export default function StrategicPanel({
 
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">STRATEGIC ACTIONS</div><h2>Действия</h2></div><BatteryCharging/></div>
+      {missingHourPending&&<div className="notice">The Missing Hour: первое нажатое Strategic Action автоматически бросит D6. На 1–3 Action тратится без эффекта и без resource cost; на 4+ выполняется нормально.</div>}
+      {missingHourAuthorized&&<div className="notice">The Missing Hour D6={activation.missing_hour_roll}: первым действием зафиксирован <strong>{missingHourAuthorized}</strong>. Выполните его или завершите Activation.</div>}
       <div className="action-list">
-        <button disabled={working||!canAct||reconBlocked||actionUsed('recon')||(noosphereStatic&&(me?.intelligence??0)<1)} onClick={()=>rpc('activation_recon',{p_activation:activation.id},noosphereStatic?'Recon under Noosphere Static resolved.':'+1 Intelligence.')}><Eye/><span><strong>Recon</strong><small>{reconBlocked?'Недоступно до battle/Occupation':noosphereStatic?'Noosphere Static: 1 Intel fee · затем +1 Intel':'+1 Intelligence'}</small></span></button>
-        <button disabled={working||!canAct||mobiliseBlocked||current?.sector_class==='Home Stronghold'||!currentSupplied||actionUsed('mobilise')} onClick={()=>rpc('activation_mobilise',{p_activation:activation.id},'Mobilise: +'+mobGain+' Supply; сектор Exhausted.')}><BatteryCharging/><span><strong>Mobilise</strong><small>+{mobGain} Supply · Exhausted 2</small></span></button>
-        <button disabled={working||!canAct||actionUsed('forced_march')} onClick={()=>rpc('activation_forced_march',{p_activation:activation.id},'+1 March Point.')}><Footprints/><span><strong>Forced March</strong><small>+1 MP · без нового garrison в конце</small></span></button>
-        <button disabled={working||!canAct||!!current?.fortified||!currentSupplied||actionUsed('fortify')||(me?.supply??0)<fortCost} onClick={()=>rpc('activation_fortify',{p_activation:activation.id},'Fortified. Потрачено '+fortCost+' Supply.')}><Castle/><span><strong>Fortify</strong><small>{fortCost} Supply</small></span></button>
-        <button disabled={working||!canAct||actionUsed('reorganise')} onClick={()=>setShowReorganise(true)}><Wrench/><span><strong>Reorganise Forces</strong><small>Field Roster ↔ local garrison</small></span></button>
-        {revealII&&<button disabled={working||!canAct||!canInvestigate||actionUsed('investigate_choir')||(me?.intelligence??0)<1} onClick={()=>rpc('activation_investigate_choir',{p_activation:activation.id},'Investigate Choir resolved.')}><Radio/><span><strong>Investigate Choir</strong><small>1 Intel · у G после Reveal II</small></span></button>}
-        {conditionList.filter(c=>c==='Exhausted'||c==='Sabotaged').map(c=><button key={c} disabled={working||!canAct} onClick={()=>rpc('activation_repair_network',{p_activation:activation.id,p_condition:c},'Снято состояние '+c+'.')}><Wrench/><span><strong>Repair Network</strong><small>Снять {c}</small></span></button>)}
+        <button disabled={working||!canAct||!actionAllowed('recon')||reconBlocked||actionUsed('recon')||(noosphereStatic&&(me?.intelligence??0)<1)} onClick={()=>runStrategicAction('recon','activation_recon',{p_activation:activation.id},noosphereStatic?'Recon under Noosphere Static resolved.':'+1 Intelligence.')}><Eye/><span><strong>Recon</strong><small>{reconBlocked?'Недоступно до battle/Occupation':noosphereStatic?'Noosphere Static: 1 Intel fee · затем +1 Intel':'+1 Intelligence'}</small></span></button>
+        <button disabled={working||!canAct||!actionAllowed('mobilise')||mobiliseBlocked||current?.sector_class==='Home Stronghold'||!currentSupplied||actionUsed('mobilise')} onClick={()=>runStrategicAction('mobilise','activation_mobilise',{p_activation:activation.id},'Mobilise: +'+mobGain+' Supply; сектор Exhausted.')}><BatteryCharging/><span><strong>Mobilise</strong><small>+{mobGain} Supply · Exhausted 2</small></span></button>
+        <button disabled={working||!canAct||!actionAllowed('forced_march')||actionUsed('forced_march')} onClick={()=>runStrategicAction('forced_march','activation_forced_march',{p_activation:activation.id},'+1 March Point.')}><Footprints/><span><strong>Forced March</strong><small>+1 MP · без нового garrison в конце</small></span></button>
+        <button disabled={working||!canAct||!actionAllowed('fortify')||!!current?.fortified||!currentSupplied||actionUsed('fortify')||(me?.supply??0)<fortCost} onClick={()=>runStrategicAction('fortify','activation_fortify',{p_activation:activation.id},'Fortified. Потрачено '+fortCost+' Supply.')}><Castle/><span><strong>Fortify</strong><small>{fortCost} Supply</small></span></button>
+        <button disabled={working||!canAct||!actionAllowed('reorganise')||actionUsed('reorganise')} onClick={openReorganise}><Wrench/><span><strong>Reorganise Forces</strong><small>Field Roster ↔ local garrison</small></span></button>
+        {revealII&&<button disabled={working||!canAct||!actionAllowed('investigate_choir')||!canInvestigate||actionUsed('investigate_choir')||(me?.intelligence??0)<1} onClick={()=>runStrategicAction('investigate_choir','activation_investigate_choir',{p_activation:activation.id},'Investigate Choir resolved.')}><Radio/><span><strong>Investigate Choir</strong><small>1 Intel · у G после Reveal II</small></span></button>}
+        {conditionList.filter(c=>c==='Exhausted'||c==='Sabotaged').map(c=><button key={c} disabled={working||!canAct||!actionAllowed('repair_network')} onClick={()=>runStrategicAction('repair_network','activation_repair_network',{p_activation:activation.id,p_condition:c},'Снято состояние '+c+'.')}><Wrench/><span><strong>Repair Network</strong><small>Снять {c}</small></span></button>)}
       </div>
     </section>
 
@@ -206,8 +255,8 @@ export default function StrategicPanel({
       <div className="section-head"><div><div className="eyebrow">SABOTAGE</div><h2>Соседняя вражеская сеть</h2></div><Hammer/></div>
       {enemyNeighbors.length?<><select value={sabotageTarget} onChange={e=>setSabotageTarget(e.target.value)}><option value="">Выберите сектор</option>{enemyNeighbors.map(k=><option key={k} value={k}>{k} · {sectors.find(s=>s.sector_key===k)?.name}</option>)}</select>
       <div className="button-row">
-        <button className="ghost" disabled={working||!canAct||!sabotageTarget||actionUsed('sabotage')||(me?.intelligence??0)<(noosphereStatic?2:1)} onClick={()=>rpc('activation_sabotage',{p_activation:activation.id,p_target:sabotageTarget,p_auto:false})}>{noosphereStatic?'2':'1'} Intel · бросок 4+</button>
-        <button className="ghost" disabled={working||!canAct||!sabotageTarget||actionUsed('sabotage')||(me?.intelligence??0)<(noosphereStatic?3:2)} onClick={()=>rpc('activation_sabotage',{p_activation:activation.id,p_target:sabotageTarget,p_auto:true})}>{noosphereStatic?'3':'2'} Intel · автоуспех</button>
+        <button className="ghost" disabled={working||!canAct||!actionAllowed('sabotage')||!sabotageTarget||actionUsed('sabotage')||(me?.intelligence??0)<(noosphereStatic?2:1)} onClick={()=>runStrategicAction('sabotage','activation_sabotage',{p_activation:activation.id,p_target:sabotageTarget,p_auto:false},'Sabotage resolved.')}>{noosphereStatic?'2':'1'} Intel · бросок 4+</button>
+        <button className="ghost" disabled={working||!canAct||!actionAllowed('sabotage')||!sabotageTarget||actionUsed('sabotage')||(me?.intelligence??0)<(noosphereStatic?3:2)} onClick={()=>runStrategicAction('sabotage','activation_sabotage',{p_activation:activation.id,p_target:sabotageTarget,p_auto:true},'Sabotage resolved.')}>{noosphereStatic?'3':'2'} Intel · автоуспех</button>
       </div></>:<p className="muted">Нет соседних enemy-controlled секторов.</p>}
     </section>
 
