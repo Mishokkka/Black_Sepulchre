@@ -269,7 +269,9 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
         nine_seconds:'В начале round 2 повторите эффект round 1 одной sector Catastrophe; если неприменимо, каждый +1 CP.',
         black_sun:'Battle round 4 проходит без Benefit of Cover по всему полю.',
         ammunition_rot:`${e.unit_name??'Выбранный unit'} не может использовать Campaign Armoury item в этой battle.`,
-        free_recon_lock:`${sideLabel(e.side)} получает Recon Lock бесплатно в этой battle.`
+        free_recon_lock:`${sideLabel(e.side)} получает Recon Lock бесплатно в этой battle.`,
+        names_in_static:`${e.unit_name??'Выбранный CHARACTER'}: если участвует и выживает, +1 XP; если уничтожен, Casualty Roll -1.`,
+        hidden_route:'Hidden Route действует только до конца этой tabletop battle и после неё истекает.'
       } as Record<string,string>)[e.code]??'Campaign effect'}</span>{e.side&&<small>{sideLabel(e.side)}</small>}</div>)}</div>
     </section>}
 
