@@ -185,7 +185,7 @@ export default function StrategicPanel({
       </div>
     </section>
 
-    <SpecialMovementPanel activationId={activation.id} startSector={activation.start_sector} currentSector={me?.main_force_sector??activation.start_sector} member={member} sectors={sectors} intelligence={me?.intelligence??0} orbitalDisabled={brokenMap} onResolved={async(data,message)=>{setMsg(message);await refresh();if(data?.kind==='battle')onOpenBattles()}}/>
+    <SpecialMovementPanel activationId={activation.id} startSector={activation.start_sector} currentSector={me?.main_force_sector??activation.start_sector} member={member} sectors={sectors} intelligence={me?.intelligence??0} orbitalDisabled={brokenMap} secretRouteSector={campaign.settings?.secret_route?.sector??null} onResolved={async(data,message)=>{setMsg(message);await refresh();if(data?.kind==='battle')onOpenBattles()}}/>
 
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">STRATEGIC ACTIONS</div><h2>Действия</h2></div><BatteryCharging/></div>
