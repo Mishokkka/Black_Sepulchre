@@ -36,16 +36,20 @@ export default function BattleAssets({
     return {attacker:total(battle.attacker_side),defender:total(battle.defender_side)}
   },[battleUnits,units,battle.attacker_side,battle.defender_side])
 
+  const hasLocalGarrison=useMemo(()=>units.some(u=>u.side===battle.defender_side&&u.location_type==='garrison'&&u.sector_key===battle.sector_key&&u.status!=='lost'),[units,battle.defender_side,battle.sector_key])
+  const hasReinforcementPool=useMemo(()=>battleUnits.some(b=>b.side===battle.defender_side&&b.participated&&b.role==='garrison_reinforcement'),[battleUnits,battle.defender_side])
+
   const underdog=useMemo(()=>{
-    if(battle.battle_type!=='Field Battle'||totals.attacker===totals.defender)return {side:null as Side|null,slots:0,gap:0}
+    if(battle.battle_type!=='Field Battle'||hasLocalGarrison||totals.attacker===totals.defender)return {side:null as Side|null,slots:0,gap:0,pct:0}
     const gap=Math.abs(totals.attacker-totals.defender)
-    const pct=gap/stage.armyLimit
+    const larger=Math.max(totals.attacker,totals.defender)
+    const pct=larger>0?gap/larger:0
     const slots=pct<.10?0:pct<.20?1:pct<.30?2:3
-    return {side:slots?totals.attacker<totals.defender?battle.attacker_side:battle.defender_side:null,slots,gap}
-  },[battle.battle_type,totals,stage.armyLimit,battle.attacker_side,battle.defender_side])
+    return {side:slots?totals.attacker<totals.defender?battle.attacker_side:battle.defender_side:null,slots,gap,pct}
+  },[battle.battle_type,hasLocalGarrison,totals,battle.attacker_side,battle.defender_side])
 
   const defensiveSlots=side===battle.defender_side&&sector?.fortified&&!sector.conditions?.includes('Sabotaged')&&!(sector.sector_key==='E'&&sector.conditions?.includes('Exhausted'))?1:0
-  const breachSlots=side===battle.attacker_side&&battle.battle_type!=='Stronghold Assault'?(sector?.fortified?2:sector?.sector_class==='Strategic Node'?1:0):0
+  const breachSlots=side===battle.attacker_side&&battle.battle_type!=='Stronghold Assault'&&hasReinforcementPool?(sector?.fortified?2:sector?.sector_class==='Strategic Node'?1:0):0
   const tacticalSlots=underdog.side===side?underdog.slots:0
   const bannedAsset=side===battle.attacker_side?battle.defender_interdict:battle.attacker_interdict
 
@@ -77,7 +81,7 @@ export default function BattleAssets({
     {!hasAnything&&<p className="muted">Для вашей стороны в этой battle дополнительных Campaign Assets нет.</p>}
 
     {tacticalSlots>0&&<div className="asset-group">
-      <h3>Tactical Assets · Underdog gap {underdog.gap} / Army Limit {stage.armyLimit}</h3>
+      <h3>Tactical Assets · Underdog gap {underdog.gap} · {Math.round(underdog.pct*100)}% of larger Field force</h3>
       <div className="asset-options">{TACTICAL_ASSETS.filter(a=>!(battle.sector_key==='H'&&a.code==='Prepared Barricades')&&a.code!==bannedAsset).map(a=><label className={tactical.includes(a.code)?'asset-option selected':'asset-option'} key={a.code}>
         <input type="checkbox" checked={tactical.includes(a.code)} onChange={()=>toggle(tactical,setTactical,a.code,tacticalSlots)}/>
         <span><strong>{a.code}</strong><small>{a.effect}</small></span>
