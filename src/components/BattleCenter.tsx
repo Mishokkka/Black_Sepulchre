@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Check, Dices, LockKeyhole, RefreshCw, Skull, Swords } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { ADJACENCY, MISSIONS, STAGES, campaignSurcharge, stageIndexForBattles } from '../data/campaign'
+import { ADJACENCY, BREACH_ASSETS, MISSIONS, STAGES, TACTICAL_ASSETS, campaignSurcharge, stageIndexForBattles } from '../data/campaign'
 import type { Campaign, Member, PlayerState, Sector, Unit } from '../types'
 import BattleAssets from './BattleAssets'
 
@@ -12,6 +12,7 @@ type Battle={
   attacker_vp:number;defender_vp:number;outcome:string|null;status:'draft'|'completed';
   attacker_muster_locked:boolean;defender_muster_locked:boolean;salvage_attacker:number|null;salvage_defender:number|null;
   attacker_tactical_assets:string[];defender_tactical_assets:string[];defensive_asset:string|null;breach_assets:string[];
+  recon_lock_sides:string[];attacker_interdict:string|null;defender_interdict:string|null;
   event_code:string|null;aftermath:any;report:any;created_at:string;completed_at:string|null
 }
 type BattleUnit={
@@ -39,7 +40,13 @@ function supplied(side:string,sector:string,sectors:Sector[]){
 }
 
 function caps(battle:Battle,campaign:Campaign,sectors:Sector[]){
-  const stage=STAGES[stageIndexForBattles(campaign.battle_count)],s=sectors.find(x=>x.sector_key===battle.sector_key)
+  const stage=STAGES[stageIndexForBattles(campaign.battle_count)]
+  const reconSides=pending?.recon_lock_sides??[]
+  const ownRecon=reconSides.includes(member.side)
+  const bothRecon=reconSides.length>=2
+  const ownInterdict=pending?(member.side===pending.attacker_side?pending.attacker_interdict:pending.defender_interdict):null
+  const enemyInterdict=pending?(member.side===pending.attacker_side?pending.defender_interdict:pending.attacker_interdict):null
+  const interdictOptions=[...TACTICAL_ASSETS,...BREACH_ASSETS],s=sectors.find(x=>x.sector_key===battle.sector_key)
   if(!s)return {initial:0,reserve:0,arrival:3}
   let ip=s.sector_class==='Home Stronghold'?100:s.fortified?100:s.sector_class==='Strategic Node'?75:50
   let rp=s.sector_class==='Home Stronghold'?75:s.fortified?50:s.sector_class==='Strategic Node'?35:25
@@ -59,6 +66,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   const[defRetreat,setDefRetreat]=useState(''),[garRetreat,setGarRetreat]=useState('')
   const[attSalvage,setAttSalvage]=useState('supply'),[defSalvage,setDefSalvage]=useState('supply')
   const[narrative,setNarrative]=useState('')
+  const[interdictAsset,setInterdictAsset]=useState('')
   const[msg,setMsg]=useState(''),[working,setWorking]=useState(false)
 
   const fetchBattles=useCallback(async()=>{
@@ -107,6 +115,18 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     else{setMsg(success??'Готово.');await refresh()}
     setWorking(false)
     return {data,error}
+  }
+
+  async function useReconLock(){
+    if(!pending)return
+    const r=await rpc('battle_use_recon_lock',{p_battle:pending.id},'Recon Lock активирован.')
+    if(r.data?.both)setMsg('Обе стороны используют Recon Lock: Muster раскрывается одновременно.')
+  }
+
+  async function useInterdict(){
+    if(!pending||!interdictAsset)return
+    const r=await rpc('battle_use_interdict',{p_battle:pending.id,p_asset:interdictAsset},`Interdict: ${interdictAsset} запрещён противнику.`)
+    if(!r.error)setInterdictAsset('')
   }
 
   const mission=useMemo(()=>pending?MISSIONS.find(m=>m[0]===pending.mission_code):undefined,[pending?.mission_code])
@@ -176,7 +196,11 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">MISSION</div><h2>{pending.mission_code==='TBD'?'Не определена':`${pending.mission_code} · ${mission?.[1]??''}`}</h2></div><Dices/></div>
       {pending.mission_code==='TBD'?<button className="primary" disabled={working} onClick={()=>rpc('battle_roll_mission',{p_battle:pending.id})}>Бросить миссию</button>:
-      <div className="mission-line"><span>{mission?.[2]}</span><button className="ghost compact" disabled={working||(myPlayer?.intelligence??0)<1} onClick={()=>rpc('battle_reroll_mission',{p_battle:pending.id})}><RefreshCw size={14}/> Re-roll · 1 Intel</button></div>}
+      <div className="mission-line"><span>{mission?.[2]}</span><div className="button-row">
+        <button className="ghost compact" disabled={working||(myPlayer?.intelligence??0)<1} onClick={()=>rpc('battle_reroll_mission',{p_battle:pending.id})}><RefreshCw size={14}/> Re-roll · 1 Intel</button>
+        <button className="ghost compact" disabled={working||ownRecon||(myPlayer?.intelligence??0)<1||bothLocked} onClick={useReconLock}><LockKeyhole size={14}/> Recon Lock · 1 Intel</button>
+      </div></div>}
+      {reconSides.length>0&&<div className="notice">{bothRecon?'Обе стороны активировали Recon Lock: порядок раскрытия не меняется.':`Recon Lock: ${sideLabel(reconSides[0])} фиксирует Muster после соперника.`}</div>}
     </section>
 
     <section className="panel">
@@ -191,6 +215,15 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
       {!ownLocked&&<button className="primary action-main" disabled={working||pending.mission_code==='TBD'} onClick={lockMuster}><LockKeyhole size={15}/> Lock Muster</button>}
       {ownLocked&&!bothLocked&&<div className="notice">Ваш Muster сохранён. Ожидается вторая сторона.</div>}
     </section>
+
+    {bothLocked&&<section className="panel intel-tools">
+      <div className="section-head"><div><div className="eyebrow">INTELLIGENCE</div><h2>Interdict</h2></div><LockKeyhole/></div>
+      {ownInterdict?<div className="notice">Ваш Interdict: противнику запрещён <strong>{ownInterdict}</strong>.</div>:<div className="inline-control">
+        <select value={interdictAsset} onChange={e=>setInterdictAsset(e.target.value)}><option value="">Выберите Tactical/Breach Asset</option>{interdictOptions.map(a=><option key={a.code} value={a.code}>{a.code}</option>)}</select>
+        <button className="ghost" disabled={working||!interdictAsset||(myPlayer?.intelligence??0)<2} onClick={useInterdict}>Interdict · 2 Intel</button>
+      </div>}
+      {enemyInterdict&&<p className="muted">Противник запретил для вашей стороны: <strong>{enemyInterdict}</strong>.</p>}
+    </section>}
 
     {bothLocked&&<BattleAssets battle={pending} campaign={campaign} member={member} sectors={sectors} units={units} battleUnits={battleUnits} onSaved={async message=>{setMsg(message);await refresh()}}/>}
 
