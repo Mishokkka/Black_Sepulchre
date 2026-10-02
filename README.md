@@ -141,6 +141,7 @@ GitHub Pages должен быть настроен на:
       ├─ ReactionPanel.tsx
       ├─ ReorganisePanel.tsx
       ├─ BattleCenter.tsx
+      ├─ BattleAssets.tsx
       ├─ LogisticsPanel.tsx
       ├─ LogisticsUpgrades.tsx
       ├─ HonourClaims.tsx
@@ -167,7 +168,11 @@ Realtime reaction window. Сейчас используется для Counter-S
 
 `src/components/BattleCenter.tsx`
 
-Mission roll, Muster обеих сторон, Battle Report, VP, outcome, Deeds, Distinguished, casualty modifiers, Field Medicae и автоматический Aftermath.
+Mission roll, Muster обеих сторон, Battle Assets, Battle Report, VP, outcome, Deeds, Distinguished, casualty modifiers, Field Medicae и автоматический Aftermath.
+
+`src/components/BattleAssets.tsx`
+
+Выбор Tactical Assets для Underdog, Fortified Defensive Asset и Breach Assets. Лимиты считаются на сервере по фактическому Muster.
 
 `src/components/LogisticsPanel.tsx`
 
@@ -518,6 +523,10 @@ Friendly Orbital Ossuary Lift.
 - Unit Limits;
 - Rest legality.
 
+`battle_set_assets(battle, tactical[], defensive, breach[])`
+
+Проверяет и сохраняет Tactical/Defensive/Breach Assets после фиксации Muster. Underdog считается по разнице первоначального Effective Cost относительно Army Limit.
+
 `battle_resolve(...)`
 
 Главный Aftermath engine.
@@ -671,10 +680,18 @@ login
 - Deep Raid;
 - Orbital Airlift;
 - Glass Wastes route;
+- Cathedral G: первый Deep Raid стадии дешевле на 1 Intel;
+- Basilica B: +1 Intel за соседнюю победу, максимум раз между своими Activations;
+- Noctis Relay F: +1 Intel на объявление атаки противником, максимум раз между своими Activations;
+- Necropolis I: Deathwatch Intel bonus при победах в I/K при активном контроле I;
+- Canoptek Foundry J: скидка на одну qualifying garrison purchase за Activation;
 - Stronghold Assault guards;
 - Fortress Integrity;
 - mission anti-repeat;
 - Muster locks обеих сторон;
+- Tactical Assets / Underdog selection;
+- Fortified Defensive Asset selection;
+- Breach Asset selection;
 - Field Roster / garrison role checks;
 - 50/75/100 Initial tiers;
 - 25/35/50/75 Reserve tiers;
@@ -725,15 +742,12 @@ login
    D66 бросается и сохраняется. `EventsPanel` показывает текст. Большинство событий с выбором цели, delayed effect, reroll, BLACK CHOIR mutation или изменением следующей battle пока требуют ручного исполнения.
 
 3. **Sector rules.**
-   Реализованы только отдельные части. Уже работают, например, Ash Meridian income, D/A/K recovery discounts, Airlift и Glass Wastes. Не все bonuses B–J исполняются автоматически.
+   Автоматизирована уже значительная часть: A/K recovery discounts, B adjacent-victory Intel, C Airlift, E income, F reactive Intel, G Deep Raid discount, H Glass Wastes, I Deathwatch Intel bonus, J qualifying garrison discount. Остались D double-D66, F double mission roll/choice, I Rest/salvage, J Scavenge interaction и отдельные capture effects.
 
-4. **Tactical Assets / Underdog.**
-   Таблица ещё не встроена в Battle Setup.
+4. **Battle Assets effects.**
+   Tactical/Defensive/Breach Assets уже рассчитываются, выбираются и сохраняются. Большинство их tabletop effects остаётся памяткой. Post-battle modifiers вроде Hard Evacuation / Hardened Stores / Extraction Beacon пока не привязаны автоматически к конкретному unit.
 
-5. **Fortified Defensive Asset / Breach Assets.**
-   Секторный defensive/breach layer ещё не доведён до полноценного UI и server state.
-
-6. **Mission-specific campaign outcomes.**
+5. **Mission-specific campaign outcomes.**
    Mission code выбирается, но уникальные outcomes всех 33 sector missions пока не все применяются автоматически.
 
 ### Средний приоритет
@@ -825,9 +839,7 @@ Realtime используется не только для удобства. К�
 
 `initial_campaign_schema`
 
-до:
-
-`consumable_armoury_effects`.
+до актуальной migration, указанной Supabase `list_migrations`. README обновлён после добавления battle assets и sector bonus automation.
 
 Ключевые поздние migrations:
 
@@ -840,6 +852,9 @@ Realtime используется не только для удобства. К�
 - `reactions_realtime`
 - `armoury_rehabilitation_and_scar_lock`
 - `consumable_armoury_effects`
+- `battle_assets_engine`
+- `sector_bonus_automation`
+- `conditional_field_medicae`
 
 Перед новым handoff первым делом выполните Supabase `list_migrations`, потому что production DB может быть новее этого README.
 
@@ -1037,14 +1052,14 @@ garrison_reinforcement
 
 Лучший следующий порядок работ:
 
-1. Critical Injury CHARACTER.
-2. Tactical Assets + Underdog.
-3. Fortified Defensive/Breach Assets.
-4. D66 resolver с pending choices/effects.
-5. Sector bonuses B–J.
-6. Mission-specific campaign outcomes.
-7. Recon Lock / Interdict / rerolls.
-8. Relics, Detachment/Enhancement management.
+1. Critical Injury CHARACTER, если финальная формулировка будет подтверждена в rules source.
+2. D66 resolver с pending choices/effects.
+3. Оставшиеся sector-specific mechanics, особенно D/F/I/J.
+4. Mission-specific campaign outcomes.
+5. Автоматическое применение post-battle Battle Assets.
+6. Recon Lock / Interdict / Salvage/D66 rerolls.
+7. Relics, Detachment/Enhancement management.
+8. unit size upgrades / paid wargear changes.
 9. Автоматические tests для основных state transitions.
 
 Перед изменениями сначала проверить последние GitHub commits, `Supabase list_migrations` и production schema. Не предполагать, что этот README новее базы данных.
