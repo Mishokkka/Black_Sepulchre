@@ -154,6 +154,7 @@ GitHub Pages должен быть настроен на:
       ├─ LogisticsUpgrades.tsx
       ├─ ForceDoctrinePanel.tsx
       ├─ MissionRewardControls.tsx
+      ├─ FinalePanel.tsx
       ├─ HonourClaims.tsx
       ├─ EventsPanel.tsx
       └─ D66ChoiceControls.tsx
@@ -192,6 +193,10 @@ Mission roll, Muster обеих сторон, Battle Assets, Battle Report, VP, 
 `src/components/LogisticsUpgrades.tsx`
 
 Campaign Armoury, Rehabilitation и Deep Reconstruction Battle Scars.
+
+`src/components/FinalePanel.tsx`
+
+Финальный выбор PURGE / SEIZE / SEAL / FEED после завершения финального Aftermath/Logistics, включая эпилог SEAL.
 
 `src/components/HonourClaims.tsx`
 
@@ -653,6 +658,16 @@ Persistent size/loadout refit, включая RC delta, 5 Supply loadout fee в�
 `logistics_set_protocol_obsession(...)`, `logistics_resolve_ammunition_debt(...)`
 
 Campaign-facing последствия соответствующих Battle Scars.
+
+### Finale
+
+`campaign_choose_final_ending(campaign, ending)`
+
+Выбор PURGE / SEIZE / SEAL / FEED победителем после закрытия последней Activation. Проверяет условия SEAL/FEED и применяет campaign-facing последствия.
+
+`campaign_choose_seal_epilogue_unit(campaign, unit)`
+
+При SEAL каждая сторона выбирает один участвовавший в tabletop finale persistent unit для narrative disappearance. При UNMANNED finale v2.0 не даёт применимого participated unit, поэтому сервер не выдумывает замену.
 
 ### Advancement
 
