@@ -86,13 +86,14 @@ export default function FinalePanel({
     {ending&&<div className="notice"><CheckCircle2 size={16}/><strong>{ENDINGS[ending].title}</strong> · {ENDINGS[ending].text}</div>}
 
     {ending==='SEAL'&&<>
-      {mySeal?<p><strong>Ваш выбор:</strong> {mySeal.unit_name}</p>:<div className="inline-control">
+      {!finalBattleId&&<div className="notice">Финал завершён как UNMANNED STRONGHOLD. v2.0 требует для SEAL выбрать участвовавший unit от каждой стороны, но tabletop finale в этом случае не существует. Сайт не назначает такой unit сам.</div>}
+      {finalBattleId&&(mySeal?<p><strong>Ваш выбор:</strong> {mySeal.unit_name}</p>:<div className="inline-control">
         <select value={sealUnit} onChange={e=>setSealUnit(e.target.value)}>
           <option value="">Участвовавший unit</option>
           {mine.map(u=><option key={u.id} value={u.id}>{u.name} · {u.datasheet}</option>)}
         </select>
-        <button className="ghost compact" disabled={working||!sealUnit||!finalBattleId} onClick={seal}>Выбрать для эпилога</button>
-      </div>}
+        <button className="ghost compact" disabled={working||!sealUnit} onClick={seal}>Выбрать для эпилога</button>
+      </div>)}
       <small className="muted">SEAL требует отдельного выбора от каждой стороны. Выбранный unit получает только narrative mark эпилога; дополнительный Casualty Roll не делается.</small>
     </>}
 
