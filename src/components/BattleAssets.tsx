@@ -35,7 +35,7 @@ export default function BattleAssets({
     return {attacker:total(battle.attacker_side),defender:total(battle.defender_side)}
   },[battleUnits,units,battle.attacker_side,battle.defender_side])
 
-  const hasLocalGarrison=useMemo(()=>battleUnits.some(b=>b.side===battle.defender_side&&b.participated&&(b.role==='garrison_initial'||b.role==='garrison_reinforcement')),[battleUnits,battle.defender_side])
+  const hasLocalGarrison=useMemo(()=>units.some(u=>u.side===battle.defender_side&&u.location_type==='garrison'&&u.sector_key===battle.sector_key&&u.status!=='lost'),[units,battle.defender_side,battle.sector_key])
   const hasReinforcementPool=useMemo(()=>battleUnits.some(b=>b.side===battle.defender_side&&b.participated&&b.role==='garrison_reinforcement'),[battleUnits,battle.defender_side])
 
   const underdog=useMemo(()=>{
