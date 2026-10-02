@@ -23,7 +23,7 @@ type BattleUnit={
   scar_gained:string|null;critical_injury:string|null
 }
 type Pick={selected:boolean;role:'field'|'garrison_initial'|'garrison_reinforcement';resting:boolean}
-type ResultPick={destroyed:boolean;deed:string;distinguished:boolean;casualty_modifier:number;mission_xp:number;use_medicae:boolean}
+type ResultPick={destroyed:boolean;deed:string;distinguished:boolean;casualty_modifier:number;mission_xp:number;use_medicae:boolean;khepra_rest:boolean}
 
 const sideLabel=(s:string|null)=>s==='necrons'?'Necrons':s==='deathwatch'?'Deathwatch':'Neutral'
 const outcomeLabel:Record<string,string>={
@@ -98,7 +98,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     }
     setPicks(next)
     const rp:Record<string,ResultPick>={}
-    for(const bu of battleUnits)rp[bu.unit_id]={destroyed:bu.destroyed,deed:bu.deed??'',distinguished:bu.distinguished,casualty_modifier:0,mission_xp:0,use_medicae:false}
+    for(const bu of battleUnits)rp[bu.unit_id]={destroyed:bu.destroyed,deed:bu.deed??'',distinguished:bu.distinguished,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false}
     setResultPicks(rp)
   },[pending?.id,pending?.battle_type,pending?.sector_key,battleUnits.length,member.side,units,players])
 
@@ -140,6 +140,8 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   const ownInterdict=pending?(member.side===pending.attacker_side?pending.attacker_interdict:pending.defender_interdict):null
   const enemyInterdict=pending?(member.side===pending.attacker_side?pending.defender_interdict:pending.attacker_interdict):null
   const interdictOptions=member.side===pending?.attacker_side?[...TACTICAL_ASSETS]:[...TACTICAL_ASSETS,...BREACH_ASSETS]
+  const khepra=sectors.find(s=>s.sector_key==='I')
+  const khepraRestActive=!!pending&&pending.sector_key==='I'&&khepra?.owner_side==='necrons'&&!khepra.conditions?.some(x=>['Exhausted','Sabotaged','Disrupted','Contested'].includes(x))
 
   const eligible=useMemo(()=>{
     if(!pending)return []
@@ -162,7 +164,16 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   }
 
   function toggle(id:string,patch:Partial<Pick>){setPicks(p=>({...p,[id]:{...p[id],...patch}}))}
-  function resultPatch(id:string,patch:Partial<ResultPick>){setResultPicks(p=>({...p,[id]:{...(p[id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false}),...patch}}))}
+  function resultPatch(id:string,patch:Partial<ResultPick>){setResultPicks(p=>({...p,[id]:{...(p[id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false}),...patch}}))}
+
+  function setKhepraRest(id:string,checked:boolean){
+    setResultPicks(p=>{
+      const next={...p}
+      for(const key of Object.keys(next))next[key]={...next[key],khepra_rest:false}
+      next[id]={...(next[id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false}),khepra_rest:checked}
+      return next
+    })
+  }
 
   const legalDefRetreat=useMemo(()=>{
     if(!pending)return []
@@ -175,7 +186,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
 
   async function resolve(){
     if(!pending)return
-    const unitResults=battleUnits.map(bu=>({unit_id:bu.unit_id,...(resultPicks[bu.unit_id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false})}))
+    const unitResults=battleUnits.map(bu=>({unit_id:bu.unit_id,...(resultPicks[bu.unit_id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false})}))
     const r=await rpc('battle_resolve',{
       p_battle:pending.id,p_attacker_vp:attVp,p_defender_vp:defVp,p_outcome:outcome,p_unit_results:unitResults,
       p_defender_retreat:defRetreat||null,p_garrison_retreat:garRetreat||null,
@@ -240,8 +251,9 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     {bothLocked&&<section className="panel">
       <div className="section-head"><div><div className="eyebrow">TABLETOP RESULT</div><h2>Battle Report</h2></div><Skull/></div>
       <div className="score-grid"><label>{attacker} VP<input type="number" min={0} max={100} value={attVp} onChange={e=>setAttVp(Number(e.target.value))}/></label><label>{defender} VP<input type="number" min={0} max={100} value={defVp} onChange={e=>setDefVp(Number(e.target.value))}/></label><label>Outcome<select value={outcome} onChange={e=>setOutcome(e.target.value)}><option value={scoreOutcome}>{outcomeLabel[scoreOutcome]}</option><option value="attacker_withdrawal">{outcomeLabel.attacker_withdrawal}</option><option value="defender_withdrawal">{outcomeLabel.defender_withdrawal}</option></select></label></div>
-      <div className="result-list">{battleUnits.map(bu=>{const u=units.find(x=>x.id===bu.unit_id);if(!u)return null;const r=resultPicks[bu.unit_id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false};return <div className="result-unit" key={bu.unit_id}>
+      <div className="result-list">{battleUnits.map(bu=>{const u=units.find(x=>x.id===bu.unit_id);if(!u)return null;const r=resultPicks[bu.unit_id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false};return <div className="result-unit" key={bu.unit_id}>
         <div><strong>{u.name}</strong><small>{sideLabel(bu.side)} · {bu.resting?'RESTING':bu.role}</small></div>
+        {bu.resting&&bu.side==='necrons'&&khepraRestActive&&u.damage>0&&<label title="Necropolis Khepra: один Necron unit за эту Logistics снимает 2 Damage вместо 1."><input type="checkbox" checked={r.khepra_rest} onChange={e=>setKhepraRest(bu.unit_id,e.target.checked)}/> Khepra Rest ×2</label>}
         {!bu.resting&&<><label><input type="checkbox" checked={r.destroyed} onChange={e=>resultPatch(bu.unit_id,{destroyed:e.target.checked})}/> Destroyed</label>
         <select value={r.deed} onChange={e=>resultPatch(bu.unit_id,{deed:e.target.value})}><option value="">No Deed</option>{['HOLD','BREAK','HUNT','ENDURE','OPERATE'].map(d=><option key={d}>{d}</option>)}</select>
         <label title={u.damage>=2?'Damage 2+ units cannot be Distinguished':''}><input type="checkbox" checked={r.distinguished} disabled={u.damage>=2} onChange={e=>resultPatch(bu.unit_id,{distinguished:e.target.checked})}/> Distinguished</label>
