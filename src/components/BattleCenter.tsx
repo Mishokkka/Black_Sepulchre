@@ -16,7 +16,7 @@ type Battle={
   mission_options:string[];mission_choice_side:Side|null;campaign_effects:any[];
   attacker_salvage_choice:string|null;defender_salvage_choice:string|null;salvage_rerolled_sides:string[];
   event_code:string|null;event_options:string[];event_choice_side:Side|null;d66_rerolled:boolean;
-  aftermath:any;report:any;created_at:string;completed_at:string|null
+  aftermath:any;report:any;mission_report:Record<string,any>;garrison_capacity_override_pct:number|null;created_at:string;completed_at:string|null
 }
 type BattleUnit={
   battle_id:string;unit_id:string;side:Side;role:'field'|'garrison_initial'|'garrison_reinforcement';
@@ -47,10 +47,11 @@ function caps(battle:Battle,campaign:Campaign,sectors:Sector[]){
   if(!s)return {initial:0,reserve:0,arrival:3}
   let ip=s.sector_class==='Home Stronghold'?100:s.fortified?100:s.sector_class==='Strategic Node'?75:50
   let rp=s.sector_class==='Home Stronghold'?75:s.fortified?50:s.sector_class==='Strategic Node'?35:25
-  if(!supplied(battle.defender_side,battle.sector_key,sectors))rp-=10
-  if(s.conditions?.includes('Exhausted'))rp-=10
+  const delayed=!supplied(battle.defender_side,battle.sector_key,sectors)||s.conditions?.includes('Exhausted')
+  if(delayed)rp-=10
+  if(battle.battle_type==='Stronghold Assault'&&battle.garrison_capacity_override_pct!=null)rp=battle.garrison_capacity_override_pct
   rp=Math.max(0,rp)
-  return {initial:Math.floor(stage.armyLimit*ip/100/5)*5,reserve:Math.floor(stage.armyLimit*rp/100/5)*5,arrival:(s.sector_class==='Home Stronghold'||s.fortified)?2:3}
+  return {initial:Math.floor(stage.armyLimit*ip/100/5)*5,reserve:Math.floor(stage.armyLimit*rp/100/5)*5,arrival:((s.sector_class==='Home Stronghold'||s.fortified)?2:3)+(delayed?1:0)}
 }
 
 export default function BattleCenter({campaign,member,players,sectors,units,reload}:{campaign:Campaign;member:Member;players:PlayerState[];sectors:Sector[];units:Unit[];reload:()=>void}){
@@ -63,6 +64,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   const[defRetreat,setDefRetreat]=useState(''),[garRetreat,setGarRetreat]=useState('')
   const[attSalvage,setAttSalvage]=useState('supply'),[defSalvage,setDefSalvage]=useState('supply')
   const[narrative,setNarrative]=useState('')
+  const[missionReport,setMissionReport]=useState<Record<string,any>>({})
   const[interdictAsset,setInterdictAsset]=useState('')
   const[salvageRerollChoice,setSalvageRerollChoice]=useState<'supply'|'intelligence'>('supply')
   const[msg,setMsg]=useState(''),[working,setWorking]=useState(false)
@@ -103,6 +105,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     const rp:Record<string,ResultPick>={}
     for(const bu of battleUnits)rp[bu.unit_id]={destroyed:bu.destroyed,deed:bu.deed??'',distinguished:bu.distinguished,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false,hard_evacuation:false,hardened_stores:false,extraction_beacon:false}
     setResultPicks(rp)
+    setMissionReport(pending.mission_report??{})
   },[pending?.id,pending?.battle_type,pending?.sector_key,battleUnits.length,member.side,units,players])
 
   const refresh=async()=>{await fetchBattles();reload()}
@@ -153,10 +156,11 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
 
   const eligible=useMemo(()=>{
     if(!pending)return []
-    if(member.side===pending.attacker_side)return units.filter(u=>u.side===member.side&&u.location_type==='field'&&u.damage<3)
-    if(pending.battle_type==='Garrison Battle')return units.filter(u=>u.side===member.side&&u.location_type==='garrison'&&u.sector_key===pending.sector_key&&u.damage<3)
+    const available=(u:Unit)=>u.side===member.side&&u.damage<3&&u.status!=='lost'&&u.status!=='displaced'&&!u.campaign_flags?.evacuation_due_cost&&!u.campaign_flags?.out_of_action_source_battle
+    if(member.side===pending.attacker_side)return units.filter(u=>available(u)&&u.location_type==='field')
+    if(pending.battle_type==='Garrison Battle')return units.filter(u=>available(u)&&u.location_type==='garrison'&&u.sector_key===pending.sector_key)
     const forceHere=players.find(p=>p.side===member.side)?.main_force_sector===pending.sector_key
-    return units.filter(u=>u.side===member.side&&u.damage<3&&((forceHere&&u.location_type==='field')||(u.location_type==='garrison'&&u.sector_key===pending.sector_key)))
+    return units.filter(u=>available(u)&&((forceHere&&u.location_type==='field')||(u.location_type==='garrison'&&u.sector_key===pending.sector_key)))
   },[pending,units,member.side,players])
 
   const totals=useMemo(()=>{
@@ -173,6 +177,13 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
 
   function toggle(id:string,patch:Partial<Pick>){setPicks(p=>({...p,[id]:{...p[id],...patch}}))}
   function resultPatch(id:string,patch:Partial<ResultPick>){setResultPicks(p=>({...p,[id]:{...(p[id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false,hard_evacuation:false,hardened_stores:false,extraction_beacon:false}),...patch}}))}
+  function missionPatch(patch:Record<string,any>){setMissionReport(r=>({...r,...patch}))}
+  function toggleMissionUnit(key:string,id:string,checked:boolean){
+    setMissionReport(r=>{
+      const arr=((r[key]??[]) as string[])
+      return {...r,[key]:checked?[...new Set([...arr,id])]:arr.filter(x=>x!==id)}
+    })
+  }
 
   function setKhepraRest(id:string,checked:boolean){
     setResultPicks(p=>{
@@ -227,6 +238,10 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
 
   async function resolve(){
     if(!pending)return
+    setWorking(true);setMsg('')
+    const reportResult=await supabase.rpc('battle_set_mission_report',{p_battle:pending.id,p_report:missionReport})
+    if(reportResult.error){setWorking(false);setMsg(reportResult.error.message);return}
+    setWorking(false)
     const unitResults=battleUnits.map(bu=>({unit_id:bu.unit_id,...(resultPicks[bu.unit_id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false,hard_evacuation:false,hardened_stores:false,extraction_beacon:false})}))
     const r=await rpc('battle_resolve',{
       p_battle:pending.id,p_attacker_vp:attVp,p_defender_vp:defVp,p_outcome:outcome,p_unit_results:unitResults,
@@ -277,7 +292,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
       <div className="campaign-effects-list">{battleEffects.map((e:any,i:number)=><div key={(e.code??'effect')+'-'+i}><strong>{e.code}</strong><span>{({
         vox_from_dead:'Указанная сторона может перебросить первый failed Battle-shock test.',
         ash_rain:'Battle round 3: ranged attacks дальше 24" невозможны.',
-        bone_bloom:'Центральный objective окружён 5" Difficult Ground; winner получает +10 Supply автоматически.',
+        bone_bloom:'5" вокруг центрального objective становится Rough Ground; winner получает +10 Supply автоматически.',
         machine_hymn:'Первый VEHICLE/MONSTER, который должен стать Battle-shocked, получает D3 mortal wounds и считается прошедшим test.',
         auspex_ghost:'Обе стороны получают Recon Lock бесплатно. Если оба используют его, каждый получает +1 Intel после Muster.',
         delayed_reinforcements:'Первый campaign-granted Reserve/Garrison Reinforcement каждой стороны прибывает на round позже.',
@@ -285,7 +300,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
         black_sun:'Battle round 4 проходит без Benefit of Cover по всему полю.',
         ammunition_rot:`${e.unit_name??'Выбранный unit'} не может использовать Campaign Armoury item в этой battle.`,
         free_recon_lock:`${sideLabel(e.side)} получает Recon Lock бесплатно в этой battle.`,
-        names_in_static:`${e.unit_name??'Выбранный CHARACTER'}: если участвует и выживает, +1 XP; если уничтожен, Casualty Roll -1.`,
+        names_in_static:`${e.unit_name??'Выбранный CHARACTER'}: если переживёт следующую battle, +1 XP; если уничтожен, Casualty Roll -1.`,
         hidden_route:'Hidden Route действует только до конца этой tabletop battle и после неё истекает.'
       } as Record<string,string>)[e.code]??'Campaign effect'}</span>{e.side&&<small>{sideLabel(e.side)}</small>}</div>)}</div>
     </section>}
@@ -317,6 +332,25 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     {bothLocked&&<section className="panel">
       <div className="section-head"><div><div className="eyebrow">TABLETOP RESULT</div><h2>Battle Report</h2></div><Skull/></div>
       <div className="score-grid"><label>{attacker} VP<input type="number" min={0} max={100} value={attVp} onChange={e=>setAttVp(Number(e.target.value))}/></label><label>{defender} VP<input type="number" min={0} max={100} value={defVp} onChange={e=>setDefVp(Number(e.target.value))}/></label><label>Outcome<select value={outcome} onChange={e=>setOutcome(e.target.value)}><option value={scoreOutcome}>{outcomeLabel[scoreOutcome]}</option><option value="attacker_withdrawal">{outcomeLabel.attacker_withdrawal}</option><option value="defender_withdrawal">{outcomeLabel.defender_withdrawal}</option></select></label></div>
+
+      {['A2','A3','B1','B2','D1','D2','E3','F2','G1','H2','I1','I3','J2','J3'].includes(pending.mission_code)&&<div className="mission-report-box">
+        <div className="eyebrow">V2.0 MISSION FACTS</div>
+        {pending.mission_code==='A2'&&<div className="mission-report-grid"><label>{attacker} successful Relay hacks<input type="number" min={0} max={2} value={missionReport.attacker_relay_hacks??0} onChange={e=>missionPatch({attacker_relay_hacks:Number(e.target.value)})}/></label><label>{defender} successful Relay hacks<input type="number" min={0} max={2} value={missionReport.defender_relay_hacks??0} onChange={e=>missionPatch({defender_relay_hacks:Number(e.target.value)})}/></label></div>}
+        {pending.mission_code==='A3'&&<div><small>Отметьте Defender units, выбранные после DISABLE. Если такой unit уничтожен, сервер даст -1 Casualty.</small><div className="mission-unit-checks">{battleUnits.filter(b=>b.side===pending.defender_side&&b.participated).map(b=>{const u=units.find(x=>x.id===b.unit_id);return u?<label key={b.unit_id}><input type="checkbox" checked={(missionReport.a3_marked_defenders??[]).includes(b.unit_id)} onChange={e=>toggleMissionUnit('a3_marked_defenders',b.unit_id,e.target.checked)}/>{u.name}</label>:null})}</div></div>}
+        {pending.mission_code==='B1'&&<div className="mission-report-grid"><label><input type="checkbox" checked={!!missionReport.attacker_central_intel} onChange={e=>missionPatch({attacker_central_intel:e.target.checked})}/> {attacker}: central Reliquary gave +1 Intel</label><label><input type="checkbox" checked={!!missionReport.defender_central_intel} onChange={e=>missionPatch({defender_central_intel:e.target.checked})}/> {defender}: central Reliquary gave +1 Intel</label><label>Winner PICK UP unit<select value={missionReport.winner_pickup_unit??''} onChange={e=>missionPatch({winner_pickup_unit:e.target.value})}><option value="">Нет подходящего / не выбран</option>{battleUnits.filter(b=>b.participated&&b.side===(outcome==='attacker_win'||outcome==='defender_withdrawal'?pending.attacker_side:outcome==='defender_win'||outcome==='attacker_withdrawal'?pending.defender_side:'')).map(b=>{const u=units.find(x=>x.id===b.unit_id);return u?<option key={u.id} value={u.id}>{u.name}</option>:null})}</select></label></div>}
+        {pending.mission_code==='B2'&&<label><input type="checkbox" checked={!!missionReport.natural1_battleshock} onChange={e=>missionPatch({natural1_battleshock:e.target.checked})}/> Был Battle-shock fail на натуральной 1 → BLACK CHOIR +1</label>}
+        {pending.mission_code==='D1'&&<div><small>Destroyed in Toxic Zone получает -1 Casualty.</small><div className="mission-unit-checks">{battleUnits.filter(b=>resultPicks[b.unit_id]?.destroyed).map(b=>{const u=units.find(x=>x.id===b.unit_id);return u?<label key={b.unit_id}><input type="checkbox" checked={(missionReport.d1_toxic_destroyed??[]).includes(b.unit_id)} onChange={e=>toggleMissionUnit('d1_toxic_destroyed',b.unit_id,e.target.checked)}/>{u.name}</label>:null})}</div></div>}
+        {pending.mission_code==='D2'&&<div className="mission-report-grid"><label>{attacker} Supply from Casket 6s<input type="number" min={0} step={10} value={missionReport.attacker_casket_supply??0} onChange={e=>missionPatch({attacker_casket_supply:Number(e.target.value)})}/></label><label>{defender} Supply from Casket 6s<input type="number" min={0} step={10} value={missionReport.defender_casket_supply??0} onChange={e=>missionPatch({defender_casket_supply:Number(e.target.value)})}/></label></div>}
+        {pending.mission_code==='E3'&&<div className="mission-report-grid"><label>{attacker} Supply earned by SEARCH<input type="number" min={0} step={10} value={missionReport.attacker_search_supply??0} onChange={e=>missionPatch({attacker_search_supply:Number(e.target.value)})}/></label><label>{defender} Supply earned by SEARCH<input type="number" min={0} step={10} value={missionReport.defender_search_supply??0} onChange={e=>missionPatch({defender_search_supply:Number(e.target.value)})}/></label></div>}
+        {pending.mission_code==='F2'&&<label><input type="checkbox" checked={!!missionReport.true_transmitter_battleshock_failed} onChange={e=>missionPatch({true_transmitter_battleshock_failed:e.target.checked})}/> Первый unit у true Transmitter провалил Battle-shock → BLACK CHOIR +1</label>}
+        {pending.mission_code==='G1'&&<label><input type="checkbox" checked={!!missionReport.commune_completed} onChange={e=>missionPatch({commune_completed:e.target.checked})}/> COMMUNE был completed → BLACK CHOIR +1</label>}
+        {pending.mission_code==='H2'&&<div className="mission-report-grid"><label>{attacker} Supply from SHATTER 6s<input type="number" min={0} step={10} value={missionReport.attacker_shatter_supply??0} onChange={e=>missionPatch({attacker_shatter_supply:Number(e.target.value)})}/></label><label>{defender} Supply from SHATTER 6s<input type="number" min={0} step={10} value={missionReport.defender_shatter_supply??0} onChange={e=>missionPatch({defender_shatter_supply:Number(e.target.value)})}/></label><label><input type="checkbox" checked={!!missionReport.double_six_shatter} onChange={e=>missionPatch({double_six_shatter:e.target.checked})}/> Кто-либо получил две natural 6 → Choir +1</label></div>}
+        {pending.mission_code==='I1'&&<div><small>Units, которые получили natural 6 при первом захвате Node: +1 XP.</small><div className="mission-unit-checks">{battleUnits.filter(b=>b.participated).map(b=>{const u=units.find(x=>x.id===b.unit_id);return u?<label key={b.unit_id}><input type="checkbox" checked={(missionReport.node_roll6_units??[]).includes(b.unit_id)} onChange={e=>toggleMissionUnit('node_roll6_units',b.unit_id,e.target.checked)}/>{u.name}</label>:null})}</div></div>}
+        {pending.mission_code==='I3'&&<div className="mission-report-grid"><label>{attacker} SCAN natural 6 count<input type="number" min={0} max={3} value={missionReport.attacker_scan_intel??0} onChange={e=>missionPatch({attacker_scan_intel:Number(e.target.value)})}/></label><label>{defender} SCAN natural 6 count<input type="number" min={0} max={3} value={missionReport.defender_scan_intel??0} onChange={e=>missionPatch({defender_scan_intel:Number(e.target.value)})}/></label><label><input type="checkbox" checked={!!missionReport.attacker_scanned_all_three} onChange={e=>missionPatch({attacker_scanned_all_three:e.target.checked})}/> {attacker} scanned all 3</label><label><input type="checkbox" checked={!!missionReport.defender_scanned_all_three} onChange={e=>missionPatch({defender_scanned_all_three:e.target.checked})}/> {defender} scanned all 3</label></div>}
+        {pending.mission_code==='J2'&&<div className="mission-report-grid"><label>{attacker} FEED Supply<input type="number" min={0} step={5} value={missionReport.attacker_feed_supply??0} onChange={e=>missionPatch({attacker_feed_supply:Number(e.target.value)})}/></label><label>{defender} FEED Supply<input type="number" min={0} step={5} value={missionReport.defender_feed_supply??0} onChange={e=>missionPatch({defender_feed_supply:Number(e.target.value)})}/></label></div>}
+        {pending.mission_code==='J3'&&<div><label><input type="checkbox" checked={!!missionReport.explosion_occurred} onChange={e=>missionPatch({explosion_occurred:e.target.checked})}/> Reactor Armed at end round 5 → J Exhausted + Sabotaged</label>{missionReport.explosion_occurred&&<div className="mission-unit-checks">{battleUnits.filter(b=>resultPicks[b.unit_id]?.destroyed).map(b=>{const u=units.find(x=>x.id===b.unit_id);return u?<label key={b.unit_id}><input type="checkbox" checked={(missionReport.j3_explosion_destroyed??[]).includes(b.unit_id)} onChange={e=>toggleMissionUnit('j3_explosion_destroyed',b.unit_id,e.target.checked)}/>{u.name} · destroyed in 9" Reactor (-1 Casualty)</label>:null})}</div>}</div>}
+      </div>}
+
       <div className="result-list">{battleUnits.map(bu=>{const u=units.find(x=>x.id===bu.unit_id);if(!u)return null;const r=resultPicks[bu.unit_id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false,hard_evacuation:false,hardened_stores:false,extraction_beacon:false};const ammoRot=battleEffects.some((e:any)=>e?.code==='ammunition_rot'&&e?.unit_id===bu.unit_id);const tacticalAssets=bu.side===pending.attacker_side?pending.attacker_tactical_assets:pending.defender_tactical_assets;const hardEvacAvailable=tacticalAssets?.includes('Hard Evacuation')&&!u.is_character;const hardenedStoresAvailable=bu.side===pending.defender_side&&pending.defensive_asset==='Hardened Stores'&&(bu.role==='garrison_initial'||bu.role==='garrison_reinforcement');const extractionBeaconAvailable=bu.side===pending.attacker_side&&pending.breach_assets?.includes('Extraction Beacon')&&!u.is_character;return <div className="result-unit" key={bu.unit_id}>
         <div><strong>{u.name}</strong><small>{sideLabel(bu.side)} · {bu.resting?'RESTING':bu.role}</small></div>
         {bu.resting&&bu.side==='necrons'&&khepraRestActive&&u.damage>0&&<label title="Necropolis Khepra: один Necron unit за эту Logistics снимает 2 Damage вместо 1."><input type="checkbox" checked={r.khepra_rest} onChange={e=>setKhepraRest(bu.unit_id,e.target.checked)}/> Khepra Rest ×2</label>}
@@ -339,7 +373,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
       <div className="retreat-grid"><label>Если Salvage {attacker} = 6<select value={attSalvage} onChange={e=>setAttSalvage(e.target.value)}><option value="supply">+20 Supply</option><option value="intelligence">+1 Intelligence</option></select></label><label>Если Salvage {defender} = 6<select value={defSalvage} onChange={e=>setDefSalvage(e.target.value)}><option value="supply">+20 Supply</option><option value="intelligence">+1 Intelligence</option></select></label></div>
       <label>Строка летописи<textarea value={narrative} onChange={e=>setNarrative(e.target.value)} placeholder="Коротко: что произошло в битве."/></label>
       <button className="primary resolve-button" disabled={working} onClick={resolve}><Check size={16}/> Resolve + Automatic Aftermath</button>
-      <p className="muted small-note">Сайт начислит Participation/Deed/Distinguished XP, бросит Casualty/Scar/Salvage/D66, обновит Damage, Supply, Intel, сектор, retreat и стадию. Critical Injury пока фиксируется отдельно. D66 и post-battle Campaign Asset modifiers применяются через кампанийные resolvers.</p>
+      <p className="muted small-note">Сайт применит v2.0 Aftermath: XP, Casualty/Scars, полный Critical Injury, retreat/displacement, Salvage/D66, mission rewards, Supply/Intel и Stage. Для Critical Injury Lost выбор Lost/Evacuation появится в Logistics.</p>
     </section>}
     {msg&&<div className="notice">{msg}</div>}
   </div>
