@@ -146,7 +146,8 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   const noosphereStatic=((campaign.settings?.pending_effects??[]) as any[]).some(e=>e?.code==='noosphere_static')
   const battleEffects=(pending?.campaign_effects??[]) as any[]
   const auspexGhost=battleEffects.some(e=>e?.code==='auspex_ghost')
-  const reconLockCost=(auspexGhost?0:1)+(noosphereStatic?1:0)
+  const missionFreeRecon=battleEffects.some(e=>e?.code==='free_recon_lock'&&e?.side===member.side)
+  const reconLockCost=((auspexGhost||missionFreeRecon)?0:1)+(noosphereStatic?1:0)
   const khepra=sectors.find(s=>s.sector_key==='I')
   const khepraRestActive=!!pending&&pending.sector_key==='I'&&khepra?.owner_side==='necrons'&&!khepra.conditions?.some(x=>['Exhausted','Sabotaged','Disrupted','Contested'].includes(x))
 
@@ -267,7 +268,8 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
         delayed_reinforcements:'Первый campaign-granted Reserve/Garrison Reinforcement каждой стороны прибывает на round позже.',
         nine_seconds:'В начале round 2 повторите эффект round 1 одной sector Catastrophe; если неприменимо, каждый +1 CP.',
         black_sun:'Battle round 4 проходит без Benefit of Cover по всему полю.',
-        ammunition_rot:`${e.unit_name??'Выбранный unit'} не может использовать Campaign Armoury item в этой battle.`
+        ammunition_rot:`${e.unit_name??'Выбранный unit'} не может использовать Campaign Armoury item в этой battle.`,
+        free_recon_lock:`${sideLabel(e.side)} получает Recon Lock бесплатно в этой battle.`
       } as Record<string,string>)[e.code]??'Campaign effect'}</span>{e.side&&<small>{sideLabel(e.side)}</small>}</div>)}</div>
     </section>}
 
