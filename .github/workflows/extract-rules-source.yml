@@ -1,0 +1,40 @@
+name: Extract v2 rules source
+
+on:
+  push:
+    paths:
+      - 'Black_Sepulchre_40k11_Campaign_Rules_v2.0_RU.pdf'
+      - '.github/workflows/extract-rules-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PDF text tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
+      - name: Extract canonical v2 source text
+        run: |
+          mkdir -p docs
+          pdftotext -layout -nopgbrk Black_Sepulchre_40k11_Campaign_Rules_v2.0_RU.pdf docs/Black_Sepulchre_v2.0_source.txt
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('docs/Black_Sepulchre_v2.0_source.txt')
+          s=p.read_text(encoding='utf-8', errors='replace')
+          s=s.replace('\r\n','\n').replace('\r','\n')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit extracted source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/Black_Sepulchre_v2.0_source.txt
+          git diff --cached --quiet && exit 0
+          git commit -m "Extract canonical v2.0 rules source"
+          git push
