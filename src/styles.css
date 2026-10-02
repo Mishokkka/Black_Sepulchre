@@ -45,3 +45,5 @@ nav{display:grid;gap:.35rem;margin-top:1.25rem}nav button{display:flex;gap:.65re
 
 .special-move-panel{grid-column:auto}.special-move-list{display:grid;gap:.55rem}.special-move-list>div{padding:.65rem;border:1px solid #29312d;background:#0e1311;border-radius:5px}.special-move-list>div>div:first-child{display:flex;align-items:flex-start;gap:.55rem}.special-move-list svg{width:18px;height:18px;color:#98804a;flex:0 0 auto;margin-top:.1rem}.special-move-list span{display:grid;gap:.15rem}.special-move-list small{color:#808a84}.inline-control{display:grid!important;grid-template-columns:1fr auto;gap:.45rem;margin-top:.55rem}.inline-control select{min-width:0}.inline-control button{white-space:nowrap}
 @media(max-width:600px){.inline-control{grid-template-columns:1fr}.inline-control button{width:100%}}
+
+.reaction-panel{max-width:760px}.reaction-panel p{line-height:1.55}.reaction-panel>p strong{color:#d8d4c8}
