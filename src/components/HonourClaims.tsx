@@ -39,7 +39,7 @@ export default function HonourClaims({units,member,reload}:{units:Unit[];member:
       const sigOpen=u.xp>=18&&sig<1
       const taken=new Set(hs.map(h=>h?.code))
       const options=[
-        ...(regularOpen?BATTLE_HONOURS.filter(h=>(!h.character||u.is_character)&&!taken.has(h.code)):[]),
+        ...(regularOpen?BATTLE_HONOURS.filter(h=>(!('character' in h)||!h.character||u.is_character)&&!taken.has(h.code)):[]),
         ...(sigOpen?SIGNATURE_HONOURS.filter(h=>h.side===member.side&&!taken.has(h.code)):[])
       ]
       return <div className="honour-claim" key={u.id}>
