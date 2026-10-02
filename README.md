@@ -772,6 +772,7 @@ login
 - D66 player-choice resolver для 11, 12, 13, 14, 24, 31, 32, 33, 41, 52, 53, 54, 56, 63;
 - delayed campaign effects store в `campaigns.settings.pending_effects`;
 - False Orders, Noosphere Static, Broken Map и Ceasefire стратегически применяются автоматически;
+- The Missing Hour: next-own-Activation first Strategic Action roll is server-authoritative; 1–3 consumes the Action without resource cost, 4+ authorizes exactly the chosen action;
 - Hidden Route (35): по одной дальней атаке каждой стороне с server-side Intel spend/usage tracking до следующей battle;
 - The Door Behind the Door (64): случайный SECRET ROUTE token, одно виртуальное соседство для текущего владельца token sector, автоматическое истечение при capture/use;
 - Names in the Static (63): выбор CHARACTER каждой стороной, -1 Casualty при уничтожении или +1 XP при участии и выживании в следующей battle;
@@ -928,6 +929,7 @@ Realtime используется не только для удобства. К�
 - `fix_names_in_static_survival`
 - `advisor_cleanup_d66_and_reactions`
 - `sector_bonus_corrections`
+- `missing_hour_strategic_action_gate`
 
 Перед новым handoff первым делом выполните Supabase `list_migrations`, потому что production DB может быть новее этого README.
 
@@ -1141,7 +1143,7 @@ garrison_reinforcement
 - Не создавать новую архитектуру поверх существующей без необходимости.
 - Не переводить authoritative checks из Postgres в React.
 - Не давать authenticated client прямые write policies к campaign state.
-- Не считать текст D66/Asset/mission в UI доказательством автоматизации эффекта.
+- Не считать текст D66/Asset/mission в UI доказательством автоматизации эффекта. Проверять соответствующий RPC/queued-effect path.
 - Не придумывать недостающие правила. В частности, полный обычный Critical Injury CHARACTER flow пока не подтверждён исходным документом.
 - Не считать старый успешный Pages deploy доказательством, что последний commit собрался. Всегда сопоставляйте SHA.
 
@@ -1156,7 +1158,7 @@ garrison_reinforcement
 Лучший следующий порядок работ:
 
 1. Critical Injury CHARACTER, только после подтверждения полной формулировки в rules source.
-2. D66 16 требует отдельного уточнения таблицы `Minor Armoury item`; отдельно решить tie-break для 11/32 при равном числе секторов. Довести `The Missing Hour` до полного automatic first-Strategic-Action gate.
+2. D66 16 требует отдельного уточнения таблицы `Minor Armoury item`; отдельно решить tie-break для 11/32 при равном числе секторов. `The Missing Hour` уже автоматизирован.
 3. Расширить mission-specific outcomes, особенно те, которым нужен target/tabletop fact input.
 4. Довести delayed D66 battle effects от UI-reminder до полного automatic enforcement там, где это возможно без моделирования самой tabletop игры.
 5. J Scavenge и оставшиеся sector-specific interactions.
