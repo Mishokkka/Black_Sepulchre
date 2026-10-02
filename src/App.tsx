@@ -132,7 +132,7 @@ function App(){
    {tab==='strategy'&&<StrategicPanel campaign={campaign} member={member} players={players} sectors={sectors} units={units} reload={load} onOpenBattles={()=>setTab('battles')}/>} 
    {tab==='map'&&<section className="panel map-page"><MapView sectors={sectors} players={players} selected={selectedSector} onSelect={setSelectedSector}/></section>}
    {tab==='rosters'&&<RosterView units={units} member={member} reload={load}/>}
-   {tab==='battles'&&<BattleCenter campaign={campaign} member={member} players={players} sectors={sectors} units={units} reload={load}/>}\n   {tab==='events'&&<EventsPanel campaign={campaign}/>}
+   {tab==='battles'&&<BattleCenter campaign={campaign} member={member} players={players} sectors={sectors} units={units} reload={load}/>}\n   {tab==='events'&&<EventsPanel campaign={campaign} member={member}/>}
    {tab==='log'&&<section className="panel"><div className="section-head"><div><div className="eyebrow">AUDIT LOG</div><h2>История кампании</h2></div></div><div className="log-list">{logs.map(l=><div key={l.id}><time>{new Date(l.created_at).toLocaleString('ru')}</time><strong>{l.action}</strong><span>{l.entity_type} {l.entity_id??''}</span></div>)}</div></section>}
   </main></div>
 }
