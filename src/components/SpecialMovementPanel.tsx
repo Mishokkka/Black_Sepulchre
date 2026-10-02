@@ -19,15 +19,17 @@ function supplied(side:string,sector:string,sectors:Sector[]){
 }
 
 export default function SpecialMovementPanel({
-  activationId,startSector,currentSector,member,sectors,intelligence,orbitalDisabled,onResolved
+  activationId,startSector,currentSector,member,sectors,intelligence,orbitalDisabled,secretRouteSector,onResolved
 }:{
-  activationId:string;startSector:string;currentSector:string;member:Member;sectors:Sector[];intelligence:number;orbitalDisabled:boolean;onResolved:(data:any,message:string)=>void
+  activationId:string;startSector:string;currentSector:string;member:Member;sectors:Sector[];intelligence:number;orbitalDisabled:boolean;secretRouteSector:string|null;onResolved:(data:any,message:string)=>void
 }){
-  const[target,setTarget]=useState(''),[friendly,setFriendly]=useState(''),[working,setWorking]=useState(false),[msg,setMsg]=useState('')
+  const[target,setTarget]=useState(''),[friendly,setFriendly]=useState(''),[routeTarget,setRouteTarget]=useState(''),[working,setWorking]=useState(false),[msg,setMsg]=useState('')
   const enemyTwo=useMemo(()=>sectors.filter(s=>s.owner_side&&s.owner_side!==member.side&&distance(currentSector,s.sector_key)===2&&s.sector_class!=='Home Stronghold'),[sectors,member.side,currentSector])
   const cEnemy=useMemo(()=>sectors.filter(s=>s.owner_side&&s.owner_side!==member.side&&distance('C',s.sector_key)===2&&s.sector_class!=='Home Stronghold'),[sectors,member.side])
   const hEnemy=useMemo(()=>sectors.filter(s=>s.owner_side&&s.owner_side!==member.side&&distance('H',s.sector_key)===2&&s.sector_class!=='Home Stronghold'),[sectors,member.side])
   const cFriendly=useMemo(()=>sectors.filter(s=>s.owner_side===member.side&&s.sector_key!=='C'&&distance('C',s.sector_key)<=2&&supplied(member.side,s.sector_key,sectors)),[sectors,member.side])
+  const routeOwner=secretRouteSector?sectors.find(s=>s.sector_key===secretRouteSector)?.owner_side:null
+  const routeTargets=useMemo(()=>sectors.filter(s=>(ADJACENCY.G??[]).includes(s.sector_key)&&s.sector_key!==currentSector),[sectors,currentSector])
 
   async function special(method:string,t:string){
     setWorking(true);setMsg('')
@@ -43,6 +45,14 @@ export default function SpecialMovementPanel({
     if(error){setMsg(error.message);return}
     onResolved(data,`Airlift to sector ${friendly}.`)
   }
+  async function secretRouteMove(){
+    if(!routeTarget)return
+    setWorking(true);setMsg('')
+    const{data,error}=await supabase.rpc('activation_secret_route_move',{p_activation:activationId,p_target:routeTarget})
+    setWorking(false)
+    if(error){setMsg(error.message);return}
+    onResolved(data,`SECRET ROUTE used: ${currentSector} → ${routeTarget}.`)
+  }
 
   const canC=startSector==='C'&&currentSector==='C'&&!orbitalDisabled
   const canH=startSector==='H'&&currentSector==='H'
@@ -52,6 +62,9 @@ export default function SpecialMovementPanel({
       <div><div><Radar/><span><strong>Deep Raid</strong><small>2 Intel · при активном G bonus первый Deep Raid стадии дешевле на 1 · нужен Supply Line</small></span></div>
         <div className="inline-control"><select value={target} onChange={e=>setTarget(e.target.value)}><option value="">Цель</option>{enemyTwo.map(s=><option key={s.sector_key} value={s.sector_key}>{s.sector_key} · {s.name}</option>)}</select><button className="ghost" disabled={working||intelligence<1||!target} onClick={()=>special('deep_raid',target)}>1–2 Intel</button></div>
       </div>
+      {secretRouteSector&&<div><div><Route/><span><strong>SECRET ROUTE · token {secretRouteSector}</strong><small>{routeOwner===member.side?'Вы владеете token sector: один виртуальный соседний move/attack к любому сектору рядом с G.':'Использовать может текущий владелец token sector.'}</small></span></div>
+        {routeOwner===member.side&&<div className="inline-control"><select value={routeTarget} onChange={e=>setRouteTarget(e.target.value)}><option value="">Destination</option>{routeTargets.map(s=><option key={s.sector_key} value={s.sector_key}>{s.sector_key} · {s.name}{s.owner_side===member.side?' · friendly':s.owner_side?' · enemy':' · neutral'}</option>)}</select><button className="ghost" disabled={working||!routeTarget} onClick={secretRouteMove}>Use route</button></div>}
+      </div>}
       {orbitalDisabled&&startSector==='C'&&currentSector==='C'&&<div className="notice">Broken Map: Orbital Ossuary Lift отключён до конца следующей tabletop battle.</div>}
       {canC&&<><div><div><Orbit/><span><strong>Orbital Airlift</strong><small>1 MP · controlled supplied sector до двух связей от C</small></span></div>
         <div className="inline-control"><select value={friendly} onChange={e=>setFriendly(e.target.value)}><option value="">Destination</option>{cFriendly.map(s=><option key={s.sector_key} value={s.sector_key}>{s.sector_key} · {s.name}</option>)}</select><button className="ghost" disabled={working||!friendly} onClick={airliftMove}>1 MP</button></div>
