@@ -749,7 +749,7 @@ Server-authoritative логика уже покрывает:
 - sector states, включая некумулятивный Unsupplied/Exhausted reinforcement penalty, Disrupted, Contested, Ruined Fortifications и F3 short Sabotage; Exhausted сохраняется при смене владельца, Sabotaged снимается только своей обычной длительностью/Repair, а Occupation корректно превращает Fortified в Ruined Fortifications;
 - OBC/RC/Effective Cost split: per-unit OBC фиксируется в Muster, CR surcharge считается от RC;
 - secret Muster с RLS: до reveal соперник не читает чужой `battle_units`; Recon Lock реально раскрывает opponent Committed Force первым;
-- Unit Limits, Initial/Capacity tiers, v2 faction garrison datasheet/keyword legality, local-garrison replacement в Field Battle, RESTING, DISPLACED;
+- Unit Limits, Initial/Capacity tiers, v2 faction garrison datasheet/keyword legality, exact Field Battle local-garrison replacement rule, RESTING, DISPLACED;
 - Tactical/Defensive/Breach Assets, Interdict и post-battle Hard Evacuation/Hardened Stores/Extraction Beacon;
 - Hybrid Attrition, Damage, D12 Battle Scars, fourth-Scar lock;
 - полный Critical Injury D6, Lost/Evacuation, Epic Hero rule, Evacuation payment, Out of Action/Systemic Failure;
@@ -762,6 +762,7 @@ Server-authoritative логика уже покрывает:
 - Salvage, mandatory rerolls, global D66, Fleshworks 2-roll/D3 3-roll procedure, D66 choice flows и delayed effects;
 - D66 16 по таблице Minor Armoury из v2.0;
 - BLACK CHOIR track, forced Reveals, Investigate Choir, Secret Fragments и Reveal III EXTRACT INDEX для Stronghold battles;
+- финальные исходы PURGE / SEIZE / SEAL / FEED, включая PURGE Casualty Rolls, Choir-Touched и двухсторонний SEAL epilogue choice;
 - основные sector bonuses A–K: A/K recovery/enemy Intel, B victory Intel, C Lift, D recovery/event amplification, E income, F Noctis mission/reactive Intel, G Stronghold/raid/Choir, H long attack, I Rest/Deathwatch Intel/capture salvage, J qualifying garrison discount;
 - campaign outcomes и tabletop-fact inputs для sector missions, включая C1, C3, D1/D2/D3, F3, G1, I1/I3, J2/J3 и остальные простые rewards;
 - Realtime state sync, audit_log и resource_ledger.
@@ -798,7 +799,7 @@ Tabletop-only effects не моделируются как виртуальны�
 
 ### Не подменять правила догадками
 
-Если v2.0 PDF не задаёт механику, сервер не должен молча выбирать «разумный» вариант. Зафиксируйте новое правило в PDF/README как проектное решение, затем реализуйте его.
+Если v2.0 PDF не задаёт механику, сервер не должен молча выбирать «разумный» вариант. Зафиксируйте новое правило в PDF/README как проектное решение, затем реализуйте его. Отдельный известный edge case: при UNMANNED финале SEAL требует выбрать участвовавший unit, но tabletop finale не существует; сайт показывает это как source gap и ничего не назначает автоматически.
 
 ---
 
