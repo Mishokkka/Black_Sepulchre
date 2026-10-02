@@ -8,7 +8,12 @@ type CampaignEvent={id:string;kind:string;code:string;title:string;payload:any;r
 
 export default function EventsPanel({campaign}:{campaign:Campaign}){
   const[events,setEvents]=useState<CampaignEvent[]>([])
-  useEffect(()=>{supabase.from('campaign_events').select('*').eq('campaign_id',campaign.id).order('created_at',{ascending:false}).then(({data})=>setEvents((data??[]) as CampaignEvent[]))},[campaign.id])
+  useEffect(()=>{
+    const load=()=>supabase.from('campaign_events').select('*').eq('campaign_id',campaign.id).order('created_at',{ascending:false}).then(({data})=>setEvents((data??[]) as CampaignEvent[]))
+    load()
+    const ch=supabase.channel('events-'+campaign.id).on('postgres_changes',{event:'*',schema:'public',table:'campaign_events',filter:'campaign_id=eq.'+campaign.id},load).subscribe()
+    return()=>{supabase.removeChannel(ch)}
+  },[campaign.id])
   return <div className="events-grid">
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">BLACK CHOIR</div><h2>{campaign.black_choir} / 8</h2></div><RadioTower/></div>
