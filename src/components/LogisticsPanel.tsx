@@ -37,7 +37,13 @@ export default function LogisticsPanel({
     },'Unit куплен. Фактическая стоимость рассчитана сервером с учётом sector bonuses.')
     if(!r.error)setForm({name:'',datasheet:'',cost:'',location:'field',garrisonClass:'core',size:'',keywords:'',character:false,epic:false,battleline:false})
   }
-  async function recover(u:Unit){await rpc('logistics_recover',{p_activation:activationId,p_unit:u.id},`${u.name}: снят 1 Damage.`)}
+  async function recover(u:Unit){
+    const r=await rpc('logistics_recover',{p_activation:activationId,p_unit:u.id})
+    if(r.data&&!r.error){
+      const bonuses=[r.data.recovery_cache_used?'Recovery Cache':'',r.data.d_discount?'Fleshworks IX':'',r.data.home_discount?'Home discount':''].filter(Boolean)
+      setMsg(`${u.name}: снят 1 Damage за ${r.data.cost} Supply${bonuses.length?` · ${bonuses.join(', ')}`:''}.`)
+    }
+  }
   async function disband(u:Unit){
     if(!window.confirm(`Расформировать ${u.name}? XP, Honours, Scars и ID будут потеряны.`))return
     const r=await rpc('logistics_disband',{p_activation:activationId,p_unit:u.id})
