@@ -23,6 +23,7 @@ export default function FinalePanel({
   const[finalBattleId,setFinalBattleId]=useState<string|null>(null)
   const[finalUnits,setFinalUnits]=useState<FinaleBattleUnit[]>([])
   const[sealUnit,setSealUnit]=useState('')
+  const[finalReady,setFinalReady]=useState(false)
 
   const ending=(campaign.settings?.final_ending?.code??'') as keyof typeof ENDINGS|''
   const winner=campaign.winner_side
@@ -33,7 +34,11 @@ export default function FinalePanel({
   useEffect(()=>{
     if(campaign.status!=='finished')return
     ;(async()=>{
-      const{data:b}=await supabase.from('battles').select('id').eq('campaign_id',campaign.id).eq('status','completed').eq('battle_type','Stronghold Assault').order('sequence_no',{ascending:false}).limit(1)
+      const[{data:b},{data:a}]=await Promise.all([
+        supabase.from('battles').select('id').eq('campaign_id',campaign.id).eq('status','completed').eq('battle_type','Stronghold Assault').order('sequence_no',{ascending:false}).limit(1),
+        supabase.from('activations').select('id,status').eq('campaign_id',campaign.id).in('status',['open','reaction_pending','battle_pending','logistics']).limit(1)
+      ])
+      setFinalReady((a?.length??0)===0)
       const id=b?.[0]?.id??null
       setFinalBattleId(id)
       if(!id){setFinalUnits([]);return}
@@ -72,7 +77,9 @@ export default function FinalePanel({
     <div className="section-head"><div><div className="eyebrow">CAMPAIGN FINALE</div><h2>The Black Sepulchre</h2></div><Skull/></div>
     <p>Победитель кампании: <strong>{winner==='necrons'?'Necrons':'Deathwatch'}</strong>.</p>
 
-    {!ending&&member.side===winner&&<div className="asset-options">
+    {!ending&&!finalReady&&<div className="notice">Сначала завершите финальный Aftermath/Logistics и закройте последнюю Activation. После этого победитель выберет исход кампании.</div>}
+
+    {!ending&&finalReady&&member.side===winner&&<div className="asset-options">
       {(Object.keys(ENDINGS) as (keyof typeof ENDINGS)[]).map(code=>{
         const disabled=working||(code==='SEAL'&&(me?.secret_fragments??0)<3)||(code==='FEED'&&campaign.black_choir<8)
         return <button key={code} className="asset-option" disabled={disabled} onClick={()=>choose(code)}>
@@ -81,7 +88,7 @@ export default function FinalePanel({
       })}
     </div>}
 
-    {!ending&&member.side!==winner&&<p className="muted">Ожидается выбор финального исхода победителем.</p>}
+    {!ending&&finalReady&&member.side!==winner&&<p className="muted">Ожидается выбор финального исхода победителем.</p>}
 
     {ending&&<div className="notice"><CheckCircle2 size={16}/><strong>{ENDINGS[ending].title}</strong> · {ENDINGS[ending].text}</div>}
 
