@@ -4,7 +4,7 @@ import type { Member, PlayerState, Sector, Unit } from '../types'
 
 type CampaignEvent={id:string;kind:string;code:string|null;title:string;payload:any;resolved:boolean;created_at:string}
 
-const CHOICE_CODES=new Set(['11','12','13','14','24','31','32','33','41','52','53','54','56','63'])
+const CHOICE_CODES=new Set(['11','12','13','14','16','24','31','32','33','41','52','53','54','56','63'])
 
 export default function D66ChoiceControls({
   event,member,players,sectors,units
@@ -18,7 +18,7 @@ export default function D66ChoiceControls({
   const[battleMeta,setBattleMeta]=useState<{attacker_side:string;defender_side:string;outcome:string|null}|null>(null)
   const[destroyedIds,setDestroyedIds]=useState<string[]>([])
   const code=event.code??''
-  const mine=useMemo(()=>units.filter(u=>u.side===member.side),[units,member.side])
+  const mine=useMemo(()=>units.filter(u=>u.side===member.side&&u.status!=='lost'),[units,member.side])
   const me=players.find(p=>p.side===member.side)
   const resolvedSides=(event.payload?.resolved_sides??[]) as string[]
   const done=resolvedSides.includes(member.side)
@@ -68,6 +68,14 @@ export default function D66ChoiceControls({
     if(error){setMsg(error.message);return}
     setMsg(data.event_complete?'Event полностью разрешён.':'Ваш выбор сохранён. Ожидается вторая сторона.')
   }
+  async function minorArmoury(){
+    if(!selectedUnit)return
+    setWorking(true);setMsg('')
+    const{data,error}=await supabase.rpc('resolve_d66_minor_armoury',{p_event:event.id,p_unit:selectedUnit})
+    setWorking(false)
+    if(error){setMsg(error.message);return}
+    setMsg(`D66=${data.roll}: ${data.item?.name??'Armoury item'} выдан.`)
+  }
 
   const unitSelect=(rows:Unit[],placeholder:string)=><select value={selectedUnit} onChange={e=>setSelectedUnit(e.target.value)}>
     <option value="">{placeholder}</option>
@@ -110,16 +118,20 @@ export default function D66ChoiceControls({
   }else if(code==='13'){
     const eligible=sectors.some(s=>s.owner_side===member.side&&['B','C','D','E','F','G','H','I','J'].includes(s.sector_key))
     const hasWard=mine.some(u=>u.armoury?.some((a:any)=>a?.code==='blackglass_ward'))
+    const wardTargets=mine.filter(u=>(u.armoury?.length??0)===0)
     body=!eligible
       ?<button className="ghost compact" disabled={working} onClick={()=>specialChoice('pass')}>Нет подходящего контроля · закрыть для моей стороны</button>
-      :hasWard
-        ?<button className="ghost compact" disabled={working} onClick={()=>specialChoice('intel')}>Ward уже есть · получить +1 Intel</button>
-        :<div className="d66-choice-row">{unitSelect(mine.filter(u=>(u.armoury?.length??0)===0),'Unit для Blackglass Ward')}<button className="ghost compact" disabled={working||!selectedUnit} onClick={()=>specialChoice('ward',selectedUnit)}>Получить Blackglass Ward бесплатно</button></div>
+      :<>
+        <div className="button-row"><button className="ghost compact" disabled={working} onClick={()=>specialChoice('intel')}>Вместо Ward · +1 Intel</button></div>
+        {!hasWard&&wardTargets.length>0&&<div className="d66-choice-row">{unitSelect(wardTargets,'Unit для Blackglass Ward')}<button className="ghost compact" disabled={working||!selectedUnit} onClick={()=>specialChoice('ward',selectedUnit)}>Получить Blackglass Ward бесплатно</button></div>}
+      </>
   }else if(code==='14'){
     const destroyed=mine.filter(u=>destroyedIds.includes(u.id))
     body=destroyed.length
       ?<div className="d66-choice-row">{unitSelect(destroyed,'Уничтоженный unit')}<button className="ghost compact" disabled={working||!selectedUnit} onClick={()=>specialChoice('improve',selectedUnit)}>Casualty Roll +1 задним числом</button></div>
       :<button className="ghost compact" disabled={working} onClick={()=>specialChoice('pass')}>Уничтоженных units нет · закрыть</button>
+  }else if(code==='16'){
+    body=<div className="d66-choice-row">{unitSelect(mine.filter(u=>(u.armoury?.length??0)===0),'Unit с пустым Armoury slot')}<button className="ghost compact" disabled={working||!selectedUnit} onClick={minorArmoury}>Бросить D6 Minor Armoury и выдать</button></div>
   }else if(code==='24'){
     body=member.side==='deathwatch'
       ?<button className="ghost compact" disabled={working} onClick={()=>act('claim')}>Получить +20 Supply</button>
