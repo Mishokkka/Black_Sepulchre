@@ -18,6 +18,9 @@ export default function LogisticsUpgrades({
   const mine=useMemo(()=>units.filter(u=>u.side===member.side&&u.status!=='lost'&&(u.location_type==='field'||u.sector_key===currentSector)),[units,member.side,currentSector])
   const armouryEligible=mine.filter(u=>(u.armoury?.length??0)===0)
   const scarred=mine.filter(u=>(u.scars?.length??0)>0)
+  const protocolPending=mine.filter(u=>(u.scars??[]).some((s:any)=>s?.code==='NEC-12')&&!u.campaign_flags?.protocol_obsession_choice)
+  const ammoDue=mine.filter(u=>Boolean(u.campaign_flags?.ammunition_debt_due_battle))
+  const grenadesLocked=mine.filter(u=>Boolean(u.campaign_flags?.ammunition_debt_grenades_lock))
 
   async function buy(){
     if(!armouryUnit||!item)return
@@ -72,6 +75,24 @@ export default function LogisticsUpgrades({
     reload()
   }
 
+  async function protocolChoice(u:Unit,choice:'HOLD'|'HUNT'){
+    setWorking(true)
+    const{data,error}=await supabase.rpc('logistics_set_protocol_obsession',{p_activation:activationId,p_unit:u.id,p_choice:choice})
+    setWorking(false)
+    if(error){onMessage(error.message);return}
+    onMessage(u.name+': Protocol Obsession = '+data.choice+'.')
+    reload()
+  }
+
+  async function ammunitionDebt(u:Unit,pay:boolean){
+    setWorking(true)
+    const{data,error}=await supabase.rpc('logistics_resolve_ammunition_debt',{p_activation:activationId,p_unit:u.id,p_pay:pay})
+    setWorking(false)
+    if(error){onMessage(error.message);return}
+    onMessage(pay?u.name+': Ammunition Debt оплачен за 5 Supply.':u.name+': 5 Supply не оплачены; Grenades Stratagem недоступен в следующей battle.')
+    reload()
+  }
+
   async function damagedRelicCheck(u:Unit){
     setWorking(true)
     const{data,error}=await supabase.rpc('unit_resolve_damaged_armoury_first_use',{p_unit:u.id})
@@ -110,6 +131,13 @@ export default function LogisticsUpgrades({
         {mine.filter(u=>u.status==='critical_choice').map(u=><div className="scar-treatment" key={'critical-'+u.id}><div><strong>{u.name}</strong><small>Lost · выберите окончательный исход в текущем aftermath</small></div><div className="button-row"><button className="ghost compact danger" disabled={working} onClick={()=>criticalChoice(u,'lost')}>Lost · удалить из roster</button><button className="ghost compact" disabled={working} onClick={()=>criticalChoice(u,'evacuation')}>Evacuation</button></div></div>)}
         {mine.filter(u=>Number(u.campaign_flags?.evacuation_due_cost??0)>0).map(u=><div className="scar-treatment" key={'evac-'+u.id}><div><strong>{u.name}</strong><small>Evacuation due · {u.campaign_flags.evacuation_due_cost} Supply · до оплаты участие запрещено</small></div><button className="ghost compact" disabled={working} onClick={()=>payEvacuation(u)}>Оплатить Evacuation</button></div>)}
       </div>
+    </section>}
+
+    {(protocolPending.length>0||ammoDue.length>0||grenadesLocked.length>0)&&<section className="panel">
+      <div className="section-head"><div><div className="eyebrow">SCAR CONSEQUENCES</div><h2>Обязательные решения v2.0</h2></div><Stethoscope/></div>
+      {protocolPending.map(u=><div className="scar-treatment" key={'protocol-'+u.id}><div><strong>{u.name}</strong><small>Protocol Obsession: зафиксируйте Deed. Выполнение выбранного Deed даёт +1 XP; без него unit не может быть Distinguished.</small></div><div className="button-row"><button className="ghost compact" disabled={working} onClick={()=>protocolChoice(u,'HOLD')}>HOLD</button><button className="ghost compact" disabled={working} onClick={()=>protocolChoice(u,'HUNT')}>DESTROY / HUNT</button></div></div>)}
+      {ammoDue.map(u=><div className="scar-treatment" key={'ammo-'+u.id}><div><strong>{u.name}</strong><small>Ammunition Debt после участия в battle: заплатите 5 Supply или потеряйте Grenades Stratagem в следующей battle.</small></div><div className="button-row"><button className="ghost compact" disabled={working} onClick={()=>ammunitionDebt(u,true)}>Заплатить 5 Supply</button><button className="ghost compact" disabled={working} onClick={()=>ammunitionDebt(u,false)}>Не платить</button></div></div>)}
+      {grenadesLocked.map(u=><div className="notice" key={'grenades-'+u.id}><strong>{u.name}</strong>: Grenades Stratagem недоступен в следующей battle; после участия ограничение снимается, затем Ammunition Debt возникает снова.</div>)}
     </section>}
 
     <section className="panel">
