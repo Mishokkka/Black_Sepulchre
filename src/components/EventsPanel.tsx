@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { RadioTower, ScrollText } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { BLACK_CHOIR_REVEALS, D66_EVENTS } from '../data/campaign'
-import type { Campaign, Member } from '../types'
+import type { Campaign, Member, PlayerState, Sector, Unit } from '../types'
+import D66ChoiceControls from './D66ChoiceControls'
 
 type CampaignEvent={id:string;kind:string;code:string|null;title:string;payload:any;resolved:boolean;created_at:string}
 
@@ -24,7 +25,7 @@ const PENDING_LABELS:Record<string,string>={
   black_sun:'Black Sun · round 4 следующей battle без Benefit of Cover',
 }
 
-export default function EventsPanel({campaign,member}:{campaign:Campaign;member:Member}){
+export default function EventsPanel({campaign,member,players,sectors,units}:{campaign:Campaign;member:Member;players:PlayerState[];sectors:Sector[];units:Unit[]}){
   const[events,setEvents]=useState<CampaignEvent[]>([])
   const[msg,setMsg]=useState(''),[working,setWorking]=useState(false)
   const pendingEffects=(campaign.settings?.pending_effects??[]) as any[]
@@ -72,6 +73,10 @@ export default function EventsPanel({campaign,member}:{campaign:Campaign;member:
             <div className="event-choice-buttons">{options.map(code=>{const opt=D66_EVENTS[code];return <button className="ghost" key={code} disabled={working||member.side!==chooser} onClick={()=>chooseD66(e,code)}><strong>{code} · {opt?.name??'Event'}</strong><small>{opt?.effect}</small></button>})}</div>
             {member.side!==chooser&&<small>Выбор делает {chooser==='necrons'?'Necrons':'Deathwatch'}.</small>}
           </>:<p>{d?.effect??'Эффект не найден в текущем rules reference.'}</p>}
+          {e.kind==='D66'&&e.code&&AUTO_D66.has(e.code)&&!e.resolved&&<button className="ghost compact event-apply" disabled={working} onClick={()=>resolveEvent(e)}>Применить / поставить эффект в очередь</button>}
+          {e.kind==='D66'&&e.code&&['24','31','33','41','52','53','54','56'].includes(e.code)&&!e.resolved&&<D66ChoiceControls event={e} member={member} players={players} sectors={sectors} units={units}/>}
+          {e.kind==='D66'&&e.code&&!AUTO_D66.has(e.code)&&!['24','31','33','41','52','53','54','56'].includes(e.code)&&!e.resolved&&<small className="pending-tag">Требуется отдельный выбор или цель. Resolver ещё не автоматизирован.</small>}
+          {e.resolved&&<small className="resolved-tag">Resolved</small>}
           <small>{new Date(e.created_at).toLocaleString('ru')}</small></div>
         </div>
       })}</div>}
