@@ -13,7 +13,7 @@ type Battle={
   attacker_muster_locked:boolean;defender_muster_locked:boolean;salvage_attacker:number|null;salvage_defender:number|null;
   attacker_tactical_assets:string[];defender_tactical_assets:string[];defensive_asset:string|null;breach_assets:string[];
   recon_lock_sides:string[];attacker_interdict:string|null;defender_interdict:string|null;
-  mission_options:string[];mission_choice_side:Side|null;
+  mission_options:string[];mission_choice_side:Side|null;campaign_effects:any[];
   attacker_salvage_choice:string|null;defender_salvage_choice:string|null;salvage_rerolled_sides:string[];
   event_code:string|null;event_options:string[];event_choice_side:Side|null;d66_rerolled:boolean;
   aftermath:any;report:any;created_at:string;completed_at:string|null
@@ -144,7 +144,9 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   const enemyInterdict=pending?(member.side===pending.attacker_side?pending.defender_interdict:pending.attacker_interdict):null
   const interdictOptions=member.side===pending?.attacker_side?[...TACTICAL_ASSETS]:[...TACTICAL_ASSETS,...BREACH_ASSETS]
   const noosphereStatic=((campaign.settings?.pending_effects??[]) as any[]).some(e=>e?.code==='noosphere_static')
-  const reconLockCost=noosphereStatic?2:1
+  const battleEffects=(pending?.campaign_effects??[]) as any[]
+  const auspexGhost=battleEffects.some(e=>e?.code==='auspex_ghost')
+  const reconLockCost=(auspexGhost?0:1)+(noosphereStatic?1:0)
   const khepra=sectors.find(s=>s.sector_key==='I')
   const khepraRestActive=!!pending&&pending.sector_key==='I'&&khepra?.owner_side==='necrons'&&!khepra.conditions?.some(x=>['Exhausted','Sabotaged','Disrupted','Contested'].includes(x))
 
@@ -249,10 +251,24 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
       </div>:
       <div className="mission-line"><span>{mission?.[2]}</span><div className="button-row">
         <button className="ghost compact" disabled={working||(myPlayer?.intelligence??0)<1} onClick={()=>rpc('battle_reroll_mission',{p_battle:pending.id})}><RefreshCw size={14}/> Re-roll · 1 Intel</button>
-        <button className="ghost compact" disabled={working||ownRecon||(myPlayer?.intelligence??0)<reconLockCost||pending.attacker_muster_locked||pending.defender_muster_locked} onClick={useReconLock}><LockKeyhole size={14}/> Recon Lock · {reconLockCost} Intel</button>
+        <button className="ghost compact" disabled={working||ownRecon||(myPlayer?.intelligence??0)<reconLockCost||pending.attacker_muster_locked||pending.defender_muster_locked} onClick={useReconLock}><LockKeyhole size={14}/> Recon Lock · {reconLockCost===0?'FREE':reconLockCost+' Intel'}</button>
       </div></div>}
       {reconSides.length>0&&<div className="notice">{bothRecon?'Обе стороны активировали Recon Lock: порядок раскрытия не меняется.':`Recon Lock: ${sideLabel(reconSides[0])} фиксирует Muster после соперника.`}</div>}
     </section>
+
+    {battleEffects.length>0&&<section className="panel campaign-effects-panel">
+      <div className="section-head"><div><div className="eyebrow">CAMPAIGN EFFECTS</div><h2>Эффекты этой battle</h2></div><Radio/></div>
+      <div className="campaign-effects-list">{battleEffects.map((e:any,i:number)=><div key={(e.code??'effect')+'-'+i}><strong>{e.code}</strong><span>{({
+        vox_from_dead:'Указанная сторона может перебросить первый failed Battle-shock test.',
+        ash_rain:'Battle round 3: ranged attacks дальше 24" невозможны.',
+        bone_bloom:'Центральный objective окружён 5" Difficult Ground; winner получает +10 Supply автоматически.',
+        machine_hymn:'Первый VEHICLE/MONSTER, который должен стать Battle-shocked, получает D3 mortal wounds и считается прошедшим test.',
+        auspex_ghost:'Обе стороны получают Recon Lock бесплатно. Если оба используют его, каждый получает +1 Intel после Muster.',
+        delayed_reinforcements:'Первый campaign-granted Reserve/Garrison Reinforcement каждой стороны прибывает на round позже.',
+        nine_seconds:'В начале round 2 повторите эффект round 1 одной sector Catastrophe; если неприменимо, каждый +1 CP.',
+        black_sun:'Battle round 4 проходит без Benefit of Cover по всему полю.'
+      } as Record<string,string>)[e.code]??'Campaign effect'}</span>{e.side&&<small>{sideLabel(e.side)}</small>}</div>)}</div>
+    </section>}
 
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">YOUR MUSTER · {sideLabel(member.side)}</div><h2>{ownLocked?'Зафиксирован':'Сформируйте силы'}</h2></div><LockKeyhole/></div>
