@@ -74,8 +74,8 @@ export default function EventsPanel({campaign,member,players,sectors,units}:{cam
             {member.side!==chooser&&<small>Выбор делает {chooser==='necrons'?'Necrons':'Deathwatch'}.</small>}
           </>:<p>{d?.effect??'Эффект не найден в текущем rules reference.'}</p>}
           {e.kind==='D66'&&e.code&&AUTO_D66.has(e.code)&&!e.resolved&&<button className="ghost compact event-apply" disabled={working} onClick={()=>resolveEvent(e)}>Применить / поставить эффект в очередь</button>}
-          {e.kind==='D66'&&e.code&&['24','31','33','41','52','53','54','56'].includes(e.code)&&!e.resolved&&<D66ChoiceControls event={e} member={member} players={players} sectors={sectors} units={units}/>}
-          {e.kind==='D66'&&e.code&&!AUTO_D66.has(e.code)&&!['24','31','33','41','52','53','54','56'].includes(e.code)&&!e.resolved&&<small className="pending-tag">Требуется отдельный выбор или цель. Resolver ещё не автоматизирован.</small>}
+          {e.kind==='D66'&&e.code&&['11','24','31','32','33','41','52','53','54','56'].includes(e.code)&&!e.resolved&&<D66ChoiceControls event={e} member={member} players={players} sectors={sectors} units={units}/>}
+          {e.kind==='D66'&&e.code&&!AUTO_D66.has(e.code)&&!['11','24','31','32','33','41','52','53','54','56'].includes(e.code)&&!e.resolved&&<small className="pending-tag">Требуется отдельный выбор или цель. Resolver ещё не автоматизирован.</small>}
           {e.resolved&&<small className="resolved-tag">Resolved</small>}
           <small>{new Date(e.created_at).toLocaleString('ru')}</small></div>
         </div>
