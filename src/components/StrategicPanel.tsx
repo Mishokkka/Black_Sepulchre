@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowRight, BatteryCharging, Castle, Eye, Footprints, Hammer, Radio, ShieldAlert, Wrench } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import LogisticsPanel from './LogisticsPanel'
 import { ADJACENCY, STAGES, fortifyCost, mobiliseGain, stageIndexForBattles } from '../data/campaign'
-import type { Campaign, Member, PlayerState, Sector } from '../types'
+import type { Campaign, Member, PlayerState, Sector, Unit } from '../types'
 
 interface Activation {
   id:string
@@ -16,7 +17,7 @@ interface Activation {
   actions_available:number
   actions:any[]
   movement:any[]
-  status:'open'|'battle_pending'|'completed'|'cancelled'
+  status:'open'|'battle_pending'|'logistics'|'completed'|'cancelled'
 }
 
 const label=(s:string|null)=>s==='necrons'?'Necrons':s==='deathwatch'?'Deathwatch':'Neutral'
@@ -37,12 +38,13 @@ function supplied(side:string, sector:string, sectors:Sector[]) {
 }
 
 export default function StrategicPanel({
-  campaign,member,players,sectors,reload,onOpenBattles,
+  campaign,member,players,sectors,units,reload,onOpenBattles,
 }:{
   campaign:Campaign
   member:Member
   players:PlayerState[]
   sectors:Sector[]
+  units:Unit[]
   reload:()=>void
   onOpenBattles:()=>void
 }){
@@ -63,7 +65,7 @@ export default function StrategicPanel({
   const currentSupplied=me?supplied(member.side,me.main_force_sector,sectors):false
 
   const fetchActivation=useCallback(async()=>{
-    const{data}=await supabase.from('activations').select('*').eq('campaign_id',campaign.id).in('status',['open','battle_pending']).order('sequence_no',{ascending:false}).limit(1)
+    const{data}=await supabase.from('activations').select('*').eq('campaign_id',campaign.id).in('status',['open','battle_pending','logistics']).order('sequence_no',{ascending:false}).limit(1)
     setActivation((data?.[0] as Activation)??null)
   },[campaign.id])
 
@@ -95,7 +97,7 @@ export default function StrategicPanel({
   async function move(target:string){
     const r=await rpc('activation_move',{p_activation:activation?.id,p_target:target})
     if(r.data?.kind==='battle'){setMsg('Контакт. Создан Battle Setup.');onOpenBattles()}
-    if(r.data?.kind==='occupation')setMsg('Сектор занят без tabletop battle. Ход передан.')
+    if(r.data?.kind==='occupation')setMsg('Сектор занят без tabletop battle. Открыта Logistics Phase.')
   }
 
   const conditionList=current?.conditions?.length?current.conditions:[]
@@ -128,6 +130,10 @@ export default function StrategicPanel({
       </section>
       <section className="panel"><div className="eyebrow">POSITION</div><h2>{current?.name}</h2><p className="muted">{current?.sector_class} · {currentSupplied?'линия снабжения есть':'отрезан от Home Stronghold'}</p></section>
     </div>
+  }
+
+  if(activation.status==='logistics'){
+    return <LogisticsPanel activationId={activation.id} campaign={campaign} member={member} players={players} sectors={sectors} units={units} reload={reload} onPassed={refresh}/>
   }
 
   if(activation.status==='battle_pending'){
@@ -194,7 +200,7 @@ export default function StrategicPanel({
         <div><dt>Fortified</dt><dd>{current?.fortified?'Да':'Нет'}</dd></div>
         <div><dt>Conditions</dt><dd>{conditionList.length?conditionList.join(', '):'Normal'}</dd></div>
       </dl>
-      <button className="ghost action-main" disabled={working||!isMyTurn} onClick={()=>rpc('end_activation',{p_activation:activation.id},'Activation завершена. Ход передан.')}>Завершить Activation</button>
+      <button className="ghost action-main" disabled={working||!isMyTurn} onClick={()=>rpc('end_activation',{p_activation:activation.id},'Открыта Logistics Phase.')}>Завершить Activation</button>
     </section>
   </div>
 }
