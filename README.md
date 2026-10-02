@@ -717,9 +717,11 @@ login
 - Deep Raid;
 - Orbital Airlift;
 - Glass Wastes route;
-- Cathedral G: первый Deep Raid стадии дешевле на 1 Intel;
+- Cathedral G: первый Deep Raid **или Hidden Route** стадии дешевле на 1 Intel;
+- Cathedral G: каждая tabletop battle в G после первой повышает BLACK CHOIR на 1;
 - Basilica B: +1 Intel за соседнюю победу, максимум раз между своими Activations;
 - Noctis Relay F: +1 Intel на объявление атаки противником, максимум раз между своими Activations;
+- Home A/K: при вражеском контроле соответствующая сторона получает +1 Intel после каждой tabletop battle;
 - Noctis Relay F: двойной mission roll и выбор одного результата;
 - Necropolis I: Deathwatch Intel bonus при победах в I/K при активном контроле I;
 - Necropolis I: enhanced Necron Rest снимает 2 Damage одному подходящему resting unit;
@@ -797,7 +799,7 @@ login
    Основной resolver уже существует. Специализированные flows добавлены для 11–14, 24, 31–33, 41, 52–56, 63 и 64; большинство остальных либо применяется сервером, либо превращается в явно показанный next-battle/next-activation effect. D66 16 остаётся намеренно неавтоматизированным: rules source упоминает случайный `Minor Armoury item`, но не даёт таблицу таких предметов. Для D66 11 и Draw-варианта D66 32 источник также не задаёт tie-break при равном числе секторов, поэтому сервер не придумывает его.
 
 3. **Sector rules.**
-   D double-D66, F double mission choice и I enhanced Rest уже работают. Основной крупный пробел сектора J сейчас связан со Scavenge и его interaction с Exhausted; остаются отдельные mission-facing bonuses/penalties.
+   Основные persistent bonuses A–K уже закрыты заметно плотнее: A/K recovery и enemy-control Intel, B adjacent-victory Intel, C Airlift, D recovery/D66, E income, F mission/reactive Intel, G Stronghold/raid discount/BLACK CHOIR escalation, H long attack, I Rest/Deathwatch Intel/owner-change salvage, J qualifying garrison discount. Основной крупный пробел сектора J сейчас связан со Scavenge и его interaction с Exhausted; tabletop-only modifiers B/H и отдельные mission-facing bonuses остаются памятками.
 
 4. **Battle Assets effects.**
    Tactical/Defensive/Breach Assets уже рассчитываются, выбираются и сохраняются. Большинство их tabletop effects остаётся памяткой. Post-battle modifiers вроде Hard Evacuation / Hardened Stores / Extraction Beacon пока не привязаны автоматически к конкретному unit.
@@ -924,6 +926,8 @@ Realtime используется не только для удобства. К�
 - `d66_secret_route`
 - `d66_hidden_route_attack`
 - `fix_names_in_static_survival`
+- `advisor_cleanup_d66_and_reactions`
+- `sector_bonus_corrections`
 
 Перед новым handoff первым делом выполните Supabase `list_migrations`, потому что production DB может быть новее этого README.
 
