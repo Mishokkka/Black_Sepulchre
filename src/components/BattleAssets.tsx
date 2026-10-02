@@ -9,7 +9,7 @@ type BattleLike={
   id:string;sector_key:string;battle_type:'Field Battle'|'Garrison Battle'|'Stronghold Assault';
   attacker_side:Side;defender_side:Side;
   attacker_tactical_assets:string[];defender_tactical_assets:string[];
-  defensive_asset:string|null;breach_assets:string[];
+  defensive_asset:string|null;breach_assets:string[];attacker_interdict:string|null;defender_interdict:string|null;
 }
 type BattleUnitLike={unit_id:string;side:Side;role:'field'|'garrison_initial'|'garrison_reinforcement';participated:boolean}
 
@@ -47,6 +47,7 @@ export default function BattleAssets({
   const defensiveSlots=side===battle.defender_side&&sector?.fortified&&!sector.conditions?.includes('Sabotaged')&&!(sector.sector_key==='E'&&sector.conditions?.includes('Exhausted'))?1:0
   const breachSlots=side===battle.attacker_side&&battle.battle_type!=='Stronghold Assault'?(sector?.fortified?2:sector?.sector_class==='Strategic Node'?1:0):0
   const tacticalSlots=underdog.side===side?underdog.slots:0
+  const bannedAsset=side===battle.attacker_side?battle.defender_interdict:battle.attacker_interdict
 
   const toggle=(arr:string[],set:(v:string[])=>void,value:string,max:number)=>{
     if(arr.includes(value)){set(arr.filter(x=>x!==value));return}
@@ -77,7 +78,7 @@ export default function BattleAssets({
 
     {tacticalSlots>0&&<div className="asset-group">
       <h3>Tactical Assets · Underdog gap {underdog.gap} / Army Limit {stage.armyLimit}</h3>
-      <div className="asset-options">{TACTICAL_ASSETS.filter(a=>!(battle.sector_key==='H'&&a.code==='Prepared Barricades')).map(a=><label className={tactical.includes(a.code)?'asset-option selected':'asset-option'} key={a.code}>
+      <div className="asset-options">{TACTICAL_ASSETS.filter(a=>!(battle.sector_key==='H'&&a.code==='Prepared Barricades')&&a.code!==bannedAsset).map(a=><label className={tactical.includes(a.code)?'asset-option selected':'asset-option'} key={a.code}>
         <input type="checkbox" checked={tactical.includes(a.code)} onChange={()=>toggle(tactical,setTactical,a.code,tacticalSlots)}/>
         <span><strong>{a.code}</strong><small>{a.effect}</small></span>
       </label>)}</div>
@@ -93,12 +94,13 @@ export default function BattleAssets({
 
     {breachSlots>0&&<div className="asset-group">
       <h3>Breach Assets · {breachSlots}</h3>
-      <div className="asset-options">{BREACH_ASSETS.map(a=><label className={breach.includes(a.code)?'asset-option selected':'asset-option'} key={a.code}>
+      <div className="asset-options">{BREACH_ASSETS.filter(a=>a.code!==bannedAsset).map(a=><label className={breach.includes(a.code)?'asset-option selected':'asset-option'} key={a.code}>
         <input type="checkbox" checked={breach.includes(a.code)} onChange={()=>toggle(breach,setBreach,a.code,breachSlots)}/>
         <span><strong>{a.code}</strong><small>{a.effect}</small></span>
       </label>)}</div>
     </div>}
 
+    {bannedAsset&&<div className="notice">Interdict противника: <strong>{bannedAsset}</strong> недоступен вашей стороне.</div>}
     {hasAnything&&<button className="primary action-main" disabled={working} onClick={save}><Target size={15}/> Сохранить Assets</button>}
     {msg&&<div className="notice">{msg}</div>}
   </section>
