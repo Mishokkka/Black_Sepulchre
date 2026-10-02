@@ -140,3 +140,13 @@ export const SIGNATURE_HONOURS = [
  {code:'ancient_murder_logic',side:'necrons',name:'Ancient Murder-Logic',cr:15,effect:'Один раз за Fight phase один melee weapon profile получает +1 Attack на model, максимум +5 attacks.'},
  {code:'memory_eternity',side:'necrons',name:'Memory of Eternity',cr:15,effect:'Один раз за battle после failed Battle-shock считайте test успешным; если unit выжил, +1 XP после battle.'},
 ] as const
+
+
+export const CAMPAIGN_ARMOURY = [
+ {code:'field_medicae',name:'Field Medicae / Repair Node',cost:40,cr:0,effect:'Одноразово после Casualty Roll уменьшите полученный Damage на 1.'},
+ {code:'reinforced_plating',name:'Reinforced Plating',cost:60,cr:5,effect:'Один раз за battle уменьшите Damage одной успешной атаки по model на 1, минимум 1.'},
+ {code:'tactical_relay',name:'Tactical Relay',cost:50,cr:5,effect:'Один раз за battle +1 к одному броску, напрямую связанному с Mission Action/sector rule.'},
+ {code:'reserve_beacon',name:'Reserve Beacon',cost:60,cr:5,effect:'Один раз за battle перебросьте reserve-related roll или Charge roll в ход прибытия.'},
+ {code:'recovery_cache',name:'Recovery Cache',cost:35,cr:0,effect:'Одноразово: следующий paid recovery 1 Damage стоит половину, округляя вверх до 5.'},
+ {code:'blackglass_ward',name:'Blackglass Ward',cost:70,cr:5,effect:'Один раз за battle перебросьте Battle-shock test, вызванный Black Glass/Black Choir.'},
+] as const
