@@ -15,7 +15,9 @@ export default function LogisticsPanel({
   const me=players.find(p=>p.side===member.side)
   const sector=sectors.find(s=>s.sector_key===me?.main_force_sector)
   const stage=STAGES[stageIndexForBattles(campaign.battle_count)]
-  const mine=useMemo(()=>units.filter(u=>u.side===member.side),[units,member.side])
+  const allMine=useMemo(()=>units.filter(u=>u.side===member.side),[units,member.side])
+  const mine=useMemo(()=>allMine.filter(u=>u.status!=='lost'),[allMine])
+  const lost=useMemo(()=>allMine.filter(u=>u.status==='lost'),[allMine])
   const fieldBase=mine.filter(u=>u.location_type==='field').reduce((a,u)=>a+u.reference_cost,0)
 
   async function rpc(name:string,args:Record<string,unknown>,success?:string){
@@ -41,7 +43,8 @@ export default function LogisticsPanel({
     const r=await rpc('logistics_recover',{p_activation:activationId,p_unit:u.id})
     if(r.data&&!r.error){
       const bonuses=[r.data.recovery_cache_used?'Recovery Cache':'',r.data.d_discount?'Fleshworks IX':'',r.data.home_discount?'Home discount':''].filter(Boolean)
-      setMsg(`${u.name}: снят 1 Damage за ${r.data.cost} Supply${bonuses.length?` · ${bonuses.join(', ')}`:''}.`)
+      const paid=[r.data.recovery_supply_spent?`Recovery Supply ${r.data.recovery_supply_spent}`:'',r.data.supply_spent?`Supply ${r.data.supply_spent}`:''].filter(Boolean)
+      setMsg(`${u.name}: снят 1 Damage за ${r.data.cost}${paid.length?` (${paid.join(' + ')})`:''}${bonuses.length?` · ${bonuses.join(', ')}`:''}.`)
     }
   }
   async function disband(u:Unit){
@@ -59,6 +62,7 @@ export default function LogisticsPanel({
       <div className="section-head"><div><div className="eyebrow">LOGISTICS PHASE</div><h2>Sector {me?.main_force_sector} · {sector?.name}</h2></div><Coins/></div>
       <div className="activation-meters">
         <div><span>Supply</span><strong>{me?.supply??0}</strong></div>
+        <div><span>Recovery Supply</span><strong>{me?.recovery_supply??0}</strong></div>
         <div><span>Army Limit</span><strong>{stage.armyLimit}</strong></div>
         <div><span>Field Roster</span><strong>{fieldBase} / {stage.rosterCap}</strong></div>
         <div><span>Sector</span><strong>{sector?.sector_class??'—'}</strong></div>
@@ -90,6 +94,7 @@ export default function LogisticsPanel({
         <button className="ghost compact" disabled={working||u.damage===0} onClick={()=>recover(u)}><RotateCcw size={14}/> Recover</button>
         <button className="ghost compact danger" disabled={working} onClick={()=>disband(u)}><Trash2 size={14}/></button>
       </div>)}</div>
+      {lost.length>0&&<p className="muted small-note">{lost.length} CHARACTER отмечено как Lost и хранится только в campaign history.</p>}
     </section>
 
     <LogisticsUpgrades activationId={activationId} member={member} currentSector={me?.main_force_sector??''} units={units} reload={reload} onMessage={setMsg}/>
