@@ -158,6 +158,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   const auspexGhost=battleEffects.some(e=>e?.code==='auspex_ghost')
   const missionFreeRecon=battleEffects.some(e=>e?.code==='free_recon_lock'&&e?.side===member.side)
   const reconLockCost=((auspexGhost||missionFreeRecon)?0:1)+(noosphereStatic?1:0)
+  const revealIII=campaign.black_choir>=6||Number(campaign.settings?.forced_reveal_threshold??0)>=6
   const khepra=sectors.find(s=>s.sector_key==='I')
   const khepraRestActive=!!pending&&pending.sector_key==='I'&&khepra?.owner_side==='necrons'&&!khepra.conditions?.some(x=>['Exhausted','Sabotaged','Disrupted','Contested'].includes(x))
 
@@ -346,6 +347,15 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     {bothLocked&&<section className="panel">
       <div className="section-head"><div><div className="eyebrow">TABLETOP RESULT</div><h2>Battle Report</h2></div><Skull/></div>
       <div className="score-grid"><label>{attacker} VP<input type="number" min={0} max={100} value={attVp} onChange={e=>setAttVp(Number(e.target.value))}/></label><label>{defender} VP<input type="number" min={0} max={100} value={defVp} onChange={e=>setDefVp(Number(e.target.value))}/></label><label>Outcome<select value={outcome} onChange={e=>setOutcome(e.target.value)}><option value={scoreOutcome}>{outcomeLabel[scoreOutcome]}</option><option value="attacker_withdrawal">{outcomeLabel.attacker_withdrawal}</option><option value="defender_withdrawal">{outcomeLabel.defender_withdrawal}</option></select></label></div>
+
+      {pending.battle_type==='Stronghold Assault'&&revealIII&&<div className="mission-report-box">
+        <div className="eyebrow">REVEAL III · EXTRACT THE INDEX</div>
+        <p className="muted">Каждая сторона может отметить одного участвовавшего CHARACTER, который completed EXTRACT INDEX у central objective. Добавьте 8 VP в итоговый счёт вручную. Сервер выдаст Secret Fragment; если этот CHARACTER уничтожен, его Casualty Roll получит -1.</p>
+        <div className="mission-report-grid">
+          <label>{attacker} CHARACTER<select value={missionReport.attacker_extract_index_unit??''} onChange={e=>missionPatch({attacker_extract_index_unit:e.target.value})}><option value="">Не completed</option>{battleUnits.filter(b=>b.side===pending.attacker_side&&b.participated).map(b=>{const u=units.find(x=>x.id===b.unit_id);return u?.is_character?<option key={u.id} value={u.id}>{u.name}</option>:null})}</select></label>
+          <label>{defender} CHARACTER<select value={missionReport.defender_extract_index_unit??''} onChange={e=>missionPatch({defender_extract_index_unit:e.target.value})}><option value="">Не completed</option>{battleUnits.filter(b=>b.side===pending.defender_side&&b.participated).map(b=>{const u=units.find(x=>x.id===b.unit_id);return u?.is_character?<option key={u.id} value={u.id}>{u.name}</option>:null})}</select></label>
+        </div>
+      </div>}
 
       {['A2','A3','B1','B2','D1','D2','E3','F2','G1','H2','I1','I3','J2','J3'].includes(pending.mission_code)&&<div className="mission-report-box">
         <div className="eyebrow">V2.0 MISSION FACTS</div>
