@@ -53,7 +53,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   const[picks,setPicks]=useState<Record<string,Pick>>({})
   const[resultPicks,setResultPicks]=useState<Record<string,ResultPick>>({})
   const[attVp,setAttVp]=useState(0),[defVp,setDefVp]=useState(0)
-  const[outcome,setOutcome]=useState('attacker_win')
+  const[outcome,setOutcome]=useState('draw')
   const[defRetreat,setDefRetreat]=useState(''),[garRetreat,setGarRetreat]=useState('')
   const[attSalvage,setAttSalvage]=useState('supply'),[defSalvage,setDefSalvage]=useState('supply')
   const[narrative,setNarrative]=useState('')
@@ -72,6 +72,8 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   useEffect(()=>{fetchBattles()},[fetchBattles])
   const pending=battles.find(b=>b.status==='draft')??null
   const history=battles.filter(b=>b.status==='completed')
+  const scoreOutcome=attVp>defVp?'attacker_win':defVp>attVp?'defender_win':'draw'
+  useEffect(()=>{if(outcome!=='attacker_withdrawal'&&outcome!=='defender_withdrawal')setOutcome(scoreOutcome)},[attVp,defVp,scoreOutcome])
 
   useEffect(()=>{
     if(!pending)return
@@ -183,7 +185,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
 
     {bothLocked&&<section className="panel">
       <div className="section-head"><div><div className="eyebrow">TABLETOP RESULT</div><h2>Battle Report</h2></div><Skull/></div>
-      <div className="score-grid"><label>{attacker} VP<input type="number" min={0} max={100} value={attVp} onChange={e=>setAttVp(Number(e.target.value))}/></label><label>{defender} VP<input type="number" min={0} max={100} value={defVp} onChange={e=>setDefVp(Number(e.target.value))}/></label><label>Outcome<select value={outcome} onChange={e=>setOutcome(e.target.value)}>{Object.entries(outcomeLabel).map(([k,v])=><option value={k} key={k}>{v}</option>)}</select></label></div>
+      <div className="score-grid"><label>{attacker} VP<input type="number" min={0} max={100} value={attVp} onChange={e=>setAttVp(Number(e.target.value))}/></label><label>{defender} VP<input type="number" min={0} max={100} value={defVp} onChange={e=>setDefVp(Number(e.target.value))}/></label><label>Outcome<select value={outcome} onChange={e=>setOutcome(e.target.value)}><option value={scoreOutcome}>{outcomeLabel[scoreOutcome]}</option><option value="attacker_withdrawal">{outcomeLabel.attacker_withdrawal}</option><option value="defender_withdrawal">{outcomeLabel.defender_withdrawal}</option></select></label></div>
       <div className="result-list">{battleUnits.map(bu=>{const u=units.find(x=>x.id===bu.unit_id);if(!u)return null;const r=resultPicks[bu.unit_id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0};return <div className="result-unit" key={bu.unit_id}>
         <div><strong>{u.name}</strong><small>{sideLabel(bu.side)} · {bu.resting?'RESTING':bu.role}</small></div>
         {!bu.resting&&<><label><input type="checkbox" checked={r.destroyed} onChange={e=>resultPatch(bu.unit_id,{destroyed:e.target.checked})}/> Destroyed</label>
