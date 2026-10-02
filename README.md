@@ -8,9 +8,9 @@ Production: https://mishokkka.github.io/Black_Sepulchre/
 
 Repository: `Mishokkka/Black_Sepulchre`
 
-Reference rules PDF: `Black_Sepulchre_40k11_Campaign_Rules_v2.0_RU.pdf`
+Reference rules PDF: `Black_Sepulchre_40k11_Campaign_Rules_v2.1_RU.pdf`
 
-Canonical extracted text: `docs/Black_Sepulchre_v2.0_source.txt`
+Canonical extracted text: `docs/Black_Sepulchre_v2.1_source.txt`
 
 Supabase project ref: `xjmzsnvztqhjttcxeknf`
 
@@ -22,11 +22,13 @@ Current campaign snapshot date in DB: `2026-09-30`.
 
 При разработке используйте такой приоритет:
 
-1. `Black_Sepulchre_40k11_Campaign_Rules_v2.0_RU.pdf` в корне репозитория.
-2. `docs/Black_Sepulchre_v2.0_source.txt`, автоматически извлечённый из того же PDF для поиска и аудита. При расхождении верстки с текстом PDF имеет приоритет.
+1. `Black_Sepulchre_40k11_Campaign_Rules_v2.1_RU.pdf` в корне репозитория.
+2. `docs/Black_Sepulchre_v2.1_source.txt`, автоматически извлечённый из того же PDF для поиска и аудита. При расхождении верстки с текстом PDF имеет приоритет.
 3. Явные решения владельца проекта, зафиксированные после v2.0.
 4. Серверная логика Supabase RPC.
 5. Клиентский UI.
+
+> **Версия правил обновлена до v2.1.** Код Campaign Command мог быть реализован по v2.0; любое утверждение о полной automation parity следует проверять против v2.1 source.
 
 Если UI и RPC расходятся, **RPC должен защищать правила**. Клиент не должен иметь возможность записать нелегальное состояние только потому, что кнопка или форма это позволила.
 
@@ -128,7 +130,7 @@ GitHub Pages должен быть настроен на:
 .
 ├─ .github/workflows/deploy.yml
 ├─ .github/workflows/extract-rules-source.yml
-├─ Black_Sepulchre_40k11_Campaign_Rules_v2.0_RU.pdf
+├─ Black_Sepulchre_40k11_Campaign_Rules_v2.1_RU.pdf
 ├─ docs/
 │  └─ Black_Sepulchre_v2.0_source.txt
 ├─ README.md
@@ -790,10 +792,9 @@ Tabletop-only effects не моделируются как виртуальны�
 
 Оставшиеся пункты делятся на реальные source gaps и optional/unsupported automation.
 
-### Реальные пробелы самого v2.0 source
+### Изменения правил v2.1, требующие проверки реализации
 
-1. **Scavenge.** В разделе Strategic Actions сказано только «если sector/mission/event прямо разрешает», а J определяет лишь дополнительное последствие натуральной 1 при Exhausted. Ни reward table, ни сам roll/procedure в v2.0 не определены. Сайт намеренно не выдумывает механику.
-2. **D66 11 и Draw-ветка D66 32 при полном равенстве числа секторов.** PDF выбирает игрока с меньшим числом sectors, но не задаёт tie-break. Сервер намеренно останавливает resolver с понятной ошибкой.
+v2.1 закрывает прежние source gaps Scavenge и tie-break D66 11/32 и содержит дополнительные audit-fixes. Не считать существующую автоматизацию Campaign Command автоматически совместимой с v2.1, пока соответствующие RPC/UI не сверены по новому source.
 
 ### Опциональная механика v2.0, ещё не реализованная
 
@@ -814,7 +815,7 @@ Tabletop-only effects не моделируются как виртуальны�
 
 ### Не подменять правила догадками
 
-Если v2.0 PDF не задаёт механику, сервер не должен молча выбирать «разумный» вариант. Зафиксируйте новое правило в PDF/README как проектное решение, затем реализуйте его. Отдельный известный edge case: при UNMANNED финале SEAL требует выбрать участвовавший unit, но tabletop finale не существует; сайт показывает это как source gap и ничего не назначает автоматически.
+Если v2.1 PDF не задаёт механику, сервер не должен молча выбирать «разумный» вариант. Зафиксируйте новое правило в PDF/README как проектное решение, затем реализуйте его. Отдельный известный edge case: при UNMANNED финале SEAL требует выбрать участвовавший unit, но tabletop finale не существует; сайт показывает это как source gap и ничего не назначает автоматически.
 
 ---
 
@@ -1133,23 +1134,23 @@ garrison_reinforcement
 - Не переводить authoritative checks из Postgres в React.
 - Не давать authenticated client прямые write policies к campaign state.
 - Не считать текст D66/Asset/mission в UI доказательством автоматизации эффекта. Проверять соответствующий RPC/queued-effect path.
-- Не придумывать недостающие правила. Critical Injury, Minor Armoury D6, Relics и прочие механики сначала ищите в `docs/Black_Sepulchre_v2.0_source.txt`; старый v1.2.1 не использовать.
+- Не придумывать недостающие правила. Critical Injury, Minor Armoury D6, Relics и прочие механики сначала ищите в `docs/Black_Sepulchre_v2.1_source.txt`; старый v1.2.1 не использовать.
 - Не считать старый успешный Pages deploy доказательством, что последний commit собрался. Всегда сопоставляйте SHA.
 
 ---
 
 ## 23. Current handoff summary
 
-На 2026-10-02 production является рабочим multiplayer Campaign Command для **The Black Sepulchre v2.0**. После обнаружения ошибочного обращения к старому v1.2.1 выполнен отдельный reconciliation pass по каноническому v2.0 source.
+На 2026-10-02 нормативная версия правил — **The Black Sepulchre v2.1**. Production Campaign Command ранее проходил reconciliation по v2.0; после замены rules source его автоматизацию нужно сверять с audit-fixes v2.1 и не считать автоматически полностью синхронизированной.
 
 Критические v2.0 системы, которые раньше были неполными, уже доведены: RC/OBC/Effective Cost, secret Muster/Recon Lock, Critical Injury, Relics/Minor Armoury, mission reports, Stronghold rules, Resource Window, shared post-battle Logistics, persistent Refit/Doctrine/Enhancements и campaign-facing Scar consequences.
 
 Перед любой следующей задачей:
 
-1. считать `Black_Sepulchre_40k11_Campaign_Rules_v2.0_RU.pdf` нормативным документом;
-2. для поиска использовать `docs/Black_Sepulchre_v2.0_source.txt`;
+1. считать `Black_Sepulchre_40k11_Campaign_Rules_v2.1_RU.pdf` нормативным документом;
+2. для поиска использовать `docs/Black_Sepulchre_v2.1_source.txt`;
 3. проверить последние production migrations через Supabase;
 4. проверить последний GitHub SHA и оба workflow;
 5. не использовать v1.2.1 как источник.
 
-Из rules coverage остаются два специально отмеченных source ambiguity: Scavenge и equal-sector tie для D66 11/32. Optional Secondary Task Force пока не реализован. Всё остальное, что происходит непосредственно на tabletop, сайт не симулирует, а хранит как rule reminder или post-battle fact input.
+В v2.1 прежние source ambiguity Scavenge и equal-sector tie для D66 11/32 закрыты. Optional Secondary Task Force в приложении по-прежнему следует считать отдельной задачей, если она не была реализована после этого README. Всё, что происходит непосредственно на tabletop, сайт не симулирует, а хранит как rule reminder или post-battle fact input.

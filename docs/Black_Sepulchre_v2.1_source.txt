@@ -11,11 +11,11 @@
 
 
 
-                                            REBUILT EDITION | v2.0 | 1 октября 2026
+                                            AUDIT REVISION | v2.1 | 2 октября 2026
 
 Неофициальное фанатское дополнение. Для боя используются актуальные core rules, faction rules, datasheets и Munitorum Field Manual Warhammer
                                                                 40,000.
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 Содержание
  Раздел                                              Содержание                                      Стр.
@@ -47,18 +47,19 @@ THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
  35                                                  Edge cases и Optional Secondary Task Force      43
  36                                                  Google Sheets и краткая памятка                 44
  A                                                   Спойлерное приложение: BLACK CHOIR              45
- B                                                   Источники и Changelog v2.0                      46
+ B                                                   Источники и Changelog v2.1                      46
 
 
- НАЗНАЧЕНИЕ V2.0
- Эта версия переписана как самостоятельный reference manual. Все ключевые процедуры сведены в последовательности, спорные термины
- определены, а правила армии, Actions и Strategic Reserves синхронизированы с Season Snapshot 30.09.2026.
+ НАЗНАЧЕНИЕ V2.1
+ Версия v2.1 сохраняет структуру v2.0 и является audit revision. Исправлены процедурные противоречия Muster/Recon Lock,
+ недоопределённые campaign resources/states, D66 edge cases, финальный aftermath и несколько несовместимостей с core 11e. Season Snapshot
+ остаётся 30.09.2026.
 
 
 
 
                                                                             2
-THE BLACK SEPULCHRE     |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE     |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 0. Как пользоваться документом
@@ -110,7 +111,7 @@ battles: от 500-point stage до 2000, с одной физической Main
 
 
                                                                              3
-THE BLACK SEPULCHRE     |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE     |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 1. Быстрый старт
@@ -143,7 +144,7 @@ THE BLACK SEPULCHRE     |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
 
 
                                                                              4
-THE BLACK SEPULCHRE          |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE          |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 2. Термины и иерархия правил
@@ -179,12 +180,19 @@ THE BLACK SEPULCHRE          |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
                                                                                       Stronghold.
  Logistics                                                                            Кампанийное окно после battle или в конце небойевой Activation, где
                                                                                       разрешены recovery, покупки и изменения roster согласно географии.
+ XENOS                                                                                Campaign term: для правил этой кампании все units с faction NECRONS
+                                                                                      считаются XENOS, даже если конкретный официальный keyword отсутствует.
+ Recovery Supply                                                                      Отдельный persistent earmarked pool. Его можно тратить только на costs,
+                                                                                      единственной целью которых является снятие Damage: Paid Recovery,
+                                                                                      Emergency Overhaul и Emergency Field Repair. После расчёта финальной
+                                                                                      recovery cost его можно смешивать с обычным Supply. Он не оплачивает
+                                                                                      Evacuation, Rehabilitation/Deep Reconstruction, покупки, Fortify или Refit.
 
 
 
 
                                                                                   5
-THE BLACK SEPULCHRE       |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE       |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 3. Season Snapshot, стоимость и легальность
@@ -192,7 +200,7 @@ Season Snapshot
 Points и army-building rules фиксируются на Stage. Новые points применяются при переходе на следующую Stage. FAQ/errata,
 исправляющие однозначную ошибку, можно применить немедленно по взаимному согласию. Если новый Codex существенно меняет
 datasheet, закончите текущую Stage на старом snapshot либо оба одновременно переходите на новый.
- SNAPSHOT V2.0
+ SNAPSHOT V2.1
  Проверочная дата этой редакции: 30.09.2026. На Warhammer Community Munitorum Field Manual отмечен updated 30/09/2026. Перед Game 1
  сохраните точные версии PDF/app rules, которыми реально пользуетесь.
 
@@ -202,8 +210,9 @@ datasheet, закончите текущую Stage на старом snapshot л
  Reference Cost (RC)                                     Стоимость текущего size/loadout в MFM без          Purchase, Field Roster Cap, Disband, Recovery,
                                                          contextual duplicate surcharge; платный wargear    Fortify-related unit calculations, CR surcharge base.
                                                          включается, официальный Enhancement - нет. Если
-                                                         MFM даёт разные цены за 1st/2nd/3rd copy, для RC
-                                                         берите базовую цену 1st/2nd tier.
+                                                         MFM даёт copy-count tiers, для RC берите cheapest tier,
+                                                         применимый к первой копии: например YOUR UNIT COSTS,
+                                                         YOUR 1ST UNIT COSTS или YOUR 1ST TO 2ND UNITS COST.
  Official Battle Cost (OBC)                              Рассчитывается заново внутри конкретной            Проверка официальной points legality данной
                                                          Committed Force по MFM: contextual copy tier,      battle.
                                                          платный wargear, официальный Enhancement и
@@ -231,7 +240,7 @@ Limit и прочие ограничения snapshot, кроме прямо п�
 
 
                                                                                 6
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 4. Стратегическая карта, контроль и Supply Line
@@ -274,7 +283,7 @@ Deathwatch: A-E. Necrons: F, H-K. G нейтрален. Deathwatch Main Force с
 
 
                                                                            7
-THE BLACK SEPULCHRE      |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE      |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 5. Strategic Activation, Actions и состояния
@@ -296,8 +305,6 @@ Activations строго чередуются: Player 1 -> Player 2 -> Player 1 
  Каждая сторона может получить Supply от Mobilise и Intelligence от базового эффекта Recon не более одного раза между двумя tabletop
  battles. После любой tabletop battle оба флага сбрасываются. Repair Network, смена сектора и Occupation флаг не сбрасывают. Recon всё ещё
  можно тратить для mission pre-roll, даже если его +1 Intel уже недоступен.
-
-
 Strategic Actions
  Action                                                                           Правило
  Recon                                                                            Если Recon resource flag свободен, получите +1 Intelligence (до soft cap 6) и
@@ -319,8 +326,10 @@ Strategic Actions
                                                                                   garrison, соблюдая Field Roster Cap. Displaced units можно легализовать этим
                                                                                   Action.
  Forced March                                                                     Получите +1 MP в эту Activation. В её конце нельзя покупать новый garrison.
- Scavenge                                                                         Только если sector/mission/event прямо разрешает. Выполните указанный
-                                                                                  риск/награду.
+ Scavenge                                                                         1 Action, не более одного раза за Activation. Базово разрешён только в
+                                                                                  controlled J; другой sector/mission/event может разрешить свой вариант.
+                                                                                  В J бросьте D6: 1 - ничего; 2-3 +15 Supply; 4-5 +25 Supply; 6 +40 Supply.
+                                                                                  Если J Exhausted, натуральная 1 также делает J Sabotaged.
 
 
 
@@ -342,12 +351,25 @@ Strategic Actions
                                                                                   следующей decisive tabletop battle в секторе.
  Ruined Fortifications                                                            Остатки Fortified. Новый владелец может восстановить Fortified за Fortify Action
                                                                                   и 50% обычной стоимости.
+ Relay Disruption                                                                Специальное состояние F. Только Relay bonuses F выключены до начала
+                                                                                  следующей собственной Activation текущего владельца; затем состояние
+                                                                                  снимается автоматически. Это не Sabotaged и не снимается Repair Network.
+
+Ownership Change
+При decisive capture или Occupation применяйте переходы в таком порядке:
+• Contested снимается.
+• Fortified превращается в Ruined Fortifications. Ruined Fortifications может сосуществовать с другими состояниями.
+• Exhausted и его текущий counter сохраняются при смене владельца.
+• Sabotaged сохраняется при Occupation. Если ownership меняется по итогам tabletop battle, которая была «следующей battle здесь» после
+  наложения Sabotaged, Sabotaged снимается в конце этой battle до начала следующей Activation нового владельца. Новый mission/event может
+  наложить Sabotaged заново после этого.
+• Новый владелец получает Disrupted до начала своей следующей Activation. Normal означает отсутствие других временных states.
 
 
 
 
                                                                               8
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 Origin
 Origin всегда равен сектору, где Main Force физически находилась при объявлении hostile target. Deep Raid, Orbital Airlift, Glass Wastes и
 другие дальние атаки не создают промежуточный Origin. При поражении Attacker возвращается в Origin; если он уже не legal controlled
@@ -357,7 +379,7 @@ retreat point, используйте ближайший connected controlled se
 
 
                                                                            9
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 6. Army Limit, Field Roster и Detachment Package
@@ -400,7 +422,8 @@ Enhancements и persistent loadout
 • Официальные Enhancements считаются выбором Stage. Назначьте их persistent units при первом использовании на Stage, соблюдая
   официальный Enhancement Limit и Upgrade rules.
 • Их официальный points cost входит в OBC конкретной battle, но не в RC. Бесплатно переназначить Enhancement можно на Stage
-  transition; вне её - 15 Supply в supplied sector с Main Force.
+  transition; вне её - только в Logistics, за 15 Supply, когда Main Force находится в controlled supplied sector. Переназначение должно
+  быть завершено до объявления следующего hostile target.
 • Каждый persistent unit хранит свой выбранный size/loadout. На Stage transition legal loadout можно изменить бесплатно.
 • Вне Stage transition изменение бесплатного wargear требует Refit 5 Supply в Logistics; если новый wargear имеет положительную
    official points стоимость, также заплатите разницу RC. Снижение стоимости не даёт refund.
@@ -410,29 +433,33 @@ Enhancements и persistent loadout
 
 
                                                                            10
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 7. Muster: подготовка к бою
  ЗАЧЕМ ОТДЕЛЬНЫЙ MUSTER
  Все выборы, которые могут превратиться в hard-counter после раскрытия армии соперника, фиксируются до Deployment. Recon Lock является
  единственным базовым исключением.
-1. Определите battle type и sector mission. Примените Mission Re-roll, если он куплен.
-2. Зафиксируйте sector state, reinforcement tier, Defensive/Breach Assets и специальные эффекты mission/event.
-3. Оба игрока тайно записывают свой Committed Force. Field units выбираются из Field Roster; Defender также записывает Garrison
-    Initial и Garrison Reinforcement Pool. Одновременно отметьте legal damaged units как RESTING, если хотите их не выставлять.
-4. Внутри тайной записи определите attachments, persistent loadout, официальные Enhancements и разрешённые battle-by-battle Force
-    Dispositions.
+1. Определите battle type и sector mission по Mission Selection Sequence из раздела 18. Stronghold использует собственную процедуру
+    раздела 17.
+2. Зафиксируйте sector states, reinforcement tier, доступные категории Defensive/Breach/Tactical Assets и специальные эффекты
+    mission/event. До любых commitments обе стороны объявляют, используют ли Recon Lock, и оплачивают его стоимость.
+3. Зафиксируйте Committed Force единой процедурой. Committed Force сразу включает Field Deployment Force, Garrison Initial и полный
+    Garrison Reinforcement Pool; Pool позже не переопределяется. Одновременно отдельно отметьте legal units как RESTING.
+    • Ни одного Recon Lock: оба делают sealed commitment и раскрывают одновременно.
+    • Ровно один Recon Lock: opponent без Lock делает полный commitment и раскрывает его; затем пользователь Lock фиксирует и раскрывает
+      свой полный commitment.
+    • Два Recon Lock: оба делают sealed commitment и раскрывают одновременно; оба Intel потрачены.
+4. Attachments, persistent loadout, официальные Enhancements и разрешённые battle-by-battle Force Dispositions являются частью того же
+    commitment и не меняются после соответствующего reveal.
 5. Рассчитайте OBC каждого unit с contextual MFM pricing, затем Campaign surcharge и Effective Cost. Проверьте Army Limit,
-    Initial/Capacity, Unit Limits, unique units, DP и Enhancement Limit.
-6. Если никто не использует Recon Lock, записи раскрываются одновременно. Если одна сторона использует Recon Lock, выбранный
-    opponent раскрывает полный Committed Force первым, затем пользователь Lock фиксирует и раскрывает свой. Если оба используют
-    Lock, раскрытие одновременное; оба Intel потрачены.
-7. До deployment Defender отдельно фиксирует точный Reinforcement Pool; после начала battle его состав менять нельзя. Разрешено
-    менять только порядок прибытия заранее записанных units.
-8. Выберите campaign Assets, которые требуют выбора до deployment. Затем выполните официальную Declare Battle Formations:
-    transports, Strategic Reserves, Deep Strike и прочие core choices.
-9. Проведите terrain setup и deployment по mission. Начинайте battle.
+    Initial/Capacity, Unit Limits, unique units, DP и Enhancement Limit. Нелегальный commitment исправляется минимально необходимым
+    удалением/заменой до deployment; нельзя использовать ошибку для нового counter-pick.
+6. Interdict разрешается после reveal, но до выбора Assets. Обе стороны, которые используют Interdict, одновременно называют один legal
+    enemy Tactical/Breach Asset option, который запрещён на эту battle. Затем стороны выбирают свои доступные Assets из оставшихся options.
+7. Выполните официальную Declare Battle Formations: transports, Strategic Reserves, Deep Strike и прочие core choices. Порядок конкретных
+    arrivals внутри заранее записанного Garrison Pool можно решать во время battle.
+8. Проведите terrain setup и deployment по mission. Начинайте battle.
 
 RESTING
 RESTING объявляется только во время шага 3 Muster и только для legal, физически доступного persistent unit, который мог бы
@@ -454,7 +481,7 @@ Attached Units
 
 
                                                                            11
-THE BLACK SEPULCHRE    |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE    |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 8. Типы столкновений и положение после боя
@@ -499,7 +526,7 @@ Emergency Evacuation Main Force
 
 
                                                                             12
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 9. Supply, Intelligence и экономика
@@ -524,8 +551,9 @@ THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
 • Supply никогда не уходит ниже 0.
 
 Intelligence
-Intelligence имеет soft cap 6: Recon и постоянные sector bonuses не поднимают выше 6; одноразовая mission/event reward может
-превысить cap.
+Intelligence имеет soft cap 6. Soft-capped sources: базовый +1 от Recon, +1 от Investigate Choir, повторяемые/persistent sector effects и
+balance effect, который прямо имитирует Recon. Они не поднимают Intelligence выше 6. Uncapped one-shot sources: loser +1 Intelligence,
+Salvage 6, одноразовые mission rewards и D66/event rewards; они могут временно поднять значение выше 6.
  Цена                                                                           Эффект
  1                                                                              Mission Re-roll: перебросить D3 sector mission. Повтор mission
                                                                                 допускается только после того, как все три mission сектора уже были
@@ -538,14 +566,14 @@ Intelligence имеет soft cap 6: Recon и постоянные sector bonuses
                                                                                 один hostile sector на расстоянии двух связей adjacent для этой атаки.
  2                                                                              Interdict: до battle запретить один enemy Tactical/Breach Asset. Нельзя
                                                                                 запретить mission-mandated effect.
- 2                                                                              Перебросить глобальный D66 Aftermath Event; второй результат
-                                                                                обязателен.
+ 2                                                                              Перебросить глобальный D66 Aftermath Event; см. D66 Reroll Window в
+                                                                                разделе 31. Второй результат обязателен.
 
 
 
 
                                                                            13
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0     |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1     |   WARHAMMER 40,000 11e
 
 
 10. Реальные гарнизоны
@@ -585,9 +613,8 @@ Initial Deployment и Reinforcement Capacity
 • Если подходящего соседнего sector нет, каждый такой unit Emergency Evacuate в Home: на D6 1-3 получает +1 Damage.
 • Если destination не позволяет Heavy Garrison/Character или уже содержит запрещённую комбинацию, unit получает статус DISPLACED.
    Он хранится там физически, но не может участвовать как garrison.
-• Displaced должен быть легализован до конца следующей собственной Activation владельца: Reorganise в Field Roster, перевод в legal
-  garrison через special movement или Disband. Если это невозможно, он остаётся unavailable и не даёт никаких sector benefits до
-  легализации.
+• Displaced остаётся unavailable и не даёт sector benefits, пока не будет легализован. Легализация: Reorganise Forces при физическом
+  присутствии Main Force в этом sector, explicit event/rule, который разрешает transfer, либо Disband. Общего special garrison movement нет.
 • Fortified status при захвате превращается в Ruined Fortifications.
 
 Разрешённые Garrison units
@@ -606,11 +633,17 @@ Initial Deployment и Reinforcement Capacity
 В одном sector максимум один non-Epic CHARACTER. Character разрешён только в Strategic/Fortified/Home. Ограничение стоимости
 проверяется при покупке; последующее изменение Army Limit или official points само по себе не делает stored unit нелегальным.
 
+TRANSPORT payload
+Garrison TRANSPORT legal только если в том же sector хранится хотя бы один non-TRANSPORT legal garrison unit, который этот TRANSPORT
+может перевозить по своему актуальному datasheet. Если TRANSPORT входит в Committed Garrison, минимум один такой payload unit из того же
+sector также должен входить в Committed Garrison (Initial или Pool). Оба units отдельно занимают Effective Cost/Capacity и затем используют
+обычные Declare Battle Formations rules.
+
 
 
 
                                                                                    14
-THE BLACK SEPULCHRE    |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE    |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 11. Fortified, Assets и Underdog
@@ -620,8 +653,10 @@ Fortified постоянен до захвата. Home всегда исполь
 
 Defensive Assets
  Asset                                                                           Эффект
- Prepared Barricades                                                             После terrain setup поставьте две небольшие barricade pieces полностью в
-                                                                                 Defender half, не ближе 3" к objective.
+ Prepared Barricades                                                             После terrain setup поставьте две campaign barricades полностью в Defender
+                                                                                 half, не ближе 3" к objective. Каждая barricade: non-Obscuring light terrain
+                                                                                 feature на terrain area 6×2" (или ближайшем доступном footprint). INFANTRY,
+                                                                                 BEAST и SWARM в этой terrain area получают core Benefit of Cover.
  Mine Corridor                                                                   После deployment отметьте полосу 9×3" вне deployment zones/objectives.
                                                                                  Первый enemy unit, который Advance или Charge через неё, на 4+
                                                                                  получает D3 mortal wounds.
@@ -650,7 +685,8 @@ Breach Assets выдаются Attacker только если Defender дейс�
                                                                                  полностью вне Engagement Range может сделать Normal Move до 6". Не
                                                                                  может закончить в enemy deployment zone или Engagement Range.
  Extraction Beacon                                                               После battle первый уничтоженный Attacker non-CHARACTER получает +1
-                                                                                 Casualty Roll.
+                                                                                 Casualty Roll. Если несколько eligible units уничтожены одновременно в
+                                                                                 первый такой timing, Attacker выбирает один из них.
 
 
 
@@ -664,8 +700,8 @@ Garrison Battles generic Underdog не используют. В Field Battle б�
  30%+                                                                            3 максимум
 
  Tactical Asset                                                                  Эффект
- Prepared Barricades                                                             После setup поставьте до двух small barricades полностью в своей deployment
-                                                                                 zone.
+ Prepared Barricades                                                             После setup поставьте до двух campaign barricades полностью в своей
+                                                                                 deployment zone; используйте профиль campaign barricade выше.
  Smoke Screen                                                                    Один раз за battle выбранный unit получает Benefit of Cover против Shooting
                                                                                  до конца фазы.
  Emergency Coordinates                                                           После deployment переместите один INFANTRY unit до 3", оставаясь legal.
@@ -673,12 +709,14 @@ Garrison Battles generic Underdog не используют. В Field Battle б�
  Booby-trapped Objective                                                         Выберите objective вне enemy deployment. Первый enemy unit, закончивший
                                                                                  move в range, на 4+ получает D3 mortal wounds.
  Hard Evacuation                                                                 Первый уничтоженный non-CHARACTER после battle получает +1 Casualty Roll.
+                                                                                 Если несколько eligible units уничтожены одновременно в первый такой timing,
+                                                                                 владелец выбирает один из них.
 
 
 
 
                                                                             15
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 12. Hybrid Attrition, Damage и Critical Injury
@@ -727,6 +765,15 @@ Paid Recovery
 • Emergency Overhaul разрешает снять второй Damage в той же Logistics: второй шаг стоит 25% RC, округлить вверх до 5, минимум 15.
 • В Unsupplied sector обычный paid recovery запрещён; используйте Emergency Field Repair из раздела 4.
 
+Recovery cost - order of operations
+1. Выберите базовое recovery rule: обычные 15%, Fleshworks 10% для его первого eligible recovery, Emergency Overhaul 25% или Emergency
+   Field Repair 25%.
+2. Рассчитайте процент от RC, округлите вверх до 5 и примените minimum самого выбранного rule (10 для обычного/Fleshworks; 15 для
+   Overhaul/Field Repair).
+3. Примените flat sector reduction, например Home -5 Supply, не ниже указанного этим sector rule minimum 10.
+4. Если используется Recovery Cache, разделите полученную сумму пополам, затем округлите вверх до 5; финальный minimum после Cache = 5.
+5. После всех discounts оплатите итог любой смесью Recovery Supply и обычного Supply.
+
 Critical Injury - CHARACTER
 Critical Injury бросается только после Catastrophic Loss с modified Casualty Roll 0 или ниже. Сначала примените +2 Damage и Scar от
 Catastrophic Loss, затем бросьте D6:
@@ -750,7 +797,7 @@ Catastrophic Loss, затем бросьте D6:
  всегда используют Evacuation.
 
                                                                            16
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 13. Battle Scars
@@ -769,9 +816,10 @@ Deathwatch Battle Scars - D12
  4                                                   Xenos Toxin Load                  Unit не может использовать Campaign Armoury item.
                                                                                        Один раз за battle против XENOS перебросьте один
                                                                                        Wound roll.
- 5                                                   Damaged Auspex                    Recon Lock не может применяться к этому unit как к
-                                                                                       ключевому revealed component. В первой Shooting
-                                                                                       phase перебросьте один Hit roll.
+ 5                                                   Damaged Auspex                    Если ваша сторона использует Recon Lock, до reveal
+                                                                                       opponent тайно запишите, включён ли этот unit в ваш
+                                                                                       Committed Force. После reveal это решение менять
+                                                                                       нельзя. В первой Shooting phase перебросьте один Hit roll.
  6                                                   Warp Burn                         PSYKER: -1 Leadership; non-PSYKER перебрасывает
                                                                                        Scar. Один раз за battle после успешного Battle-shock
                                                                                        test получите +1 CP с учётом core limits.
@@ -821,9 +869,11 @@ Necron Battle Scars - D12
  8                                                   Necrodermis Fatigue               Первый раз за battle при Damage 2+ уменьшите
                                                                                        Damage на 1; затем до конца фазы unit не получает
                                                                                        положительные modifiers Save.
- 9                                                   Tomb Signal Static                Unit не получает преимущества Recon Lock. Если
-                                                                                       начинает battle в Strategic Reserves, следующий
-                                                                                       Casualty Roll +1.
+ 9                                                   Tomb Signal Static                Если ваша сторона использует Recon Lock, до reveal
+                                                                                       opponent тайно запишите, включён ли этот unit в ваш
+                                                                                       Committed Force. После reveal это решение менять
+                                                                                       нельзя. Если начинает battle в Strategic Reserves,
+                                                                                       следующий Casualty Roll +1.
  10                                                  Logic Loop                        В начале первой Command phase выберите ближайший
                                                                                        objective. Пока он существует, unit +1 OC в его range, но
                                                                                        не может добровольно Fall Back так, чтобы закончить
@@ -838,7 +888,7 @@ Necron Battle Scars - D12
 
 
                                                                                17
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 Предел Scar и удаление
 • Один unit может иметь максимум 3 разных Battle Scars. Если должен получить четвёртый, вместо этого становится Shattered (Damage
   3) и не может быть восстановлен выше 2 Damage, пока не будет удалён хотя бы один Scar.
@@ -850,7 +900,7 @@ THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
 
 
                                                                            18
-THE BLACK SEPULCHRE      |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE      |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 14. Experience, ранги и Battle Honours
@@ -926,7 +976,7 @@ HUNTERS
 
 
                                                                               19
-THE BLACK SEPULCHRE    |   CAMPAIGN RULES v2.0    |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE    |   CAMPAIGN RULES v2.1    |   WARHAMMER 40,000 11e
 LINEBREAKERS
  Honour                                                CR                                 Эффект
  Shock Presence                                        Minor +5%                          До конца round после успешного Charge unit
@@ -1010,7 +1060,7 @@ Signature Honours
 Legendary Bounty: если Legendary unit уничтожен и остаётся уничтоженным к концу battle, opponent получает +20 Supply. Unit,
 нанёсший последнюю потерю, может быть Distinguished, но общий лимит Distinguished +1 остаётся.
                                                                  20
-THE BLACK SEPULCHRE       |    CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE       |    CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 15. Campaign Armoury и Relics
@@ -1088,7 +1138,7 @@ Campaign Relics - D6
 
 
                                                                                 21
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 16. Сектора Kharon Secundus
@@ -1106,9 +1156,10 @@ A. Watch Fortress Tenebris
 
 B. Basilica Ossuary
  Класс                                               Постоянный бонус                                      Секторное правило
- Ordinary                                            После победы в любом adjacent sector владелец         Named Actions внутри руин получают +1 к sector-
-                                                     получает +1 Intel, максимум один раз между            related roll, если unit не Advance в этот turn.
-                                                     своими Strategic Activations.
+ Ordinary                                            После победы в любом adjacent sector владелец         Если acting unit wholly или partly within terrain area,
+                                                     получает +1 Intel, максимум один раз между            содержащей Ruins feature, добавьте +1 к одному D6
+                                                     своими Strategic Activations.                          roll, который непосредственно является effect его
+                                                                                                           completed Named Action в этой mission.
 
 
 
@@ -1171,7 +1222,7 @@ I. Necropolis Khepra
 
 
                                                                              22
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 J. Canoptek Foundry
  Класс                                               Постоянный бонус                                     Секторное правило
  Strategic Node                                      Покупка/увеличение одного                            Если J Exhausted, первый Scavenge здесь на
@@ -1192,21 +1243,24 @@ K. Sepulchre of the Nameless King
 
 
                                                                             23
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 17. Stronghold Assault и победа кампании
 Условия объявления
 • Stage не ниже 1000 points.
 • Attacker Main Force физически находится в sector, напрямую adjacent enemy Home Stronghold.
-• Attacker контролирует G либо имеет 3 Secret Fragments.
+• Attacker контролирует G либо Reveal IV уже открыт и Attacker имеет 3 Secret Fragments. War of Attrition ниже остаётся отдельным
+  временным исключением.
 • Attacker Main Force Supplied до собственного Home Stronghold.
 
 Fortress Integrity
  Integrity                                           Mission                                           Результат
  2                                                   D2 между A1/A2 или K1/K2. За 1 Intel можно        Attacker win -> Integrity 1. Только следующий
-                                                     выбрать другую. Пока Integrity 2, не повторяйте   Stronghold Assault использует Home Capacity 60%
-                                                     одну внешнюю mission до игры второй.              вместо 75%. Defender win -> без изменений.
+                                                     выбрать другую legal outer mission. Generic       Stronghold Assault использует Home Capacity 60%
+                                                     Mission Re-roll и Noctis Relay double-roll здесь  вместо 75%. Defender win -> без изменений.
+                                                     не действуют. Пока Integrity 2, не повторяйте
+                                                     одну внешнюю mission до игры второй.
  1                                                   Всегда A3 или K3.                                 Attacker win -> Integrity 0 и кампания
                                                                                                        заканчивается. Defender win -> Integrity остаётся 1;
                                                                                                        если временные 60% уже использованы, дальше
@@ -1222,7 +1276,9 @@ Home ownership не меняется, пока Integrity не станет 0. П
  UNMANNED STRONGHOLD
  Если в Home нет enemy Main Force и нет ни одного legal garrison unit, tabletop battle не проводится. Stronghold Assault автоматически
  считается победой Attacker и снижает Integrity на 1. Attacker остаётся в Origin. Для Integrity 2 -> 1 и затем 1 -> 0 всё равно нужны две
- отдельные Strategic Activations/Assault declarations.
+ отдельные Strategic Activations/Assault declarations. Если автоматическая вторая осада снижает Integrity до 0, winner немедленно
+ выбирает любой доступный Final Ending; participation-dependent эффекты PURGE/SEAL не имеют eligible units, потому что tabletop final не
+ проводился.
 
 
 Неудачная осада и anti-stall
@@ -1235,7 +1291,7 @@ Home ownership не меняется, пока Integrity не станет 0. П
 
 
                                                                              24
-THE BLACK SEPULCHRE      |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE      |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 18. Общие правила секторных миссий
@@ -1245,6 +1301,17 @@ THE BLACK SEPULCHRE      |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
 • Garrison Reinforcement rules применяются поверх mission setup. Mission reserve bonus не создаёт бесплатные points сверх
   Reinforcement Capacity, если прямо не сказано иначе.
 • На 500 points используйте 44×30"; 750 - 44×44"; 1000+ - 44×60". Terrain density держите близкой к вашему обычному matched play.
+
+Mission Selection Sequence
+1. Сформируйте legal mission pool сектора. Пока не сыграны все три обычные missions этого sector, уже сыгранные missions исключаются,
+   если существует хотя бы одна ещё не сыгранная legal mission. Anti-repeat является общим правилом, а не свойством Intel reroll.
+2. Для обычного sector бросьте D3; любой результат вне legal pool бесплатно перебрасывается до legal result. Если действует Noctis Relay,
+   бросьте два legal D3 результата и владелец F выбирает provisional mission. Recon mission pre-roll просто выполняет эту же процедуру
+   раньше; второго бесплатного roll перед Muster он не создаёт.
+3. После provisional mission сторона может потратить 1 Intel на generic Mission Re-roll: бросьте D3 заново до legal result; второй legal
+   result обязателен. Если legal pool содержит более одной mission, повтор provisional result перебрасывается.
+4. Stronghold Assault не использует эту sequence: Integrity 2 применяет собственный D2/1-Intel swap из раздела 17, Integrity 1 фиксирует
+   A3/K3. Generic Mission Re-roll и Noctis Relay на Stronghold outer mission не действуют.
 
 Named Actions
  CORE ACTION RULES
@@ -1277,7 +1344,7 @@ Campaign terrain terms
 
 
                                                                               25
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 19. Миссии сектора A: Watch Fortress Tenebris
@@ -1328,7 +1395,7 @@ A3. Sever the Vigil
 
 
                                                                            26
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 20. Миссии сектора B: Basilica Ossuary
@@ -1356,7 +1423,7 @@ B2. Bone Choir
                                                                                 VP за центральный. Максимум 8 VP за scoring step.
  Особое правило                                                                 В начале battle round D6: 1-2 все units в 6" центра проходят Battle-shock; 3-4
                                                                                 ничего; 5-6 units в range центра +1 OC до конца round.
- Кампанийный итог                                                               Если любой Battle-shock здесь провален на натуральной 1, BLACK CHOIR +1
+ Кампанийный итог                                                               Если любой Battle-shock здесь провален на unmodified 2, BLACK CHOIR +1
                                                                                 после battle, максимум один раз.
 
 
@@ -1378,7 +1445,7 @@ B3. Procession of the Dead
 
 
                                                                            27
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 21. Миссии сектора C: Orbital Ossuary Lift
@@ -1428,7 +1495,7 @@ C3. Zero-G Breach
 
 
                                                                            28
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 22. Миссии сектора D: Fleshworks IX
@@ -1475,7 +1542,7 @@ D3. Red Conveyor
 
 
                                                                            29
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 23. Миссии сектора E: Ash Meridian
@@ -1523,7 +1590,7 @@ E3. Black Freight
 
 
                                                                            30
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 24. Миссии сектора F: Noctis Relay
@@ -1567,15 +1634,16 @@ F3. Last Transmission
  Особое правило                                                                 Первый раз, когда начатый UPLOAD не completed из-за движения,
                                                                                 уничтожения, Battle-shock/другого rule, все units в 6" Array проходят Battle-
                                                                                 shock.
- Кампанийный итог                                                               Если Attacker победил и получил sector, F становится Sabotaged после смены
-                                                                                control; Relay bonus не работает до начала следующей собственной Activation
-                                                                                нового владельца.
+ Кампанийный итог                                                               Если Attacker победил и получил sector, после смены control F получает Relay
+                                                                                Disruption вместо Sabotaged. Оба Relay bonuses не работают до начала
+                                                                                следующей собственной Activation нового владельца; затем Relay Disruption
+                                                                                снимается автоматически.
 
 
 
 
                                                                            31
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 25. Миссии сектора G: Cathedral of Black Glass
@@ -1583,9 +1651,9 @@ G1. Pilgrimage into Glass
  Поле                                                                           Правило
  Тип                                                                            Контроль
  Подготовка                                                                     Central Blackglass Altar и 4 outer objectives.
- Счёт                                                                           Outer objectives: 2 VP каждый в конце round. Altar: 6 VP в конце round. Один
-                                                                                persistent unit за battle может завершить COMMUNE action на Altar: 8 VP и
-                                                                                BLACK CHOIR +1.
+ Счёт                                                                           Outer objectives: 2 VP каждый в конце round. Altar: 6 VP в конце round. За всю
+                                                                                battle допускается только одно completed COMMUNE суммарно для обеих сторон:
+                                                                                8 VP выполнившей стороне и BLACK CHOIR +1.
  Особое правило                                                                 В начале каждого round D6: 1-2 units в 6" Altar -1 Leadership до конца round; 3-
                                                                                 4 ничего; 5-6 units в 6" +1 OC до конца round.
  Кампанийный итог                                                               Winner получает случайный Campaign Relic D6 из раздела 15 или +1 Intel
@@ -1599,8 +1667,9 @@ G2. Beneath the Altar
  Подготовка                                                                     Три Descent Nodes треугольником.
  Счёт                                                                           CONTROL action на Node = 6 VP, после чего Node получает tag стороны. Если у
                                                                                 вас 2+ tags в конце round, +6 VP; если все 3 - ещё +10 VP один раз.
- Особое правило                                                                 Первый completed Action каждого round вызывает Spatial Shear: выберите один
-                                                                                unit в 3" соответствующего Node; на 4+ D3 mortal wounds.
+ Особое правило                                                                 Первый completed Action каждого round вызывает Spatial Shear: opponent
+                                                                                acting player выбирает один unit в 3" соответствующего Node; на 4+ выбранный
+                                                                                unit получает D3 mortal wounds.
  Кампанийный итог                                                               BLACK CHOIR +1 после battle независимо от результата.
 
 
@@ -1622,7 +1691,7 @@ G3. The Black Choir
 
 
                                                                            32
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 26. Миссии сектора H: Glass Wastes
@@ -1670,7 +1739,7 @@ H3. Heat Death
 
 
                                                                            33
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 27. Миссии сектора I: Necropolis Khepra
@@ -1709,14 +1778,15 @@ I3. Name of the Dead
                                                                                 стороной один раз. После трёх своих scans +10 VP.
  Особое правило                                                                 При каждом completed SCAN: D6; 1-2 acting unit -1 Leadership до конца battle;
                                                                                 6 - +1 Intel после battle.
- Кампанийный итог                                                               Если player успешно scanned все три, BLACK CHOIR +1 и он получает 1 Secret
-                                                                                Fragment.
+ Кампанийный итог                                                               Каждый player, который успешно SCAN все три Obelisks, получает по 1 Secret
+                                                                                Fragment. BLACK CHOIR повышается максимум на +1 за эту battle независимо
+                                                                                от числа qualifying players.
 
 
 
 
                                                                            34
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 28. Миссии сектора J: Canoptek Foundry
@@ -1767,7 +1837,7 @@ J3. Kill Switch
 
 
                                                                            35
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 29. Миссии сектора K: Sepulchre of the Nameless King
@@ -1811,7 +1881,7 @@ K3. The Nameless Throne
 
 
                                                                            36
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 30. Strategic Withdrawal
@@ -1829,20 +1899,25 @@ THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
 
 
                                                                            37
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 31. Aftermath, Salvage и D66
 Порядок после tabletop battle
-1. Определить VP, Victory/Draw, Fortress Integrity или ownership.
+1. Определить VP, Victory/Draw, Fortress Integrity или ownership. Если победа в финальной A3/K3 снижает Integrity до 0, winner прямо сейчас,
+    до Casualty Rolls, выбирает один доступный Final Ending из приложения A. Его modifiers/exemptions применяются к шагу 3.
 2. Начислить Participation, Deeds, Distinguished и mission XP.
-3. Сделать Casualty Rolls, Damage, Battle Scars и Critical Injury.
-4. Выполнить Retreat/Displacement Main Force и garrisons.
-5. Каждый делает Salvage Roll; затем бросается один глобальный D66 Event, кроме sector rules, изменяющих процедуру.
-6. Начислить +100 base Supply каждому, win/draw bonuses, sector income и Stage Grant, если Stage изменилась.
-7. Resolve ранее объявленный RESTING; затем провести paid recovery, purchases, garrison purchases, loadout/refit и roster changes там,
+3. Сделать Casualty Rolls, Damage, Battle Scars и Critical Injury с учётом выбранного Final Ending. При SEAL выбранные исчезающие units не
+    делают Casualty Roll независимо от того, были ли уничтожены; PURGE даёт +1 к Casualty Roll всем participating persistent units, которым
+    требуется roll по ending.
+4. Выполнить Retreat/Displacement Main Force и garrisons, если кампания ещё требует это для эпилога/state record.
+5. Если Integrity стал 0, зафиксировать ending/эпилог и завершить campaign aftermath: не делать Salvage, глобальный D66, base income,
+    win/draw bonus, sector income, Stage Grant или обычную post-campaign Logistics, если игроки отдельно не решили продолжать sandbox.
+6. Иначе каждый делает Salvage Roll; затем бросается один глобальный D66 Event, кроме sector rules, изменяющих процедуру.
+7. Начислить +100 base Supply каждому, win/draw bonuses, sector income и Stage Grant, если Stage изменилась.
+8. Resolve ранее объявленный RESTING; затем провести paid recovery, purchases, garrison purchases, loadout/refit и roster changes там,
     где позволяет география.
-8. Записать Battle Log, сбросить Recon/Mobilise Resource Window flags и передать следующую Strategic Activation opponent.
+9. Записать Battle Log, сбросить Recon/Mobilise Resource Window flags и передать следующую Strategic Activation opponent.
 
 Salvage Roll - D6 каждому
  D6                                                                              Награда
@@ -1857,9 +1932,9 @@ Salvage Roll - D6 каждому
 
 Глобальный D66 Event
  D66                                                 Событие                                             Эффект
- 11                                                  The Silent Survivors                                Player с меньшим числом sectors выбирает:
-                                                                                                         эвакуировать (+1 Intel) или передать логистам (+25
-                                                                                                         Supply); при втором BLACK CHOIR +1.
+ 11                                                  The Silent Survivors                                Player, определённый Lesser Territory tie-break ниже,
+                                                                                                         выбирает: эвакуировать (+1 Intel) или передать логистам
+                                                                                                         (+25 Supply); при втором BLACK CHOIR +1.
  12                                                  Munitorum Cache                                     Каждый +20 Supply. Winner может вместо этого
                                                                                                          получить Recovery Cache.
  13                                                  Blackglass Shards                                   Player, контролирующий G или adjacent G sector,
@@ -1871,7 +1946,10 @@ Salvage Roll - D6 каждому
                                                                                                          удалите Scar, полученный только из этого результата;
                                                                                                          Critical Injury, если уже была, также отменяется.
  15                                                  Empty Coffins                                       BLACK CHOIR +1.
- 16                                                  Damaged Relic                                       Winner получает случайный Minor Armoury item D6.
+ 16                                                  Damaged Relic                                       При Draw предмет никто не получает. Иначе Winner
+                                                                                                         получает случайный Minor Armoury item D6 и сразу
+                                                                                                         назначает legal unit со свободным Armoury slot. Если
+                                                                                                         legal slot отсутствует, Winner получает +20 Supply.
                                                                                                          После первого использования permanent item: D6, на 1
                                                                                                          item уничтожается; consumable работает как обычно.
  21                                                  Vox From the Dead                                   Loser +1 Intel. В следующей battle его первый failed
@@ -1883,8 +1961,10 @@ Salvage Roll - D6 каждому
                                                                                                          срабатывает; 1-3 теряется, resource cost не платится.
  24                                                  Living Metal Dust                                   Necrons бесплатно снимают 1 Damage одному unit;
                                                                                                          Deathwatch +20 Supply.
- 25                                                  Bone Bloom                                          Следующая tabletop battle: 5" вокруг центрального
-                                                                                                         objective становится Rough Ground. Winner +10 Supply.
+ 25                                                  Bone Bloom                                          Следующая tabletop battle: 5" вокруг central objective
+                                                                                                         или другого явно центрального mission object становится
+                                                                                                         Rough Ground; если такого объекта нет, используйте
+                                                                                                         battlefield centre. Winner +10 Supply.
  26                                                  Machine Hymn                                        В следующей battle первый VEHICLE/MONSTER,
                                                                                                          который должен стать Battle-shocked, вместо этого
                                                                                                          получает D3 mortal wounds и считается прошедшим
@@ -1893,27 +1973,32 @@ Salvage Roll - D6 каждому
                                                                                                          Recruit unit +1 XP.
  32                                                  Captured Servitor                                   Winner выбирает +25 Supply или +1 Intel; Loser
                                                                                                          получает оставшуюся награду. При Draw первым
-                                                                                                         выбирает player с меньшим числом sectors, затем
-                                                                                                         второй получает остаток.
+                                                                                                         выбирает player, определённый Lesser Territory
+                                                                                                         tie-break ниже; второй получает остаток.
  33                                                  Xenos Script                                        Deathwatch +1 Intel; Necrons одному unit +1 XP. Если
                                                                                                          Deathwatch контролирует I или K, ещё +10 Supply.
  34                                                  Auspex Ghost                                        Следующая battle: оба получают бесплатный Recon
                                                                                                          Lock. Если оба используют, reveal simultaneous и
                                                                                                          каждый +1 Intel после Muster.
  35                                                  Hidden Route                                        До конца следующей tabletop battle каждый player
-                                                                                                         один раз может объявить атаку на enemy sector в двух
-                                                                                                         links за 1 Intel.
+                                                                                                         один раз за 1 Intel считает enemy sector в двух links
+                                                                                                         adjacent только для одного hostile entry. Обычный
+                                                                                                         hostile entry тратит все оставшиеся MP и завершает
+                                                                                                         movement; Origin = физический current sector, обычные
+                                                                                                         Supply Line/attack conditions сохраняются.
  36                                                  Broken Map                                          Noctis Relay и Orbital Ossuary Lift bonuses отключены
                                                                                                          до конца следующей tabletop battle.
 
 
 
                                                                             38
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
  D66                                                 Событие                         Эффект
- 41                                                  Ammunition Rot                  Каждый платит 10 Supply или выбирает один unit: тот
-                                                                                     не может использовать Campaign Armoury item в
-                                                                                     следующей battle.
+ 41                                                  Ammunition Rot                  Каждый выбирает: потерять 10 Supply (до minimum 0)
+                                                                                     либо выбрать persistent unit, у которого сейчас есть
+                                                                                     Campaign Armoury item; этот item нельзя использовать
+                                                                                     в следующей battle. Если unit с item нет, применяется
+                                                                                     потеря 10 Supply до minimum 0.
  42                                                  Noosphere Static                Recon, Recon Lock и Sabotage стоят на 1 Intel дороже
                                                                                      до конца следующей tabletop battle.
  43                                                  Reanimating Corpse              Поставьте UNRESOLVED flag. Следующий раз, когда
@@ -1932,7 +2017,8 @@ THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
                                                                                      battle, получает +25 Recovery Supply, тратится только
                                                                                      на Damage. BLACK CHOIR +1.
  52                                                  Mutual Atrocity                 Оба независимо: +20 Supply и один свой controlled
-                                                                                     sector становится Exhausted; либо ничего.
+                                                                                     sector получает/обновляет Exhausted counter до 2;
+                                                                                     либо ничего.
  53                                                  Unmarked Kill Team              Deathwatch +1 Intel; Necrons +15 Supply. Если
                                                                                      Deathwatch контролирует G, вместо Intel может взять
                                                                                      +20 Supply.
@@ -1941,30 +2027,49 @@ THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
  55                                                  Ceasefire That Never Was        Следующий player, объявивший hostile attack, получает
                                                                                      +1 Intel после выбора target.
  56                                                  The Corpse Ledger               Каждый может выбрать unit с Battle Scar и заплатить 10
-                                                                                     Supply: его следующий Rehabilitation roll +1.
+                                                                                     Supply: его следующий Rehabilitation roll +1. Pending
+                                                                                     bonus не складывается; максимум +1 на unit и
+                                                                                     расходуется первой следующей Rehabilitation attempt.
  61                                                  Choir Beneath the Floor         BLACK CHOIR +1. Если достигнут новый Reveal
                                                                                      threshold, откройте немедленно.
  62                                                  Nine Seconds Repeated           В следующей battle в начале round 2 повторите effect
                                                                                      round 1 sector Catastrophe, если применимо; иначе
                                                                                      каждый +1 CP.
- 63                                                  Names in the Static             Каждый называет один CHARACTER. Если выживает
-                                                                                     следующую battle, +1 XP; если уничтожен, Casualty Roll
-                                                                                     -1.
- 64                                                  The Door Behind the Door        Поставьте SECRET ROUTE token на случайный non-
-                                                                                     Home sector. До следующего захвата этого sector его
-                                                                                     owner один раз может считать любой sector adjacent G
-                                                                                     adjacent для движения/атаки Main Force.
+ 63                                                  Names in the Static             Каждый называет один CHARACTER. Effect проверяется
+                                                                                     только если CHARACTER participated в следующей
+                                                                                     tabletop battle: выжил = +1 XP; уничтожен = Casualty
+                                                                                     Roll -1. Если не участвовал, effect expires без награды
+                                                                                     или штрафа.
+ 64                                                  The Door Behind the Door        Поставьте SECRET ROUTE token на случайный controlled
+                                                                                     non-Home sector. Если таких нет, reroll D66; если reroll
+                                                                                     невозможен, event не даёт token. Current owner может
+                                                                                     один раз считать любой sector adjacent G adjacent для
+                                                                                     movement/атаки Main Force. Token исчезает после
+                                                                                     использования или следующей смены ownership.
  65                                                  Black Sun                       BLACK CHOIR +1. В следующей battle round 4 никто не
                                                                                      получает Benefit of Cover.
  66                                                  The Mouth Opens                 BLACK CHOIR +2. Откройте следующий неоткрытый
-                                                                                     Reveal независимо от текущего значения. Каждый +1
-                                                                                     Intel.
+                                                                                     Reveal независимо от текущего значения. Forced Reveal
+                                                                                     считается полностью открытым для всех gameplay unlocks
+                                                                                     этого Reveal, даже если BLACK CHOIR ниже printed
+                                                                                     threshold. Каждый +1 Intel.
+
+D66 Reroll Window
+Сначала получите все D66 results, требуемые sector/event rules. Если Fleshworks даёт 2/3 results, сначала winner/Defender выбирает один
+provisional result. Затем открывается одно reroll window на глобальный event. Максимум один global D66 reroll за aftermath. Первым право
+объявить reroll имеет battle loser; при Draw - Defender. Если он отказывается, право получает opponent. Объявивший платит 2 Intel;
+переброшенный результат обязателен и больше не rerollится.
+
+Lesser Territory tie-break
+Когда D66 требует player с меньшим числом sectors и общий sector count равен, сравните: (1) меньше controlled non-Home sectors; затем
+(2) меньше текущего Supply; затем (3) D6 roll-off. Победитель этого tie-break считается «player с меньшим числом sectors» только для
+текущего event.
 
 
 
 
                                                                                 39
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 32. BLACK CHOIR - скрытый сюжетный трек
@@ -1982,14 +2087,14 @@ BLACK CHOIR начинается с 0 и никогда не уменьшает�
 
 Investigate Choir
 После Reveal II player может потратить 1 Strategic Action и 1 Intelligence, если Main Force находится в G или в controlled sector, adjacent
-G. D6: 1-2 ничего; 3-4 +1 Intel; 5 +20 Supply; 6 Secret Fragment. Три Secret Fragments заменяют требование контроля G для Stronghold
-Assault.
+G. D6: 1-2 ничего; 3-4 +1 Intel с учётом soft cap; 5 +20 Supply; 6 Secret Fragment. Secret Fragments можно собирать с Reveal II, но три
+Secret Fragments заменяют требование контроля G для Stronghold Assault только после того, как Reveal IV полностью открыт.
 
 
 
 
                                                                            40
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 33. Стартовые силы и ранняя кампания
@@ -2011,9 +2116,9 @@ Necrons - ориентир 475 points
 Итого ориентир: 475. Если contextual MFM pricing внутри конкретной Deployment Force отличается, всегда используйте OBC/Effective
 Cost для battle legality.
 
-Deathwatch - ориентир около 480 points
+Deathwatch - ориентир около 485 points
  Unit                                                Ориентир                            Роль
- Librarian                                           70                                  Warlord/support; сверить current Codex Space
+ Librarian                                           75                                  Warlord/support; сверить current Codex Space
                                                                                          Marines/Deathwatch snapshot
  5 Deathwatch Veterans                               около 100                           фракционное ядро
  5 Intercessors                                      80                                  Battleline
@@ -2022,7 +2127,7 @@ Deathwatch - ориентир около 480 points
  3 Eliminators                                       75                                  recon/ranged specialist
 
 
-Итого ориентир: около 480. Deathwatch/Space Marines находятся в периоде обновлений, поэтому snapshot важнее напечатанного
+Итого ориентир: около 485. Deathwatch/Space Marines находятся в периоде обновлений, поэтому snapshot важнее напечатанного
 ориентира.
 
 Первые покупки
@@ -2035,7 +2140,7 @@ Deathwatch - ориентир около 480 points
 
 
                                                                            41
-THE BLACK SEPULCHRE       |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE       |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 34. Баланс и контрольные метрики
@@ -2084,7 +2189,7 @@ THE BLACK SEPULCHRE       |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
 
 
                                                                                  42
-THE BLACK SEPULCHRE     |   CAMPAIGN RULES v2.0    |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE     |   CAMPAIGN RULES v2.1    |   WARHAMMER 40,000 11e
 
 
 35. Edge cases и Optional Secondary Task Force
@@ -2135,18 +2240,22 @@ Stage 1500+.
    присутствия Main Force для Campaign Armoury/Doctrine Refit.
 • Если STF полностью не может выставить ни одного legal unit, фишка остаётся, пока roster не будет восстановлен/пополнен; её нельзя
    продать обратно.
+• Для Rest, Participation XP, Distinguished eligibility и обычных Field Battle procedures активированная STF считается active Field Force.
+  Формулировки «следующая battle Main Force» в этих процедурах читаются как «следующая relevant battle этой Field Force». STF при этом
+  не считается Main Force для Campaign Armoury/Doctrine Refit, Stronghold Assault и других правил, которые прямо требуют Main Force.
 
 
 
 
                                                                               43
-THE BLACK SEPULCHRE        |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE        |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 36. Google Sheets и краткая памятка
 Каноническое состояние
-Google Sheets должен быть единственным каноническим текущим состоянием кампании. PDF определяет правила; Sheet хранит числа и
-историю.
+PDF является нормативным rules source. В Campaign Command текущая server-authoritative DB является каноническим live state кампании.
+Google Sheets/export используется как backup, audit trail или ручной state для игры без Campaign Command; при расхождении live DB и
+export приоритет имеет DB, а при расхождении DB и правил приоритет имеет этот PDF.
  Лист                                                                                Что хранит
  Dashboard                                                                           battle count, Stage, Army Limit, Supply, Intel, BLACK CHOIR, active player,
                                                                                      Resource Window flags, Main Force/STF positions
@@ -2188,11 +2297,11 @@ Campaign Turn - одна страница
  CONTACT                                                                             Enemy Main Force -> Field; garrison only -> Garrison; empty -> Occupation;
                                                                                      Home -> Stronghold.
  MISSION                                                                             D3 sector mission; Intel; sector states/tier.
- MUSTER                                                                              Secret Commit -> OBC/Effective legality -> Recon Lock reveal -> Pool ->
-                                                                                     Assets -> core formations/deployment.
+ MUSTER                                                                              Declare Recon Locks -> branch commitment -> OBC/Effective legality ->
+                                                                                     Interdict -> Assets -> core formations/deployment.
  BATTLE                                                                              5 rounds, если mission не говорит иначе.
- AFTERMATH                                                                           VP -> XP -> Casualty/Critical -> retreat -> Salvage/D66 -> income -> resolve
-                                                                                     Rest -> Logistics.
+ AFTERMATH                                                                           VP/final ending -> XP -> Casualty/Critical -> retreat -> Salvage/D66 ->
+                                                                                     income -> resolve Rest -> Logistics. Final campaign stops before economy.
  PASS                                                                                Следующая Strategic Activation всегда opponent.
 
 
@@ -2204,7 +2313,7 @@ Campaign Turn - одна страница
 
 
                                                                                 44
-THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.0   |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE   |   CAMPAIGN RULES v2.1   |   WARHAMMER 40,000 11e
 
 
 Приложение A. BLACK CHOIR - СПОЙЛЕРЫ
@@ -2252,10 +2361,10 @@ Black Choir - не разум и не демон. Это аварийный ци
 
 
                                                                            45
-THE BLACK SEPULCHRE    |   CAMPAIGN RULES v2.0    |   WARHAMMER 40,000 11e
+THE BLACK SEPULCHRE    |   CAMPAIGN RULES v2.1    |   WARHAMMER 40,000 11e
 
 
-Приложение B. Источники и Changelog v2.0
+Приложение B. Источники и Changelog v2.1
 Совместимость и официальные опорные точки
 Документ не воспроизводит datasheets или полный текст официальных правил. Для tabletop используйте актуальные официальные
 материалы вашего Season Snapshot.
@@ -2288,6 +2397,22 @@ Changelog v2.0
 • Исправлены A2, A3, B3, C1, C2, D3, E1, E3, F1, F3, G3, H3, J2, J3 и timing некоторых Honours.
 • Пустой Home Stronghold теперь разрешается без бессмысленной tabletop battle, но всё равно требует две отдельные осады.
 • Optional Secondary Task Force получила полную процедуру и ограничения.
+
+Changelog v2.1 - Audit Revision 02.10.2026
+• Stronghold Secret Fragments теперь обходят контроль G только после полного Reveal IV.
+• Muster переписан как единая ветвящаяся Recon Lock procedure; Reinforcement Pool фиксируется один раз; Interdict получил timing.
+• Scavenge получил полноценный базовый J action; Battle-shock trigger B2 исправлен с невозможной natural 1 на unmodified 2.
+• F3 использует Relay Disruption вместо конфликтующей длительности Sabotaged; добавлены Ownership Change transitions.
+• Финальные endings встроены до Casualty Rolls; после завершения кампании обычные Salvage/D66/economy не выполняются.
+• Определены XENOS, Recovery Supply, Intelligence source classes, recovery order of operations и transport payload.
+• Recon Lock scars переписаны без несуществующего key revealed component.
+• Mission Selection Sequence объединяет anti-repeat, Recon pre-roll, Noctis Relay, generic reroll и отдельную Stronghold procedure.
+• Уточнены D66 11/16/25/32/35/41/52/56/63/64/66 и введено единое D66 reroll window.
+• Prepared Barricades получили campaign terrain profile; Basilica, G1, G2, I3 и simultaneous evacuation edge cases уточнены.
+• Enhancement reassignment ограничен Logistics; Displaced больше не ссылается на несуществующий special movement.
+• STF интегрирована с Field Force procedures; Campaign Command DB описана как canonical live state.
+• Audit верно заметил устаревший printed Librarian, но предложенные 60 points уже не актуальны: по MFM v1.5 от 30.09.2026 Librarian стоит 75; ориентир Deathwatch обновлён до ~485.
+• Balance-only предложения Mobilise/Veterans/generic Underdog не изменены до playtest data.
 
 Ссылки
 Warhammer Community: Warhammer 40,000 Downloads

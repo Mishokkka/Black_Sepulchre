@@ -3,7 +3,7 @@ name: Extract v2 rules source
 on:
   push:
     paths:
-      - 'Black_Sepulchre_40k11_Campaign_Rules_v2.0_RU.pdf'
+      - 'Black_Sepulchre_40k11_Campaign_Rules_v2.1_RU.pdf'
       - '.github/workflows/extract-rules-source.yml'
   workflow_dispatch:
 
@@ -22,10 +22,10 @@ jobs:
       - name: Extract canonical v2 source text
         run: |
           mkdir -p docs
-          pdftotext -layout -nopgbrk Black_Sepulchre_40k11_Campaign_Rules_v2.0_RU.pdf docs/Black_Sepulchre_v2.0_source.txt
+          pdftotext -layout -nopgbrk Black_Sepulchre_40k11_Campaign_Rules_v2.1_RU.pdf docs/Black_Sepulchre_v2.1_source.txt
           python - <<'PY'
           from pathlib import Path
-          p=Path('docs/Black_Sepulchre_v2.0_source.txt')
+          p=Path('docs/Black_Sepulchre_v2.1_source.txt')
           s=p.read_text(encoding='utf-8', errors='replace')
           s=s.replace('\r\n','\n').replace('\r','\n')
           p.write_text(s,encoding='utf-8')
@@ -34,7 +34,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/Black_Sepulchre_v2.0_source.txt
+          git add docs/Black_Sepulchre_v2.1_source.txt
           git diff --cached --quiet && exit 0
-          git commit -m "Extract canonical v2.0 rules source"
+          git commit -m "Extract canonical v2.1 rules source"
           git push
