@@ -93,8 +93,24 @@ export default function LogisticsUpgrades({
       </div>
       {item&&<div className="armoury-effect">{CAMPAIGN_ARMOURY.find(i=>i.code===item)?.effect}</div>}
       <button className="primary action-main" disabled={working||!armouryUnit||!item} onClick={buy}>Купить Armoury item</button>
-      {mine.some(u=>(u.armoury?.length??0)>0)&&<div className="owned-armoury">{mine.filter(u=>(u.armoury?.length??0)>0).map(u=><div key={u.id}><strong>{u.name}</strong><span>{u.armoury?.[0]?.name??u.armoury?.[0]?.code}</span></div>)}</div>}
+      {mine.some(u=>(u.armoury?.length??0)>0)&&<div className="owned-armoury">{mine.filter(u=>(u.armoury?.length??0)>0).map(u=><div key={u.id}><strong>{u.name}</strong><span>{u.armoury?.[0]?.name??u.armoury?.[0]?.code}</span>{u.armoury?.[0]?.damaged_relic_first_use_check&&<button className="ghost compact" disabled={working} onClick={()=>damagedRelicCheck(u)}>Первое использование было · D6</button>}</div>)}</div>}
+      {mine.some(u=>(u.relics?.length??0)>0)&&<div className="owned-armoury">{mine.filter(u=>(u.relics?.length??0)>0).map(u=><div key={'relic-'+u.id}><strong>{u.name}</strong><span>Relic: {u.relics?.[0]?.name??u.relics?.[0]?.code} · CR +{u.relics?.[0]?.cr??0}%</span></div>)}</div>}
     </section>
+
+    <section className="panel">
+      <div className="section-head"><div><div className="eyebrow">VETERAN DRILL</div><h2>30 Supply · до двух units</h2></div><Award/></div>
+      <p className="muted">Выберите 1–2 persistent units из current Main Force/local garrison. Каждый получает +1 XP; один и тот же unit не чаще одного раза за Stage.</p>
+      <div className="mission-unit-checks">{mine.map(u=><label key={'drill-'+u.id}><input type="checkbox" checked={drillUnits.includes(u.id)} disabled={working||(!drillUnits.includes(u.id)&&drillUnits.length>=2)} onChange={()=>toggleDrill(u.id)}/>{u.name} · XP {u.xp}</label>)}</div>
+      <button className="primary action-main" disabled={working||drillUnits.length<1} onClick={veteranDrill}>Провести Veteran Drill</button>
+    </section>
+
+    {mine.some(u=>u.status==='critical_choice'||Number(u.campaign_flags?.evacuation_due_cost??0)>0)&&<section className="panel">
+      <div className="section-head"><div><div className="eyebrow">CRITICAL INJURY</div><h2>CHARACTER aftermath</h2></div><Stethoscope/></div>
+      <div className="scar-treatment-list">
+        {mine.filter(u=>u.status==='critical_choice').map(u=><div className="scar-treatment" key={'critical-'+u.id}><div><strong>{u.name}</strong><small>Lost · выберите окончательный исход в текущем aftermath</small></div><div className="button-row"><button className="ghost compact danger" disabled={working} onClick={()=>criticalChoice(u,'lost')}>Lost · удалить из roster</button><button className="ghost compact" disabled={working} onClick={()=>criticalChoice(u,'evacuation')}>Evacuation</button></div></div>)}
+        {mine.filter(u=>Number(u.campaign_flags?.evacuation_due_cost??0)>0).map(u=><div className="scar-treatment" key={'evac-'+u.id}><div><strong>{u.name}</strong><small>Evacuation due · {u.campaign_flags.evacuation_due_cost} Supply · до оплаты участие запрещено</small></div><button className="ghost compact" disabled={working} onClick={()=>payEvacuation(u)}>Оплатить Evacuation</button></div>)}
+      </div>
+    </section>}
 
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">BATTLE SCARS</div><h2>Rehabilitation</h2></div><Stethoscope/></div>
