@@ -4,7 +4,7 @@ import type { Member, PlayerState, Sector, Unit } from '../types'
 
 type CampaignEvent={id:string;kind:string;code:string|null;title:string;payload:any;resolved:boolean;created_at:string}
 
-const CHOICE_CODES=new Set(['11','12','13','14','24','31','32','33','41','52','53','54','56'])
+const CHOICE_CODES=new Set(['11','12','13','14','24','31','32','33','41','52','53','54','56','63'])
 
 export default function D66ChoiceControls({
   event,member,players,sectors,units
@@ -145,6 +145,8 @@ export default function D66ChoiceControls({
       :<div className="button-row"><button className="ghost compact" disabled={working} onClick={()=>act('intel')}>Necrons: +1 Intel</button>{controlsG&&<button className="ghost compact" disabled={working} onClick={()=>act('supply')}>Вместо этого +20 Supply</button>}</div>
   }else if(code==='56'){
     body=<><div className="d66-choice-row">{unitSelect(mine.filter(u=>(u.scars?.length??0)>0),'Unit с Battle Scar')}<button className="ghost compact" disabled={working||!selectedUnit||(me?.supply??0)<10} onClick={()=>act('boost',selectedUnit)}>10 Supply · next Rehab +1</button></div><button className="ghost compact" disabled={working} onClick={()=>act('pass')}>Отказаться</button></>
+  }else if(code==='63'){
+    body=<div className="d66-choice-row">{unitSelect(mine.filter(u=>u.is_character),'CHARACTER для Names in the Static')}<button className="ghost compact" disabled={working||!selectedUnit} onClick={()=>specialChoice('name',selectedUnit)}>Назвать CHARACTER</button></div>
   }
 
   return <div className="d66-choice">
