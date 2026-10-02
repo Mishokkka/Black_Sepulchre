@@ -762,7 +762,7 @@ Server-authoritative логика уже покрывает:
 - Salvage, mandatory rerolls, global D66, Fleshworks 2-roll/D3 3-roll procedure, D66 choice flows и delayed effects;
 - D66 16 по таблице Minor Armoury из v2.0;
 - BLACK CHOIR track, forced Reveals, Investigate Choir, Secret Fragments и Reveal III EXTRACT INDEX для Stronghold battles;
-- финальные исходы PURGE / SEIZE / SEAL / FEED, включая PURGE Casualty Rolls, Choir-Touched и двухсторонний SEAL epilogue choice;
+- финальные исходы PURGE / SEIZE / SEAL / FEED после полного финального Aftermath/Logistics, включая PURGE Casualty Rolls, Choir-Touched и двухсторонний SEAL epilogue choice;
 - основные sector bonuses A–K: A/K recovery/enemy Intel, B victory Intel, C Lift, D recovery/event amplification, E income, F Noctis mission/reactive Intel, G Stronghold/raid/Choir, H long attack, I Rest/Deathwatch Intel/capture salvage, J qualifying garrison discount;
 - campaign outcomes и tabletop-fact inputs для sector missions, включая C1, C3, D1/D2/D3, F3, G1, I1/I3, J2/J3 и остальные простые rewards;
 - Realtime state sync, audit_log и resource_ledger.
