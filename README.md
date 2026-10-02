@@ -145,7 +145,8 @@ GitHub Pages должен быть настроен на:
       ├─ LogisticsPanel.tsx
       ├─ LogisticsUpgrades.tsx
       ├─ HonourClaims.tsx
-      └─ EventsPanel.tsx
+      ├─ EventsPanel.tsx
+      └─ D66ChoiceControls.tsx
 ```
 
 ### Основные файлы
@@ -188,7 +189,11 @@ Campaign Armoury, Rehabilitation и Deep Reconstruction Battle Scars.
 
 `src/components/EventsPanel.tsx`
 
-BLACK CHOIR Reveal track и история D66.
+BLACK CHOIR Reveal track, история D66, применение автоматизированных событий и отображение queued effects.
+
+`src/components/D66ChoiceControls.tsx`
+
+Игроковые решения для D66, где правило требует отдельного выбора стороны: target unit, target sector, reward или pass.
 
 `src/data/campaign.ts`
 
@@ -373,7 +378,7 @@ Persistent campaign units.
 
 Battle header и Aftermath.
 
-Хранит mission, battle type, attacker/defender, origin, VP, outcome, lock state Muster, Salvage, D66 и JSON report/aftermath.
+Хранит mission, battle type, attacker/defender, origin, VP, outcome, lock state Muster, Salvage, D66, Mission/Fleshworks choices, Recon/Interdict state, выбранные Battle Assets, `campaign_effects` для следующей battle и JSON report/aftermath.
 
 ### `battle_units`
 
@@ -502,7 +507,11 @@ Friendly Orbital Ossuary Lift.
 
 `battle_roll_mission(battle)`
 
-Бросок sector mission с anti-repeat logic.
+Бросок sector mission с anti-repeat logic. Активный Noctis Relay F один раз за Activation может создать два результата и перевести battle в состояние mission choice.
+
+`battle_choose_mission(battle, code)`
+
+Выбор одного из двух результатов Noctis Relay. До разрешения `CHOICE` Muster нельзя зафиксировать.
 
 `battle_reroll_mission(battle)`
 
@@ -534,6 +543,26 @@ Friendly Orbital Ossuary Lift.
 `battle_use_interdict(battle, asset)`
 
 Тратит 2 Intelligence после фиксации обоих Muster и запрещает один legal enemy Tactical/Breach Asset. Если противник успел сохранить этот Asset раньше, RPC удаляет его из сохранённого выбора. Проверка также действует в `battle_set_assets`, поэтому обход клиентской формы не помогает.
+
+`battle_choose_d66_event(battle, code)`
+
+Выбирает один из двух D66, выпавших в Fleshworks IX. Winner выбирает после victory, Defender при Draw.
+
+`battle_reroll_salvage(battle, choice)`
+
+Тратит 1 Intelligence и перебрасывает собственный Salvage один раз. Старый reward атомарно отменяется, новый результат обязателен.
+
+`battle_reroll_d66(battle)`
+
+Тратит 2 Intelligence и перебрасывает глобальный D66 один раз. Разрешён только до применения события; второй результат обязателен.
+
+`resolve_d66_event(event)`
+
+Применяет D66 events, которые не требуют выбора конкретного unit/sector/reward, либо ставит их delayed effect в `campaigns.settings.pending_effects`.
+
+`resolve_d66_player_choice(event, action, unit, sector)`
+
+Server-authoritative resolver для D66 24, 31, 33, 41, 52, 53, 54 и 56. Каждая сторона может разрешить только свою часть события.
 
 `battle_resolve(...)`
 
@@ -691,7 +720,9 @@ login
 - Cathedral G: первый Deep Raid стадии дешевле на 1 Intel;
 - Basilica B: +1 Intel за соседнюю победу, максимум раз между своими Activations;
 - Noctis Relay F: +1 Intel на объявление атаки противником, максимум раз между своими Activations;
+- Noctis Relay F: двойной mission roll и выбор одного результата;
 - Necropolis I: Deathwatch Intel bonus при победах в I/K при активном контроле I;
+- Necropolis I: enhanced Necron Rest снимает 2 Damage одному подходящему resting unit;
 - Necropolis I: первый переход сектора к новому владельцу выдаёт 25 Supply salvage один раз;
 - Canoptek Foundry J: скидка на одну qualifying garrison purchase за Activation;
 - Stronghold Assault guards;
@@ -732,8 +763,18 @@ login
 - winner/loser income;
 - stage grants;
 - Ash Meridian income;
-- Salvage roll;
-- D66 roll/history;
+- Salvage roll и 1-Intel re-roll с обязательным вторым результатом;
+- D66 roll/history и 2-Intel re-roll с обязательным вторым результатом;
+- Fleshworks IX: два D66 и выбор winner/Defender;
+- D66 automatic/delayed resolver для 15, 21, 22, 23, 25, 26, 34, 35, 36, 42, 43, 44, 45, 46, 51, 55, 61, 62, 65, 66;
+- D66 player-choice resolver для 24, 31, 33, 41, 52, 53, 54, 56;
+- delayed campaign effects store в `campaigns.settings.pending_effects`;
+- False Orders, Noosphere Static, Broken Map и Ceasefire стратегически применяются автоматически;
+- Auspex Ghost прикрепляется к следующей battle, даёт free Recon Lock и +1 Intel обеим сторонам при двойном использовании;
+- Ammunition Rot прикрепляется к следующей battle и блокирует Campaign Armoury выбранного unit;
+- Bone Bloom автоматически выдаёт winner +10 Supply;
+- Corpse Ledger даёт и расходует +1 к следующему Rehabilitation roll;
+- часть простых mission outcomes: B3, C2, E1, E2, F1, F2, G2, G3, H1, I2;
 - BLACK CHOIR Reveal display;
 - realtime state sync;
 - audit log.
@@ -750,21 +791,19 @@ login
    Сейчас battle aftermath может поставить marker `PENDING CRITICAL INJURY`, но полный Critical Injury flow ещё не автоматизирован.
 
 2. **Полное применение D66.**
-   D66 бросается и сохраняется. `EventsPanel` показывает текст. Большинство событий с выбором цели, delayed effect, reroll, BLACK CHOIR mutation или изменением следующей battle пока требуют ручного исполнения.
+   Основной resolver уже существует. Полностью или частично автоматизированы 28/36 результатов. Ещё требуют специализированного flow события 11, 12, 13, 14, 16, 32, 63, 64. Для 16 rules source не определяет таблицу `Minor Armoury item`, поэтому реализацию нельзя додумывать.
 
 3. **Sector rules.**
-   Автоматизирована уже значительная часть: A/K recovery discounts, B adjacent-victory Intel, C Airlift, E income, F reactive Intel, G Deep Raid discount, H Glass Wastes, I Deathwatch Intel bonus и first-capture salvage, J qualifying garrison discount. Остались D double-D66, F double mission roll/choice, I enhanced Necron Rest, J Scavenge interaction и отдельные mission-facing sector effects.
+   D double-D66, F double mission choice и I enhanced Rest уже работают. Основной крупный пробел сектора J сейчас связан со Scavenge и его interaction с Exhausted; остаются отдельные mission-facing bonuses/penalties.
 
 4. **Battle Assets effects.**
    Tactical/Defensive/Breach Assets уже рассчитываются, выбираются и сохраняются. Большинство их tabletop effects остаётся памяткой. Post-battle modifiers вроде Hard Evacuation / Hardened Stores / Extraction Beacon пока не привязаны автоматически к конкретному unit.
 
 5. **Mission-specific campaign outcomes.**
-   Mission code выбирается, но уникальные outcomes всех 33 sector missions пока не все применяются автоматически.
+   Автоматически применяются простые outcomes, однозначно выводимые из winner/result: B3, C2, E1, E2, F1, F2, G2, G3, H1, I2. Остальные outcomes, требующие tabletop facts или выбора target/reward, пока должны получать специализированный input.
 
 ### Средний приоритет
 
-- D66 reroll за 2 Intel.
-- Salvage reroll за 1 Intel.
 - Scavenge.
 - Campaign Relics.
 - Redemption conditions для Scar.
@@ -865,6 +904,17 @@ Realtime используется не только для удобства. К�
 - `recovery_discount_and_distinguished_fixes`
 - `harden_recon_lock_and_interdict_timing`
 - `interdict_target_cleanup`
+- `noctis_double_mission_choice`
+- `khepra_enhanced_rest`
+- `aftermath_reroll_state_and_fleshworks_choice`
+- `aftermath_choices_and_intel_rerolls`
+- `forced_black_choir_reveals`
+- `d66_simple_event_resolver`
+- `apply_key_pending_d66_effects`
+- `attach_next_battle_d66_effects`
+- `d66_player_choice_events`
+- `ammunition_rot_next_battle_enforcement`
+- `automatic_mission_campaign_outcomes`
 
 Перед новым handoff первым делом выполните Supabase `list_migrations`, потому что production DB может быть новее этого README.
 
@@ -934,6 +984,12 @@ Account A creates campaign
 - Campaign Armoury purchase;
 - Recovery Cache consumption;
 - Field Medicae consumption;
+- Noctis double mission choice;
+- Fleshworks double D66 choice;
+- Salvage/D66 rerolls before Logistics spending;
+- D66 24/31/33/41/52/53/54/56 both-side resolution;
+- queued Noosphere Static / False Orders / Broken Map / Ceasefire;
+- next-battle Auspex Ghost / Bone Bloom / Ammunition Rot;
 - Stronghold Integrity 2 → 1 → 0;
 - Emergency Evacuation без legal retreat.
 
@@ -1087,11 +1143,11 @@ garrison_reinforcement
 Лучший следующий порядок работ:
 
 1. Critical Injury CHARACTER, только после подтверждения полной формулировки в rules source.
-2. D66 resolver с pending choices/effects.
-3. Оставшиеся sector-specific mechanics, особенно D/F/I/J.
-4. Mission-specific campaign outcomes.
-5. Автоматическое применение post-battle Battle Assets: Hard Evacuation, Hardened Stores, Extraction Beacon и т.п.
-6. Salvage/D66 rerolls и оставшиеся Intelligence spends.
+2. Закрыть оставшиеся D66 11/12/13/14/32/63/64; D66 16 требует отдельного уточнения rules source.
+3. Расширить mission-specific outcomes, особенно те, которым нужен target/tabletop fact input.
+4. Довести delayed D66 battle effects от UI-reminder до полного automatic enforcement там, где это возможно без моделирования самой tabletop игры.
+5. J Scavenge и оставшиеся sector-specific interactions.
+6. Автоматическое применение post-battle Battle Assets: Hard Evacuation, Hardened Stores, Extraction Beacon и т.п.
 7. Relics, Detachment/Enhancement management.
 8. unit size upgrades / paid wargear changes.
 9. Автоматические tests для основных state transitions.
