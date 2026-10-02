@@ -143,6 +143,8 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   const ownInterdict=pending?(member.side===pending.attacker_side?pending.attacker_interdict:pending.defender_interdict):null
   const enemyInterdict=pending?(member.side===pending.attacker_side?pending.defender_interdict:pending.attacker_interdict):null
   const interdictOptions=member.side===pending?.attacker_side?[...TACTICAL_ASSETS]:[...TACTICAL_ASSETS,...BREACH_ASSETS]
+  const noosphereStatic=((campaign.settings?.pending_effects??[]) as any[]).some(e=>e?.code==='noosphere_static')
+  const reconLockCost=noosphereStatic?2:1
   const khepra=sectors.find(s=>s.sector_key==='I')
   const khepraRestActive=!!pending&&pending.sector_key==='I'&&khepra?.owner_side==='necrons'&&!khepra.conditions?.some(x=>['Exhausted','Sabotaged','Disrupted','Contested'].includes(x))
 
@@ -247,7 +249,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
       </div>:
       <div className="mission-line"><span>{mission?.[2]}</span><div className="button-row">
         <button className="ghost compact" disabled={working||(myPlayer?.intelligence??0)<1} onClick={()=>rpc('battle_reroll_mission',{p_battle:pending.id})}><RefreshCw size={14}/> Re-roll · 1 Intel</button>
-        <button className="ghost compact" disabled={working||ownRecon||(myPlayer?.intelligence??0)<1||pending.attacker_muster_locked||pending.defender_muster_locked} onClick={useReconLock}><LockKeyhole size={14}/> Recon Lock · 1 Intel</button>
+        <button className="ghost compact" disabled={working||ownRecon||(myPlayer?.intelligence??0)<reconLockCost||pending.attacker_muster_locked||pending.defender_muster_locked} onClick={useReconLock}><LockKeyhole size={14}/> Recon Lock · {reconLockCost} Intel</button>
       </div></div>}
       {reconSides.length>0&&<div className="notice">{bothRecon?'Обе стороны активировали Recon Lock: порядок раскрытия не меняется.':`Recon Lock: ${sideLabel(reconSides[0])} фиксирует Muster после соперника.`}</div>}
     </section>
