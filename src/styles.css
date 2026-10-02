@@ -47,3 +47,11 @@ nav{display:grid;gap:.35rem;margin-top:1.25rem}nav button{display:flex;gap:.65re
 @media(max-width:600px){.inline-control{grid-template-columns:1fr}.inline-control button{width:100%}}
 
 .reaction-panel{max-width:760px}.reaction-panel p{line-height:1.55}.reaction-panel>p strong{color:#d8d4c8}
+
+.honour-panel{margin-bottom:1rem;border-color:#4b4432}
+.honour-claims{display:grid;gap:.55rem}
+.honour-claim{display:grid;grid-template-columns:1fr 1.3fr auto;gap:.55rem;align-items:center;padding:.7rem;border:1px solid #302f27;background:#11130f;border-radius:5px}
+.honour-claim small{display:block;margin-top:.2rem;color:#8e968f}
+.honour-claim p{grid-column:2/-1;margin:0;color:#a6ada7;font-size:.75rem;line-height:1.45}
+.roster-head{margin-top:.2rem}
+@media(max-width:800px){.honour-claim{grid-template-columns:1fr}.honour-claim p{grid-column:1}}
