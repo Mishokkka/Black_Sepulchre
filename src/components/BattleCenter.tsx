@@ -143,6 +143,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
 
   const mission=useMemo(()=>pending?MISSIONS.find(m=>m[0]===pending.mission_code):undefined,[pending?.mission_code])
   const ownLocked=pending?(member.side===pending.attacker_side?pending.attacker_muster_locked:pending.defender_muster_locked):false
+  const opponentLocked=pending?(member.side===pending.attacker_side?pending.defender_muster_locked:pending.attacker_muster_locked):false
   const myPlayer=players.find(p=>p.side===member.side)
   const c=pending?caps(pending,campaign,sectors):null
   const stage=STAGES[stageIndexForBattles(campaign.battle_count)]
@@ -291,6 +292,11 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
         <button className="ghost compact" disabled={working||ownRecon||(myPlayer?.intelligence??0)<reconLockCost||pending.attacker_muster_locked||pending.defender_muster_locked} onClick={useReconLock}><LockKeyhole size={14}/> Recon Lock · {reconLockCost===0?'FREE':reconLockCost+' Intel'}</button>
       </div></div>}
       {reconSides.length>0&&<div className="notice">{bothRecon?'Обе стороны активировали Recon Lock: порядок раскрытия не меняется.':`Recon Lock: ${sideLabel(reconSides[0])} фиксирует Muster после соперника.`}</div>}
+      {ownRecon&&!bothRecon&&!ownLocked&&opponentLocked&&<div className="recon-reveal">
+        <div className="eyebrow">RECON LOCK REVEAL</div>
+        <p className="muted">Соперник уже зафиксировал полный Committed Force. Теперь сформируйте свой Muster.</p>
+        <div className="battle-history">{battleUnits.filter(b=>b.side!==member.side).map(b=>{const u=units.find(x=>x.id===b.unit_id);return u?<div className="battle-history-row" key={'recon-'+b.unit_id}><div><strong>{u.name}</strong><small>{u.datasheet} · {b.role}{b.resting?' · RESTING':''}</small></div><div>OBC {b.official_battle_cost??u.reference_cost}</div><div>EC {b.effective_cost??eff(u,b.official_battle_cost??u.reference_cost)}</div></div>:null})}</div>
+      </div>}
     </section>
 
     {battleEffects.length>0&&<section className="panel campaign-effects-panel">
