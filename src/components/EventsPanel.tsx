@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { BLACK_CHOIR_REVEALS, D66_EVENTS } from '../data/campaign'
 import type { Campaign, Member, PlayerState, Sector, Unit } from '../types'
 import D66ChoiceControls from './D66ChoiceControls'
+import MissionRewardControls from './MissionRewardControls'
 
 type CampaignEvent={id:string;kind:string;code:string|null;title:string;payload:any;resolved:boolean;created_at:string}
 
@@ -12,7 +13,9 @@ const PENDING_LABELS:Record<string,string>={
   vox_from_dead:'Vox From the Dead · первый failed Battle-shock следующей battle можно перебросить',
   ash_rain:'Ash Rain · battle round 3 следующей battle: ranged attacks максимум 24"',
   missing_hour:'The Missing Hour · первое Strategic Action следующей Activation требует 4+',
-  bone_bloom:'Bone Bloom · центральный objective следующей battle окружён 5" Difficult Ground',
+  bone_bloom:'Bone Bloom · 5" вокруг центрального objective следующей battle становится Rough Ground',
+  airlift_window:'Airlift Window · до конца следующей собственной Activation атакующий Orbital Lift не требует Intelligence',
+  free_recon_lock:'Ghost Frequency · бесплатный Recon Lock в следующей battle',
   machine_hymn:'Machine Hymn · первый VEHICLE/MONSTER Battle-shock заменяется D3 mortal wounds',
   auspex_ghost:'Auspex Ghost · бесплатный Recon Lock в следующей battle',
   hidden_route:'Hidden Route · по одной дальней атаке каждой стороне до конца следующей battle',
@@ -68,22 +71,23 @@ export default function EventsPanel({campaign,member,players,sectors,units}:{cam
         const options=(e.payload?.options??[]) as string[]
         const chooser=e.payload?.chooser_side as string|undefined
         return <div key={e.id} className="event-card">
-          <div className="event-code">{e.kind==='D66_choice'?'D66×2':e.code}</div><div><strong>{d?.name??e.title}</strong>
+          <div className="event-code">{e.kind==='D66_choice'?`D66×${options.length}`:e.kind==='mission_reward'?'MISSION':e.code}</div><div><strong>{d?.name??e.title}</strong>
           {e.kind==='D66_choice'?<>
-            <p>Fleshworks IX: бросок сделан дважды. Применяется только один результат.</p>
+            <p>Fleshworks IX: сделано {options.length} D66 roll. Применяется только один результат.</p>
             <div className="event-choice-buttons">{options.map(code=>{const opt=D66_EVENTS[code];return <button className="ghost" key={code} disabled={working||member.side!==chooser} onClick={()=>chooseD66(e,code)}><strong>{code} · {opt?.name??'Event'}</strong><small>{opt?.effect}</small></button>})}</div>
             {member.side!==chooser&&<small>Выбор делает {chooser==='necrons'?'Necrons':'Deathwatch'}.</small>}
           </>:<p>{d?.effect??'Эффект не найден в текущем rules reference.'}</p>}
           {e.kind==='D66'&&e.code&&AUTO_D66.has(e.code)&&!e.resolved&&<button className="ghost compact event-apply" disabled={working} onClick={()=>resolveEvent(e)}>Применить / поставить эффект в очередь</button>}
-          {e.kind==='D66'&&e.code&&['11','12','13','14','24','31','32','33','41','52','53','54','56','63'].includes(e.code)&&!e.resolved&&<D66ChoiceControls event={e} member={member} players={players} sectors={sectors} units={units}/>}
-          {e.kind==='D66'&&e.code&&!AUTO_D66.has(e.code)&&!['11','12','13','14','24','31','32','33','41','52','53','54','56','63'].includes(e.code)&&!e.resolved&&<small className="pending-tag">Требуется отдельный выбор или цель. Resolver ещё не автоматизирован.</small>}
+          {e.kind==='D66'&&e.code&&['11','12','13','14','16','24','31','32','33','41','52','53','54','56','63'].includes(e.code)&&!e.resolved&&<D66ChoiceControls event={e} member={member} players={players} sectors={sectors} units={units}/>}
+          {e.kind==='D66'&&e.code&&!AUTO_D66.has(e.code)&&!['11','12','13','14','16','24','31','32','33','41','52','53','54','56','63'].includes(e.code)&&!e.resolved&&<small className="pending-tag">Требуется отдельный выбор или цель. Resolver ещё не автоматизирован.</small>}
+          {e.kind==='mission_reward'&&!e.resolved&&<MissionRewardControls event={e} member={member} units={units}/>}
           {e.resolved&&<small className="resolved-tag">Resolved</small>}
           <small>{new Date(e.created_at).toLocaleString('ru')}</small></div>
         </div>
       })}</div>}
       {msg&&<div className="notice">{msg}</div>}
       {(pendingEffects.length>0||campaign.settings?.secret_route)&&<div className="pending-effects"><div className="eyebrow">ACTIVE / QUEUED EFFECTS</div>{pendingEffects.map((e:any,i:number)=><div key={(e.code??'effect')+'-'+i}><strong>{e.code}</strong><span>{PENDING_LABELS[e.code]??'Отложенный кампанийный эффект'}</span>{e.side&&<small>{e.side==='necrons'?'Necrons':'Deathwatch'}</small>}</div>)}{campaign.settings?.secret_route&&<div><strong>SECRET ROUTE</strong><span>Token: sector {campaign.settings.secret_route.sector}. Текущий владелец сектора может один раз считать любой сектор рядом с G соседним для movement/attack Main Force.</span><small>До использования или следующего захвата token sector</small></div>}</div>}
-      <p className="muted small-note">Простые и часть отложенных D66 effects уже применяются сервером. Эффекты, которым нужен выбор unit/sector/reward, остаются unresolved до специализированного resolver, чтобы сайт не делал выбор за игроков.</p>
+      <p className="muted small-note">D66 и mission rewards v2.0 применяются сервером там, где результат однозначен. Выбор unit/sector/reward остаётся за игроком и проводится отдельным resolver.</p>
     </section>
   </div>
 }
