@@ -527,6 +527,14 @@ Friendly Orbital Ossuary Lift.
 
 Проверяет и сохраняет Tactical/Defensive/Breach Assets после фиксации Muster. Underdog считается по разнице первоначального Effective Cost относительно Army Limit.
 
+`battle_use_recon_lock(battle)`
+
+Тратит 1 Intelligence. Если Recon Lock использует одна сторона, сервер запрещает ей lock Muster до того, как соперник раскроет и зафиксирует свой. Если Recon Lock используют обе стороны, порядок раскрытия снова становится одновременным.
+
+`battle_use_interdict(battle, asset)`
+
+Тратит 2 Intelligence и запрещает один выбранный enemy Tactical/Breach Asset. Проверка действует и в UI, и в `battle_set_assets`, поэтому обход клиентской формы не помогает.
+
 `battle_resolve(...)`
 
 Главный Aftermath engine.
@@ -684,10 +692,13 @@ login
 - Basilica B: +1 Intel за соседнюю победу, максимум раз между своими Activations;
 - Noctis Relay F: +1 Intel на объявление атаки противником, максимум раз между своими Activations;
 - Necropolis I: Deathwatch Intel bonus при победах в I/K при активном контроле I;
+- Necropolis I: первый переход сектора к новому владельцу выдаёт 25 Supply salvage один раз;
 - Canoptek Foundry J: скидка на одну qualifying garrison purchase за Activation;
 - Stronghold Assault guards;
 - Fortress Integrity;
 - mission anti-repeat;
+- Recon Lock;
+- Interdict Tactical/Breach Asset;
 - Muster locks обеих сторон;
 - Tactical Assets / Underdog selection;
 - Fortified Defensive Asset selection;
@@ -742,7 +753,7 @@ login
    D66 бросается и сохраняется. `EventsPanel` показывает текст. Большинство событий с выбором цели, delayed effect, reroll, BLACK CHOIR mutation или изменением следующей battle пока требуют ручного исполнения.
 
 3. **Sector rules.**
-   Автоматизирована уже значительная часть: A/K recovery discounts, B adjacent-victory Intel, C Airlift, E income, F reactive Intel, G Deep Raid discount, H Glass Wastes, I Deathwatch Intel bonus, J qualifying garrison discount. Остались D double-D66, F double mission roll/choice, I Rest/salvage, J Scavenge interaction и отдельные capture effects.
+   Автоматизирована уже значительная часть: A/K recovery discounts, B adjacent-victory Intel, C Airlift, E income, F reactive Intel, G Deep Raid discount, H Glass Wastes, I Deathwatch Intel bonus и first-capture salvage, J qualifying garrison discount. Остались D double-D66, F double mission roll/choice, I enhanced Necron Rest, J Scavenge interaction и отдельные mission-facing sector effects.
 
 4. **Battle Assets effects.**
    Tactical/Defensive/Breach Assets уже рассчитываются, выбираются и сохраняются. Большинство их tabletop effects остаётся памяткой. Post-battle modifiers вроде Hard Evacuation / Hardened Stores / Extraction Beacon пока не привязаны автоматически к конкретному unit.
@@ -752,8 +763,6 @@ login
 
 ### Средний приоритет
 
-- Recon Lock.
-- Interdict.
 - D66 reroll за 2 Intel.
 - Salvage reroll за 1 Intel.
 - Scavenge.
@@ -835,11 +844,7 @@ Realtime используется не только для удобства. К�
 
 История migrations хранится в production Supabase.
 
-На 2026-10-02 применены migrations от:
-
-`initial_campaign_schema`
-
-до актуальной migration, указанной Supabase `list_migrations`. README обновлён после добавления battle assets и sector bonus automation.
+На 2026-10-02 production migration chain начинается с `initial_campaign_schema`. Точный хвост всегда проверяйте через Supabase `list_migrations`, потому что база является более оперативным источником, чем этот текст.
 
 Ключевые поздние migrations:
 
@@ -855,6 +860,9 @@ Realtime используется не только для удобства. К�
 - `battle_assets_engine`
 - `sector_bonus_automation`
 - `conditional_field_medicae`
+- `khepra_capture_salvage`
+- `recon_lock_and_interdict`
+- `recovery_discount_and_distinguished_fixes`
 
 Перед новым handoff первым делом выполните Supabase `list_migrations`, потому что production DB может быть новее этого README.
 
@@ -1044,7 +1052,31 @@ garrison_reinforcement
 
 ---
 
-## 22. Current handoff summary
+## 22. Handoff: первые 5 минут
+
+Если проект подхватывает новый разработчик или новый AI-сеанс, не пытайтесь восстанавливать контекст из переписки. Сделайте следующее:
+
+1. Прочитайте этот README целиком.
+2. Откройте rules PDF и считайте его первичным источником механик.
+3. Посмотрите последние commits в `main`.
+4. В Supabase выполните `list_migrations` и проверьте production schema/RPC перед изменениями.
+5. Посмотрите последний `Build and publish site` и последний `pages build and deployment`.
+6. Перед новой mutation-механикой найдите существующий RPC или создайте новый server-authoritative RPC.
+7. После изменения frontend дождитесь зелёного `npm run build` в GitHub Actions и отдельного успешного Pages deployment.
+8. Обновите разделы «Что уже автоматизировано» и «Что ещё НЕ считать завершённым», если граница функциональности изменилась.
+
+### Что не надо делать при handoff
+
+- Не создавать новую архитектуру поверх существующей без необходимости.
+- Не переводить authoritative checks из Postgres в React.
+- Не давать authenticated client прямые write policies к campaign state.
+- Не считать текст D66/Asset/mission в UI доказательством автоматизации эффекта.
+- Не придумывать недостающие правила. В частности, полный обычный Critical Injury CHARACTER flow пока не подтверждён исходным документом.
+- Не считать старый успешный Pages deploy доказательством, что последний commit собрался. Всегда сопоставляйте SHA.
+
+---
+
+## 23. Current handoff summary
 
 На 2026-10-02 проект уже является рабочим multiplayer campaign command layer, а не макетом.
 
@@ -1052,12 +1084,12 @@ garrison_reinforcement
 
 Лучший следующий порядок работ:
 
-1. Critical Injury CHARACTER, если финальная формулировка будет подтверждена в rules source.
+1. Critical Injury CHARACTER, только после подтверждения полной формулировки в rules source.
 2. D66 resolver с pending choices/effects.
 3. Оставшиеся sector-specific mechanics, особенно D/F/I/J.
 4. Mission-specific campaign outcomes.
-5. Автоматическое применение post-battle Battle Assets.
-6. Recon Lock / Interdict / Salvage/D66 rerolls.
+5. Автоматическое применение post-battle Battle Assets: Hard Evacuation, Hardened Stores, Extraction Beacon и т.п.
+6. Salvage/D66 rerolls и оставшиеся Intelligence spends.
 7. Relics, Detachment/Enhancement management.
 8. unit size upgrades / paid wargear changes.
 9. Автоматические tests для основных state transitions.
