@@ -79,13 +79,14 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     const next:Record<string,Pick>={}
     for(const u of units.filter(x=>x.side===member.side)){
       const x=existing.get(u.id)
-      next[u.id]={selected:!!x,role:(x?.role??(u.location_type==='field'?'field':'garrison_initial')) as Pick['role'],resting:!!x?.resting}
+      const defaultRole:Pick['role']=u.location_type==='field'?'field':pending.battle_type==='Garrison Battle'?'garrison_initial':pending.battle_type==='Field Battle'?'garrison_reinforcement':players.find(p=>p.side===pending.defender_side)?.main_force_sector===pending.sector_key?'garrison_reinforcement':'garrison_initial'
+      next[u.id]={selected:!!x,role:(x?.role??defaultRole) as Pick['role'],resting:!!x?.resting}
     }
     setPicks(next)
     const rp:Record<string,ResultPick>={}
     for(const bu of battleUnits)rp[bu.unit_id]={destroyed:bu.destroyed,deed:bu.deed??'',distinguished:bu.distinguished,casualty_modifier:0,mission_xp:0}
     setResultPicks(rp)
-  },[pending?.id,battleUnits.length,member.side,units])
+  },[pending?.id,pending?.battle_type,pending?.sector_key,battleUnits.length,member.side,units,players])
 
   const refresh=async()=>{await fetchBattles();reload()}
   async function rpc(name:string,args:Record<string,unknown>,success?:string){
@@ -170,7 +171,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">YOUR MUSTER · {sideLabel(member.side)}</div><h2>{ownLocked?'Зафиксирован':'Сформируйте силы'}</h2></div><LockKeyhole/></div>
       <div className="muster-summary"><span>Army Limit <strong>{stage.armyLimit}</strong></span><span>Field <strong>{totals.field}</strong></span><span>Garrison initial <strong>{totals.initial}{c?` / ${pending.battle_type==='Garrison Battle'?c.initial:stage.armyLimit}`:''}</strong></span><span>Reserve <strong>{totals.reserve}{c?` / ${c.reserve}`:''}</strong></span></div>
-      {eligible.length===0?<div className="notice">Для этой стороны сейчас нет доступных units.</div>:<div className="muster-list">{eligible.map(u=>{const p=picks[u.id]??{selected:false,role:u.location_type==='field'?'field':'garrison_initial',resting:false};return <div className={'muster-unit '+(p.selected?'selected':'')} key={u.id}>
+      {eligible.length===0?<div className="notice">Для этой стороны сейчас нет доступных units.</div>:<div className="muster-list">{eligible.map(u=>{const fallbackRole:Pick['role']=u.location_type==='field'?'field':pending.battle_type==='Garrison Battle'?'garrison_initial':pending.battle_type==='Field Battle'?'garrison_reinforcement':players.find(p=>p.side===pending.defender_side)?.main_force_sector===pending.sector_key?'garrison_reinforcement':'garrison_initial';const p=picks[u.id]??{selected:false,role:fallbackRole,resting:false};return <div className={'muster-unit '+(p.selected?'selected':'')} key={u.id}>
         <input type="checkbox" checked={p.selected} disabled={ownLocked} onChange={e=>toggle(u.id,{selected:e.target.checked})}/>
         <div><strong>{u.name}</strong><small>{u.datasheet} · EC {eff(u)} · Damage {u.damage}</small></div>
         {u.location_type==='garrison'?<select disabled={ownLocked||!p.selected||p.resting} value={p.role} onChange={e=>toggle(u.id,{role:e.target.value as Pick['role']})}><option value="garrison_initial">Initial</option><option value="garrison_reinforcement">Reinforcement</option></select>:<span className="tag">Field</span>}
