@@ -34,7 +34,7 @@ export default function LogisticsPanel({
       p_garrison_class:form.garrisonClass,p_size_label:form.size,
       p_keywords:form.keywords.split(',').map(x=>x.trim().toUpperCase()).filter(Boolean),
       p_is_character:form.character,p_is_epic_hero:form.epic,p_is_battleline:form.battleline
-    },`Unit куплен за ${cost} Supply.`)
+    },'Unit куплен. Фактическая стоимость рассчитана сервером с учётом sector bonuses.')
     if(!r.error)setForm({name:'',datasheet:'',cost:'',location:'field',garrisonClass:'core',size:'',keywords:'',character:false,epic:false,battleline:false})
   }
   async function recover(u:Unit){await rpc('logistics_recover',{p_activation:activationId,p_unit:u.id},`${u.name}: снят 1 Damage.`)}
