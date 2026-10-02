@@ -101,7 +101,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     }
     setPicks(next)
     const rp:Record<string,ResultPick>={}
-    for(const bu of battleUnits)rp[bu.unit_id]={destroyed:bu.destroyed,deed:bu.deed??'',distinguished:bu.distinguished,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false}
+    for(const bu of battleUnits)rp[bu.unit_id]={destroyed:bu.destroyed,deed:bu.deed??'',distinguished:bu.distinguished,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false,hard_evacuation:false,hardened_stores:false,extraction_beacon:false}
     setResultPicks(rp)
   },[pending?.id,pending?.battle_type,pending?.sector_key,battleUnits.length,member.side,units,players])
 
