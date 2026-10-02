@@ -7,7 +7,7 @@ import D66ChoiceControls from './D66ChoiceControls'
 
 type CampaignEvent={id:string;kind:string;code:string|null;title:string;payload:any;resolved:boolean;created_at:string}
 
-const AUTO_D66=new Set(['15','21','22','23','25','26','34','35','36','42','43','44','45','46','51','55','61','62','65','66'])
+const AUTO_D66=new Set(['15','21','22','23','25','26','34','35','36','42','43','44','45','46','51','55','61','62','64','65','66'])
 const PENDING_LABELS:Record<string,string>={
   vox_from_dead:'Vox From the Dead · первый failed Battle-shock следующей battle можно перебросить',
   ash_rain:'Ash Rain · battle round 3 следующей battle: ranged attacks максимум 24"',
@@ -23,6 +23,7 @@ const PENDING_LABELS:Record<string,string>={
   ceasefire:'Ceasefire That Never Was · следующий объявивший атаку получает +1 Intel',
   nine_seconds:'Nine Seconds Repeated · специальный эффект в round 2 следующей battle',
   black_sun:'Black Sun · round 4 следующей battle без Benefit of Cover',
+  names_in_static:'Names in the Static · выбранный CHARACTER: +1 XP если выжил следующую battle, -1 Casualty Roll если уничтожен',
 }
 
 export default function EventsPanel({campaign,member,players,sectors,units}:{campaign:Campaign;member:Member;players:PlayerState[];sectors:Sector[];units:Unit[]}){
@@ -74,14 +75,14 @@ export default function EventsPanel({campaign,member,players,sectors,units}:{cam
             {member.side!==chooser&&<small>Выбор делает {chooser==='necrons'?'Necrons':'Deathwatch'}.</small>}
           </>:<p>{d?.effect??'Эффект не найден в текущем rules reference.'}</p>}
           {e.kind==='D66'&&e.code&&AUTO_D66.has(e.code)&&!e.resolved&&<button className="ghost compact event-apply" disabled={working} onClick={()=>resolveEvent(e)}>Применить / поставить эффект в очередь</button>}
-          {e.kind==='D66'&&e.code&&['11','12','13','14','24','31','32','33','41','52','53','54','56'].includes(e.code)&&!e.resolved&&<D66ChoiceControls event={e} member={member} players={players} sectors={sectors} units={units}/>}
-          {e.kind==='D66'&&e.code&&!AUTO_D66.has(e.code)&&!['11','12','13','14','24','31','32','33','41','52','53','54','56'].includes(e.code)&&!e.resolved&&<small className="pending-tag">Требуется отдельный выбор или цель. Resolver ещё не автоматизирован.</small>}
+          {e.kind==='D66'&&e.code&&['11','12','13','14','24','31','32','33','41','52','53','54','56','63'].includes(e.code)&&!e.resolved&&<D66ChoiceControls event={e} member={member} players={players} sectors={sectors} units={units}/>}
+          {e.kind==='D66'&&e.code&&!AUTO_D66.has(e.code)&&!['11','12','13','14','24','31','32','33','41','52','53','54','56','63'].includes(e.code)&&!e.resolved&&<small className="pending-tag">Требуется отдельный выбор или цель. Resolver ещё не автоматизирован.</small>}
           {e.resolved&&<small className="resolved-tag">Resolved</small>}
           <small>{new Date(e.created_at).toLocaleString('ru')}</small></div>
         </div>
       })}</div>}
       {msg&&<div className="notice">{msg}</div>}
-      {pendingEffects.length>0&&<div className="pending-effects"><div className="eyebrow">ACTIVE / QUEUED EFFECTS</div>{pendingEffects.map((e:any,i:number)=><div key={(e.code??'effect')+'-'+i}><strong>{e.code}</strong><span>{PENDING_LABELS[e.code]??'Отложенный кампанийный эффект'}</span>{e.side&&<small>{e.side==='necrons'?'Necrons':'Deathwatch'}</small>}</div>)}</div>}
+      {(pendingEffects.length>0||campaign.settings?.secret_route)&&<div className="pending-effects"><div className="eyebrow">ACTIVE / QUEUED EFFECTS</div>{pendingEffects.map((e:any,i:number)=><div key={(e.code??'effect')+'-'+i}><strong>{e.code}</strong><span>{PENDING_LABELS[e.code]??'Отложенный кампанийный эффект'}</span>{e.side&&<small>{e.side==='necrons'?'Necrons':'Deathwatch'}</small>}</div>)}{campaign.settings?.secret_route&&<div><strong>SECRET ROUTE</strong><span>Token: sector {campaign.settings.secret_route.sector}. Текущий владелец сектора может один раз считать любой сектор рядом с G соседним для movement/attack Main Force.</span><small>До использования или следующего захвата token sector</small></div>}</div>}
       <p className="muted small-note">Простые и часть отложенных D66 effects уже применяются сервером. Эффекты, которым нужен выбор unit/sector/reward, остаются unresolved до специализированного resolver, чтобы сайт не делал выбор за игроков.</p>
     </section>
   </div>
