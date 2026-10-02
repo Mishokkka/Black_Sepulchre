@@ -529,11 +529,11 @@ Friendly Orbital Ossuary Lift.
 
 `battle_use_recon_lock(battle)`
 
-Тратит 1 Intelligence. Если Recon Lock использует одна сторона, сервер запрещает ей lock Muster до того, как соперник раскроет и зафиксирует свой. Если Recon Lock используют обе стороны, порядок раскрытия снова становится одновременным.
+Тратит 1 Intelligence и должен быть объявлен до того, как хотя бы одна сторона зафиксировала Muster. Если Recon Lock использует одна сторона, сервер запрещает ей lock Muster до того, как соперник раскроет и зафиксирует свой. Если Recon Lock используют обе стороны, порядок раскрытия снова становится одновременным.
 
 `battle_use_interdict(battle, asset)`
 
-Тратит 2 Intelligence и запрещает один выбранный enemy Tactical/Breach Asset. Проверка действует и в UI, и в `battle_set_assets`, поэтому обход клиентской формы не помогает.
+Тратит 2 Intelligence после фиксации обоих Muster и запрещает один legal enemy Tactical/Breach Asset. Если противник успел сохранить этот Asset раньше, RPC удаляет его из сохранённого выбора. Проверка также действует в `battle_set_assets`, поэтому обход клиентской формы не помогает.
 
 `battle_resolve(...)`
 
@@ -863,6 +863,8 @@ Realtime используется не только для удобства. К�
 - `khepra_capture_salvage`
 - `recon_lock_and_interdict`
 - `recovery_discount_and_distinguished_fixes`
+- `harden_recon_lock_and_interdict_timing`
+- `interdict_target_cleanup`
 
 Перед новым handoff первым делом выполните Supabase `list_migrations`, потому что production DB может быть новее этого README.
 
