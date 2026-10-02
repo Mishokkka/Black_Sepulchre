@@ -7,9 +7,9 @@ import LogisticsUpgrades from './LogisticsUpgrades'
 import ForceDoctrinePanel from './ForceDoctrinePanel'
 
 export default function LogisticsPanel({
-  activationId,campaign,member,players,sectors,units,reload,onPassed
+  activationId,campaign,member,players,sectors,units,reload,onPassed,canPass
 }:{
-  activationId:string;campaign:Campaign;member:Member;players:PlayerState[];sectors:Sector[];units:Unit[];reload:()=>void;onPassed:()=>void
+  activationId:string;campaign:Campaign;member:Member;players:PlayerState[];sectors:Sector[];units:Unit[];reload:()=>void;onPassed:()=>void;canPass:boolean
 }){
   const[form,setForm]=useState({name:'',datasheet:'',cost:'',location:'field',garrisonClass:'core',size:'',keywords:'',character:false,epic:false,battleline:false})
   const[msg,setMsg]=useState(''),[working,setWorking]=useState(false)
@@ -68,7 +68,7 @@ export default function LogisticsPanel({
         <div><span>Field Roster</span><strong>{fieldBase} / {stage.rosterCap}</strong></div>
         <div><span>Sector</span><strong>{sector?.sector_class??'—'}</strong></div>
       </div>
-      <p className="muted">Покупки и recovery проходят через кампанийную экономику. После «Передать ход» Logistics закрывается.</p>
+      <p className="muted">После tabletop battle обе стороны используют это Logistics window со своих текущих позиций. После небойевой Activation доступ имеет только active side.</p>
       {msg&&<div className="notice">{msg}</div>}
     </section>
 
@@ -102,8 +102,8 @@ export default function LogisticsPanel({
     <LogisticsUpgrades activationId={activationId} member={member} currentSector={me?.main_force_sector??''} units={units} reload={reload} onMessage={setMsg}/>
 
     <section className="panel wide pass-panel">
-      <div><div className="eyebrow">END LOGISTICS</div><h2>Все покупки и восстановление закончены?</h2><p className="muted">После передачи хода изменить эту Logistics Phase уже нельзя.</p></div>
-      <button className="primary" disabled={working} onClick={pass}><Send size={16}/> Передать ход</button>
+      <div><div className="eyebrow">END LOGISTICS</div><h2>{canPass?'Все покупки и восстановление закончены?':'Ваши Logistics действия доступны'}</h2><p className="muted">{canPass?'После передачи хода это Logistics window закрывается для обеих сторон. Убедитесь, что соперник закончил свои действия.':'Ход закрывает сторона текущей Strategic Activation. Сообщите сопернику, когда закончите свои Logistics действия.'}</p></div>
+      {canPass&&<button className="primary" disabled={working} onClick={pass}><Send size={16}/> Передать ход</button>}
     </section>
   </div>
 }
