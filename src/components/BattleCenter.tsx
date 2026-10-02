@@ -204,7 +204,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
         <label><input type="checkbox" checked={r.distinguished} onChange={e=>resultPatch(bu.unit_id,{distinguished:e.target.checked})}/> Distinguished</label>
         <label>Casualty mod<input className="mini" type="number" min={-3} max={3} value={r.casualty_modifier} disabled={!r.destroyed} onChange={e=>resultPatch(bu.unit_id,{casualty_modifier:Number(e.target.value)})}/></label>
         <label>Mission XP<input className="mini" type="number" min={0} max={5} value={r.mission_xp} onChange={e=>resultPatch(bu.unit_id,{mission_xp:Number(e.target.value)})}/></label>
-        {r.destroyed&&u.armoury?.some((a:any)=>a?.code==='field_medicae')&&<label><input type="checkbox" checked={r.use_medicae} onChange={e=>resultPatch(bu.unit_id,{use_medicae:e.target.checked})}/> Use Medicae</label>}</>}
+        {r.destroyed&&u.armoury?.some((a:any)=>a?.code==='field_medicae')&&<label><input type="checkbox" checked={r.use_medicae} onChange={e=>resultPatch(bu.unit_id,{use_medicae:e.target.checked})}/> Auto-use Medicae if Damage</label>}</>}
       </div>})}</div>
 
       {(outcome==='attacker_win'||outcome==='defender_withdrawal')&&pending.battle_type!=='Stronghold Assault'&&<div className="retreat-grid">
