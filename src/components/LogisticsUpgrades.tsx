@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { PackageCheck, Stethoscope } from 'lucide-react'
+import { Award, PackageCheck, Stethoscope } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { CAMPAIGN_ARMOURY } from '../data/campaign'
 import type { Member, Unit } from '../types'
@@ -14,7 +14,8 @@ export default function LogisticsUpgrades({
   const[armouryUnit,setArmouryUnit]=useState('')
   const[item,setItem]=useState('')
   const[working,setWorking]=useState(false)
-  const mine=useMemo(()=>units.filter(u=>u.side===member.side&&(u.location_type==='field'||u.sector_key===currentSector)),[units,member.side,currentSector])
+  const[drillUnits,setDrillUnits]=useState<string[]>([])
+  const mine=useMemo(()=>units.filter(u=>u.side===member.side&&u.status!=='lost'&&(u.location_type==='field'||u.sector_key===currentSector)),[units,member.side,currentSector])
   const armouryEligible=mine.filter(u=>(u.armoury?.length??0)===0)
   const scarred=mine.filter(u=>(u.scars?.length??0)>0)
 
@@ -43,7 +44,7 @@ export default function LogisticsUpgrades({
   return <>
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">CAMPAIGN ARMOURY</div><h2>Снаряжение persistent units</h2></div><PackageCheck/></div>
-      <p className="muted">Один unit может иметь максимум один покупной Armoury item. CR автоматически входит в Effective Cost.</p>
+      <p className="muted">Один persistent unit может иметь максимум один Campaign Armoury item независимо от источника. Relic использует отдельный slot. CR входит в Effective Cost.</p>
       <div className="armoury-buy">
         <label>Unit<select value={armouryUnit} onChange={e=>setArmouryUnit(e.target.value)}><option value="">Выберите unit</option>{armouryEligible.map(u=><option key={u.id} value={u.id}>{u.name} · CR +{u.campaign_rating}%</option>)}</select></label>
         <label>Item<select value={item} onChange={e=>setItem(e.target.value)}><option value="">Выберите item</option>{CAMPAIGN_ARMOURY.map(i=><option key={i.code} value={i.code}>{i.name} · {i.cost} Supply · CR +{i.cr}%</option>)}</select></label>
