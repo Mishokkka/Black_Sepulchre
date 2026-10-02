@@ -25,7 +25,7 @@ type BattleUnit={
   scar_gained:string|null;critical_injury:string|null
 }
 type Pick={selected:boolean;role:'field'|'garrison_initial'|'garrison_reinforcement';resting:boolean}
-type ResultPick={destroyed:boolean;deed:string;distinguished:boolean;casualty_modifier:number;mission_xp:number;use_medicae:boolean;khepra_rest:boolean}
+type ResultPick={destroyed:boolean;deed:string;distinguished:boolean;casualty_modifier:number;mission_xp:number;use_medicae:boolean;khepra_rest:boolean;hard_evacuation:boolean;hardened_stores:boolean;extraction_beacon:boolean}
 
 const sideLabel=(s:string|null)=>s==='necrons'?'Necrons':s==='deathwatch'?'Deathwatch':'Neutral'
 const outcomeLabel:Record<string,string>={
@@ -172,13 +172,28 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   }
 
   function toggle(id:string,patch:Partial<Pick>){setPicks(p=>({...p,[id]:{...p[id],...patch}}))}
-  function resultPatch(id:string,patch:Partial<ResultPick>){setResultPicks(p=>({...p,[id]:{...(p[id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false}),...patch}}))}
+  function resultPatch(id:string,patch:Partial<ResultPick>){setResultPicks(p=>({...p,[id]:{...(p[id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false,hard_evacuation:false,hardened_stores:false,extraction_beacon:false}),...patch}}))}
 
   function setKhepraRest(id:string,checked:boolean){
     setResultPicks(p=>{
       const next={...p}
       for(const key of Object.keys(next))next[key]={...next[key],khepra_rest:false}
-      next[id]={...(next[id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false}),khepra_rest:checked}
+      next[id]={...(next[id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false,hard_evacuation:false,hardened_stores:false,extraction_beacon:false}),khepra_rest:checked}
+      return next
+    })
+  }
+
+  function setAssetCasualtyTarget(id:string,key:'hard_evacuation'|'hardened_stores'|'extraction_beacon',checked:boolean){
+    setResultPicks(p=>{
+      const next={...p}
+      if(checked){
+        const sourceSide=battleUnits.find(b=>b.unit_id===id)?.side
+        for(const uid of Object.keys(next)){
+          if(key==='hard_evacuation'&&battleUnits.find(b=>b.unit_id===uid)?.side!==sourceSide)continue
+          next[uid]={...next[uid],[key]:false}
+        }
+      }
+      next[id]={...(next[id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false,hard_evacuation:false,hardened_stores:false,extraction_beacon:false}),[key]:checked}
       return next
     })
   }
@@ -212,7 +227,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
 
   async function resolve(){
     if(!pending)return
-    const unitResults=battleUnits.map(bu=>({unit_id:bu.unit_id,...(resultPicks[bu.unit_id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false})}))
+    const unitResults=battleUnits.map(bu=>({unit_id:bu.unit_id,...(resultPicks[bu.unit_id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false,hard_evacuation:false,hardened_stores:false,extraction_beacon:false})}))
     const r=await rpc('battle_resolve',{
       p_battle:pending.id,p_attacker_vp:attVp,p_defender_vp:defVp,p_outcome:outcome,p_unit_results:unitResults,
       p_defender_retreat:defRetreat||null,p_garrison_retreat:garRetreat||null,
@@ -302,14 +317,17 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     {bothLocked&&<section className="panel">
       <div className="section-head"><div><div className="eyebrow">TABLETOP RESULT</div><h2>Battle Report</h2></div><Skull/></div>
       <div className="score-grid"><label>{attacker} VP<input type="number" min={0} max={100} value={attVp} onChange={e=>setAttVp(Number(e.target.value))}/></label><label>{defender} VP<input type="number" min={0} max={100} value={defVp} onChange={e=>setDefVp(Number(e.target.value))}/></label><label>Outcome<select value={outcome} onChange={e=>setOutcome(e.target.value)}><option value={scoreOutcome}>{outcomeLabel[scoreOutcome]}</option><option value="attacker_withdrawal">{outcomeLabel.attacker_withdrawal}</option><option value="defender_withdrawal">{outcomeLabel.defender_withdrawal}</option></select></label></div>
-      <div className="result-list">{battleUnits.map(bu=>{const u=units.find(x=>x.id===bu.unit_id);if(!u)return null;const r=resultPicks[bu.unit_id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false};const ammoRot=battleEffects.some((e:any)=>e?.code==='ammunition_rot'&&e?.unit_id===bu.unit_id);return <div className="result-unit" key={bu.unit_id}>
+      <div className="result-list">{battleUnits.map(bu=>{const u=units.find(x=>x.id===bu.unit_id);if(!u)return null;const r=resultPicks[bu.unit_id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false,hard_evacuation:false,hardened_stores:false,extraction_beacon:false};const ammoRot=battleEffects.some((e:any)=>e?.code==='ammunition_rot'&&e?.unit_id===bu.unit_id);const tacticalAssets=bu.side===pending.attacker_side?pending.attacker_tactical_assets:pending.defender_tactical_assets;const hardEvacAvailable=tacticalAssets?.includes('Hard Evacuation')&&!u.is_character;const hardenedStoresAvailable=bu.side===pending.defender_side&&pending.defensive_asset==='Hardened Stores'&&(bu.role==='garrison_initial'||bu.role==='garrison_reinforcement');const extractionBeaconAvailable=bu.side===pending.attacker_side&&pending.breach_assets?.includes('Extraction Beacon')&&!u.is_character;return <div className="result-unit" key={bu.unit_id}>
         <div><strong>{u.name}</strong><small>{sideLabel(bu.side)} · {bu.resting?'RESTING':bu.role}</small></div>
         {bu.resting&&bu.side==='necrons'&&khepraRestActive&&u.damage>0&&<label title="Necropolis Khepra: один Necron unit за эту Logistics снимает 2 Damage вместо 1."><input type="checkbox" checked={r.khepra_rest} onChange={e=>setKhepraRest(bu.unit_id,e.target.checked)}/> Khepra Rest ×2</label>}
-        {!bu.resting&&<><label><input type="checkbox" checked={r.destroyed} onChange={e=>resultPatch(bu.unit_id,{destroyed:e.target.checked})}/> Destroyed</label>
+        {!bu.resting&&<><label><input type="checkbox" checked={r.destroyed} onChange={e=>resultPatch(bu.unit_id,e.target.checked?{destroyed:true}:{destroyed:false,use_medicae:false,hard_evacuation:false,hardened_stores:false,extraction_beacon:false})}/> Destroyed</label>
         <select value={r.deed} onChange={e=>resultPatch(bu.unit_id,{deed:e.target.value})}><option value="">No Deed</option>{['HOLD','BREAK','HUNT','ENDURE','OPERATE'].map(d=><option key={d}>{d}</option>)}</select>
         <label title={u.damage>=2?'Damage 2+ units cannot be Distinguished':''}><input type="checkbox" checked={r.distinguished} disabled={u.damage>=2} onChange={e=>resultPatch(bu.unit_id,{distinguished:e.target.checked})}/> Distinguished</label>
         <label>Casualty mod<input className="mini" type="number" min={-3} max={3} value={r.casualty_modifier} disabled={!r.destroyed} onChange={e=>resultPatch(bu.unit_id,{casualty_modifier:Number(e.target.value)})}/></label>
         <label>Mission XP<input className="mini" type="number" min={0} max={5} value={r.mission_xp} onChange={e=>resultPatch(bu.unit_id,{mission_xp:Number(e.target.value)})}/></label>
+        {r.destroyed&&hardEvacAvailable&&<label title="Hard Evacuation: первый выбранный destroyed non-CHARACTER этой стороны получает +1 Casualty Roll."><input type="checkbox" checked={r.hard_evacuation} onChange={e=>setAssetCasualtyTarget(bu.unit_id,'hard_evacuation',e.target.checked)}/> Hard Evacuation · +1 Casualty</label>}
+        {r.destroyed&&hardenedStoresAvailable&&<label title="Hardened Stores: один участвовавший Defender garrison unit получает +1 Casualty Roll."><input type="checkbox" checked={r.hardened_stores} onChange={e=>setAssetCasualtyTarget(bu.unit_id,'hardened_stores',e.target.checked)}/> Hardened Stores · +1 Casualty</label>}
+        {r.destroyed&&extractionBeaconAvailable&&<label title="Extraction Beacon: один destroyed Attacker non-CHARACTER получает +1 Casualty Roll."><input type="checkbox" checked={r.extraction_beacon} onChange={e=>setAssetCasualtyTarget(bu.unit_id,'extraction_beacon',e.target.checked)}/> Extraction Beacon · +1 Casualty</label>}
         {r.destroyed&&u.armoury?.some((a:any)=>a?.code==='field_medicae')&&<label title={ammoRot?'Ammunition Rot blocks Campaign Armoury this battle':''}><input type="checkbox" checked={r.use_medicae} disabled={ammoRot} onChange={e=>resultPatch(bu.unit_id,{use_medicae:e.target.checked})}/> {ammoRot?'Medicae blocked · Ammunition Rot':'Auto-use Medicae if Damage'}</label>}</>}
       </div>})}</div>
 
@@ -321,7 +339,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
       <div className="retreat-grid"><label>Если Salvage {attacker} = 6<select value={attSalvage} onChange={e=>setAttSalvage(e.target.value)}><option value="supply">+20 Supply</option><option value="intelligence">+1 Intelligence</option></select></label><label>Если Salvage {defender} = 6<select value={defSalvage} onChange={e=>setDefSalvage(e.target.value)}><option value="supply">+20 Supply</option><option value="intelligence">+1 Intelligence</option></select></label></div>
       <label>Строка летописи<textarea value={narrative} onChange={e=>setNarrative(e.target.value)} placeholder="Коротко: что произошло в битве."/></label>
       <button className="primary resolve-button" disabled={working} onClick={resolve}><Check size={16}/> Resolve + Automatic Aftermath</button>
-      <p className="muted small-note">Сайт начислит Participation/Deed/Distinguished XP, бросит Casualty/Scar/Salvage/D66, обновит Damage, Supply, Intel, сектор, retreat и стадию. Critical Injury и содержимое D66 пока фиксируются как отдельные события для ручного разрешения.</p>
+      <p className="muted small-note">Сайт начислит Participation/Deed/Distinguished XP, бросит Casualty/Scar/Salvage/D66, обновит Damage, Supply, Intel, сектор, retreat и стадию. Critical Injury пока фиксируется отдельно. D66 и post-battle Campaign Asset modifiers применяются через кампанийные resolvers.</p>
     </section>}
     {msg&&<div className="notice">{msg}</div>}
   </div>
