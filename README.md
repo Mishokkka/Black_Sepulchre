@@ -746,7 +746,7 @@ Server-authoritative логика уже покрывает:
 - movement, Occupation, Origin, Supply Line, Forced March, Fortify, Sabotage/Counter-Sabotage, Repair Network, Reorganise;
 - Deep Raid, Orbital Lift/Airlift, Glass Wastes, Hidden Route и SECRET ROUTE;
 - Stronghold requirements v2.0: Stage 1000+, adjacent Home, Supplied, контроль G **или 3 Secret Fragments**; War of Attrition; unmanned Home; Integrity 2→1→0; temporary 60% Home Capacity;
-- sector states, включая некумулятивный Unsupplied/Exhausted reinforcement penalty, Disrupted, Contested, Ruined Fortifications и F3 short Sabotage;
+- sector states, включая некумулятивный Unsupplied/Exhausted reinforcement penalty, Disrupted, Contested, Ruined Fortifications и F3 short Sabotage; Exhausted сохраняется при смене владельца, Sabotaged снимается только своей обычной длительностью/Repair, а Occupation корректно превращает Fortified в Ruined Fortifications;
 - OBC/RC/Effective Cost split: per-unit OBC фиксируется в Muster, CR surcharge считается от RC;
 - secret Muster с RLS: до reveal соперник не читает чужой `battle_units`; Recon Lock реально раскрывает opponent Committed Force первым;
 - Unit Limits, Initial/Capacity tiers, local-garrison replacement в Field Battle, RESTING, DISPLACED;
@@ -761,7 +761,7 @@ Server-authoritative логика уже покрывает:
 - retreat/Emergency Evacuation, garrison displacement и post-battle Logistics обеих сторон;
 - Salvage, mandatory rerolls, global D66, Fleshworks 2-roll/D3 3-roll procedure, D66 choice flows и delayed effects;
 - D66 16 по таблице Minor Armoury из v2.0;
-- BLACK CHOIR track, forced Reveals, Investigate Choir, Secret Fragments;
+- BLACK CHOIR track, forced Reveals, Investigate Choir, Secret Fragments и Reveal III EXTRACT INDEX для Stronghold battles;
 - основные sector bonuses A–K: A/K recovery/enemy Intel, B victory Intel, C Lift, D recovery/event amplification, E income, F Noctis mission/reactive Intel, G Stronghold/raid/Choir, H long attack, I Rest/Deathwatch Intel/capture salvage, J qualifying garrison discount;
 - campaign outcomes и tabletop-fact inputs для sector missions, включая C1, C3, D1/D2/D3, F3, G1, I1/I3, J2/J3 и остальные простые rewards;
 - Realtime state sync, audit_log и resource_ledger.
