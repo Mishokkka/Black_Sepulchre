@@ -3,6 +3,7 @@ import { ArrowRight, BatteryCharging, Castle, Eye, Footprints, Hammer, Radio, Sh
 import { supabase } from '../lib/supabase'
 import LogisticsPanel from './LogisticsPanel'
 import ReorganisePanel from './ReorganisePanel'
+import SpecialMovementPanel from './SpecialMovementPanel'
 import { ADJACENCY, STAGES, fortifyCost, mobiliseGain, stageIndexForBattles } from '../data/campaign'
 import type { Campaign, Member, PlayerState, Sector, Unit } from '../types'
 
@@ -174,6 +175,8 @@ export default function StrategicPanel({
         </button>})}
       </div>
     </section>
+
+    <SpecialMovementPanel activationId={activation.id} startSector={activation.start_sector} currentSector={me?.main_force_sector??activation.start_sector} member={member} sectors={sectors} intelligence={me?.intelligence??0} onResolved={async(data,message)=>{setMsg(message);await refresh();if(data?.kind==='battle')onOpenBattles()}}/>
 
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">STRATEGIC ACTIONS</div><h2>Действия</h2></div><BatteryCharging/></div>
