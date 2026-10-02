@@ -41,6 +41,48 @@ export default function LogisticsUpgrades({
     reload()
   }
 
+
+  async function veteranDrill(){
+    if(drillUnits.length<1||drillUnits.length>2)return
+    setWorking(true)
+    const{data,error}=await supabase.rpc('logistics_veteran_drill',{p_activation:activationId,p_units:drillUnits})
+    setWorking(false)
+    if(error){onMessage(error.message);return}
+    onMessage('Veteran Drill: '+data.units+' unit(s) получили +1 XP за 30 Supply.')
+    setDrillUnits([]);reload()
+  }
+
+  async function criticalChoice(u:Unit,choice:'lost'|'evacuation'){
+    setWorking(true)
+    const{data,error}=await supabase.rpc('logistics_resolve_critical_choice',{p_activation:activationId,p_unit:u.id,p_choice:choice})
+    setWorking(false)
+    if(error){onMessage(error.message);return}
+    onMessage(choice==='lost'
+      ?u.name+': Lost, удалён из campaign roster.'
+      :u.name+': Evacuation. Damage 3, дополнительный Scar; к оплате '+data.cost_due+' Supply до следующего участия.')
+    reload()
+  }
+
+  async function payEvacuation(u:Unit){
+    setWorking(true)
+    const{data,error}=await supabase.rpc('logistics_pay_character_evacuation',{p_activation:activationId,p_unit:u.id})
+    setWorking(false)
+    if(error){onMessage(error.message);return}
+    onMessage(u.name+': Evacuation cost '+data.cost+' Supply оплачен.')
+    reload()
+  }
+
+  async function damagedRelicCheck(u:Unit){
+    setWorking(true)
+    const{data,error}=await supabase.rpc('unit_resolve_damaged_armoury_first_use',{p_unit:u.id})
+    setWorking(false)
+    if(error){onMessage(error.message);return}
+    onMessage(u.name+': Damaged Relic D6='+data.roll+'. '+(data.destroyed?'Item уничтожен.':'Item сохранился навсегда.'))
+    reload()
+  }
+
+  const toggleDrill=(id:string)=>setDrillUnits(v=>v.includes(id)?v.filter(x=>x!==id):v.length<2?[...v,id]:v)
+
   return <>
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">CAMPAIGN ARMOURY</div><h2>Снаряжение persistent units</h2></div><PackageCheck/></div>
