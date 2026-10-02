@@ -193,7 +193,7 @@ export default function StrategicPanel({
   }
 
   if(activation.status==='logistics'){
-    return <LogisticsPanel activationId={activation.id} campaign={campaign} member={member} players={players} sectors={sectors} units={units} reload={reload} onPassed={refresh}/>
+    return <LogisticsPanel activationId={activation.id} campaign={campaign} member={member} players={players} sectors={sectors} units={units} reload={reload} onPassed={refresh} canPass={activation.side===member.side}/>
   }
 
   if(activation.status==='battle_pending'){
