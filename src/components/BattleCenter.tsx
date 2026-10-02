@@ -20,11 +20,11 @@ type Battle={
 }
 type BattleUnit={
   battle_id:string;unit_id:string;side:Side;role:'field'|'garrison_initial'|'garrison_reinforcement';
-  participated:boolean;destroyed:boolean;deed:string|null;distinguished:boolean;resting:boolean;casualty_roll:number|null;
+  participated:boolean;destroyed:boolean;deed:string|null;distinguished:boolean;resting:boolean;official_battle_cost:number|null;effective_cost:number|null;casualty_roll:number|null;
   casualty_modifier:number;casualty_result:string|null;damage_before:number|null;damage_after:number|null;xp_gained:number;
   scar_gained:string|null;critical_injury:string|null
 }
-type Pick={selected:boolean;role:'field'|'garrison_initial'|'garrison_reinforcement';resting:boolean}
+type Pick={selected:boolean;role:'field'|'garrison_initial'|'garrison_reinforcement';resting:boolean;official_battle_cost:number}
 type ResultPick={destroyed:boolean;deed:string;distinguished:boolean;casualty_modifier:number;mission_xp:number;use_medicae:boolean;khepra_rest:boolean;hard_evacuation:boolean;hardened_stores:boolean;extraction_beacon:boolean}
 
 const sideLabel=(s:string|null)=>s==='necrons'?'Necrons':s==='deathwatch'?'Deathwatch':'Neutral'
@@ -32,7 +32,7 @@ const outcomeLabel:Record<string,string>={
   attacker_win:'Победа атакующего',defender_win:'Победа защитника',draw:'Ничья',
   attacker_withdrawal:'Отступление атакующего',defender_withdrawal:'Отступление защитника'
 }
-const eff=(u:Unit)=>u.reference_cost+campaignSurcharge(u.reference_cost,u.campaign_rating)
+const eff=(u:Unit,obc=u.reference_cost)=>obc+campaignSurcharge(u.reference_cost,u.campaign_rating)
 
 function supplied(side:string,sector:string,sectors:Sector[]){
   const home=side==='deathwatch'?'A':'K',owned=new Set(sectors.filter(s=>s.owner_side===side).map(s=>s.sector_key))
@@ -99,7 +99,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     for(const u of units.filter(x=>x.side===member.side)){
       const x=existing.get(u.id)
       const defaultRole:Pick['role']=u.location_type==='field'?'field':pending.battle_type==='Garrison Battle'?'garrison_initial':pending.battle_type==='Field Battle'?'garrison_reinforcement':players.find(p=>p.side===pending.defender_side)?.main_force_sector===pending.sector_key?'garrison_reinforcement':'garrison_initial'
-      next[u.id]={selected:!!x,role:(x?.role??defaultRole) as Pick['role'],resting:!!x?.resting}
+      next[u.id]={selected:!!x,role:(x?.role??defaultRole) as Pick['role'],resting:!!x?.resting,official_battle_cost:x?.official_battle_cost??u.reference_cost}
     }
     setPicks(next)
     const rp:Record<string,ResultPick>={}
@@ -165,13 +165,13 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
 
   const totals=useMemo(()=>{
     let field=0,initial=0,reserve=0
-    for(const u of eligible){const p=picks[u.id];if(!p?.selected||p.resting)continue;const cost=eff(u);if(p.role==='field')field+=cost;else if(p.role==='garrison_initial')initial+=cost;else reserve+=cost}
+    for(const u of eligible){const p=picks[u.id];if(!p?.selected||p.resting)continue;const cost=eff(u,p.official_battle_cost);if(p.role==='field')field+=cost;else if(p.role==='garrison_initial')initial+=cost;else reserve+=cost}
     return {field,initial,reserve}
   },[eligible,picks])
 
   async function lockMuster(){
     if(!pending)return
-    const payload=eligible.filter(u=>picks[u.id]?.selected).map(u=>({unit_id:u.id,role:picks[u.id].role,resting:picks[u.id].resting}))
+    const payload=eligible.filter(u=>picks[u.id]?.selected).map(u=>({unit_id:u.id,role:picks[u.id].role,resting:picks[u.id].resting,official_battle_cost:picks[u.id].official_battle_cost}))
     await rpc('battle_set_muster',{p_battle:pending.id,p_units:payload,p_lock:true},'Muster зафиксирован.')
   }
 
@@ -307,10 +307,12 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
 
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">YOUR MUSTER · {sideLabel(member.side)}</div><h2>{ownLocked?'Зафиксирован':'Сформируйте силы'}</h2></div><LockKeyhole/></div>
-      <div className="muster-summary"><span>Army Limit <strong>{stage.armyLimit}</strong></span><span>Field <strong>{totals.field}</strong></span><span>Garrison initial <strong>{totals.initial}{c?` / ${pending.battle_type==='Garrison Battle'?c.initial:stage.armyLimit}`:''}</strong></span><span>Reserve <strong>{totals.reserve}{c?` / ${c.reserve}`:''}</strong></span></div>
-      {eligible.length===0?<div className="notice">Для этой стороны сейчас нет доступных units.</div>:<div className="muster-list">{eligible.map(u=>{const fallbackRole:Pick['role']=u.location_type==='field'?'field':pending.battle_type==='Garrison Battle'?'garrison_initial':pending.battle_type==='Field Battle'?'garrison_reinforcement':players.find(p=>p.side===pending.defender_side)?.main_force_sector===pending.sector_key?'garrison_reinforcement':'garrison_initial';const p=picks[u.id]??{selected:false,role:fallbackRole,resting:false};return <div className={'muster-unit '+(p.selected?'selected':'')} key={u.id}>
+      <div className="muster-summary"><span>Army Limit <strong>{stage.armyLimit}</strong></span><span>Field EC <strong>{totals.field}</strong></span><span>Garrison Initial EC <strong>{totals.initial}{c?` / ${pending.battle_type==='Garrison Battle'?c.initial:stage.armyLimit}`:''}</strong></span><span>Reserve EC <strong>{totals.reserve}{c?` / ${c.reserve}`:''}</strong></span></div>
+      <p className="muted small-note">OBC = Official Battle Cost именно в этой Committed Force по вашему Season Snapshot: contextual copy tier, платный wargear и официальный Enhancement. Campaign surcharge считается от RC и добавляется автоматически.</p>
+      {eligible.length===0?<div className="notice">Для этой стороны сейчас нет доступных units.</div>:<div className="muster-list">{eligible.map(u=>{const fallbackRole:Pick['role']=u.location_type==='field'?'field':pending.battle_type==='Garrison Battle'?'garrison_initial':pending.battle_type==='Field Battle'?'garrison_reinforcement':players.find(p=>p.side===pending.defender_side)?.main_force_sector===pending.sector_key?'garrison_reinforcement':'garrison_initial';const p=picks[u.id]??{selected:false,role:fallbackRole,resting:false,official_battle_cost:u.reference_cost};return <div className={'muster-unit '+(p.selected?'selected':'')} key={u.id}>
         <input type="checkbox" checked={p.selected} disabled={ownLocked} onChange={e=>toggle(u.id,{selected:e.target.checked})}/>
-        <div><strong>{u.name}</strong><small>{u.datasheet} · EC {eff(u)} · Damage {u.damage}</small></div>
+        <div><strong>{u.name}</strong><small>{u.datasheet} · RC {u.reference_cost} · CR +{u.campaign_rating}% · EC {eff(u,p.official_battle_cost)} · Damage {u.damage}</small></div>
+        <label className="obc-input">OBC<input type="number" min={1} value={p.official_battle_cost} disabled={ownLocked||!p.selected} onChange={e=>toggle(u.id,{official_battle_cost:Math.max(1,Number(e.target.value)||u.reference_cost)})}/></label>
         {u.location_type==='garrison'?<select disabled={ownLocked||!p.selected||p.resting} value={p.role} onChange={e=>toggle(u.id,{role:e.target.value as Pick['role']})}><option value="garrison_initial">Initial</option><option value="garrison_reinforcement">Reinforcement</option></select>:<span className="tag">Field</span>}
         <label className="rest-toggle"><input type="checkbox" checked={p.resting} disabled={ownLocked||!p.selected||u.damage===0} onChange={e=>toggle(u.id,{resting:e.target.checked})}/> Rest</label>
       </div>})}</div>}
