@@ -69,7 +69,14 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     }else setBattleUnits([])
   },[campaign.id])
 
-  useEffect(()=>{fetchBattles()},[fetchBattles])
+  useEffect(()=>{
+    fetchBattles()
+    const ch=supabase.channel('battle-center-'+campaign.id)
+      .on('postgres_changes',{event:'*',schema:'public',table:'battles',filter:'campaign_id=eq.'+campaign.id},fetchBattles)
+      .on('postgres_changes',{event:'*',schema:'public',table:'battle_units'},fetchBattles)
+      .subscribe()
+    return()=>{supabase.removeChannel(ch)}
+  },[campaign.id,fetchBattles])
   const pending=battles.find(b=>b.status==='draft')??null
   const history=battles.filter(b=>b.status==='completed')
   const scoreOutcome=attVp>defVp?'attacker_win':defVp>attVp?'defender_win':'draw'
