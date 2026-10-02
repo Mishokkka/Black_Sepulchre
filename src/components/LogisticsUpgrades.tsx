@@ -36,7 +36,7 @@ export default function LogisticsUpgrades({
     setWorking(false)
     if(error){onMessage(error.message);return}
     if(deep)onMessage(`${u.name}: ${scar.name} удалён Deep Reconstruction за ${data.cost} Supply.`)
-    else onMessage(`${u.name}: Rehabilitation D6=${data.roll}, ${data.success?'Scar удалён':'Scar остался'}; потрачено ${data.cost} Supply.`)
+    else onMessage(`${u.name}: Rehabilitation D6=${data.roll}${data.rehab_bonus?` + ${data.rehab_bonus} = ${data.effective_roll}`:''}, ${data.success?'Scar удалён':'Scar остался'}; потрачено ${data.cost} Supply.`)
     reload()
   }
 
@@ -56,9 +56,9 @@ export default function LogisticsUpgrades({
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">BATTLE SCARS</div><h2>Rehabilitation</h2></div><Stethoscope/></div>
       {scarred.length===0?<p className="muted">У доступных units нет Battle Scars.</p>:<div className="scar-treatment-list">{scarred.flatMap(u=>(u.scars??[]).map((scar:any)=><div className="scar-treatment" key={u.id+'-'+scar.code}>
-        <div><strong>{u.name}</strong><small>{scar.name??scar.code}{u.campaign_flags?.scar_lock?' · FOURTH-SCAR LOCK':''}</small></div>
+        <div><strong>{u.name}</strong><small>{scar.name??scar.code}{u.campaign_flags?.scar_lock?' · FOURTH-SCAR LOCK':''}{Number(u.campaign_flags?.rehab_bonus??0)>0?` · Rehab +${u.campaign_flags.rehab_bonus}`:''}</small></div>
         <div className="scar-costs"><span>Rehab {Math.max(15,roundUp5(u.reference_cost*.25))}</span><span>Deep {Math.max(25,roundUp5(u.reference_cost*.50))}</span></div>
-        <div className="button-row"><button className="ghost compact" disabled={working} onClick={()=>treat(u,scar,false)}>Rehab · 4+</button><button className="ghost compact" disabled={working} onClick={()=>treat(u,scar,true)}>Deep · auto</button></div>
+        <div className="button-row"><button className="ghost compact" disabled={working} onClick={()=>treat(u,scar,false)}>Rehab · {Math.max(1,4-Number(u.campaign_flags?.rehab_bonus??0))}+</button><button className="ghost compact" disabled={working} onClick={()=>treat(u,scar,true)}>Deep · auto</button></div>
       </div>))}</div>}
     </section>
   </>
