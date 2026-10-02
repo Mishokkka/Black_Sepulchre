@@ -234,7 +234,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
         <div><strong>{u.name}</strong><small>{sideLabel(bu.side)} · {bu.resting?'RESTING':bu.role}</small></div>
         {!bu.resting&&<><label><input type="checkbox" checked={r.destroyed} onChange={e=>resultPatch(bu.unit_id,{destroyed:e.target.checked})}/> Destroyed</label>
         <select value={r.deed} onChange={e=>resultPatch(bu.unit_id,{deed:e.target.value})}><option value="">No Deed</option>{['HOLD','BREAK','HUNT','ENDURE','OPERATE'].map(d=><option key={d}>{d}</option>)}</select>
-        <label><input type="checkbox" checked={r.distinguished} onChange={e=>resultPatch(bu.unit_id,{distinguished:e.target.checked})}/> Distinguished</label>
+        <label title={u.damage>=2?'Damage 2+ units cannot be Distinguished':''}><input type="checkbox" checked={r.distinguished} disabled={u.damage>=2} onChange={e=>resultPatch(bu.unit_id,{distinguished:e.target.checked})}/> Distinguished</label>
         <label>Casualty mod<input className="mini" type="number" min={-3} max={3} value={r.casualty_modifier} disabled={!r.destroyed} onChange={e=>resultPatch(bu.unit_id,{casualty_modifier:Number(e.target.value)})}/></label>
         <label>Mission XP<input className="mini" type="number" min={0} max={5} value={r.mission_xp} onChange={e=>resultPatch(bu.unit_id,{mission_xp:Number(e.target.value)})}/></label>
         {r.destroyed&&u.armoury?.some((a:any)=>a?.code==='field_medicae')&&<label><input type="checkbox" checked={r.use_medicae} onChange={e=>resultPatch(bu.unit_id,{use_medicae:e.target.checked})}/> Auto-use Medicae if Damage</label>}</>}
