@@ -13,6 +13,7 @@ type Battle={
   attacker_muster_locked:boolean;defender_muster_locked:boolean;salvage_attacker:number|null;salvage_defender:number|null;
   attacker_tactical_assets:string[];defender_tactical_assets:string[];defensive_asset:string|null;breach_assets:string[];
   recon_lock_sides:string[];attacker_interdict:string|null;defender_interdict:string|null;
+  mission_options:string[];mission_choice_side:Side|null;
   event_code:string|null;aftermath:any;report:any;created_at:string;completed_at:string|null
 }
 type BattleUnit={
@@ -123,6 +124,11 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     if(!r.error)setInterdictAsset('')
   }
 
+  async function chooseMission(code:string){
+    if(!pending)return
+    await rpc('battle_choose_mission',{p_battle:pending.id,p_code:code},`Mission selected: ${code}.`)
+  }
+
   const mission=useMemo(()=>pending?MISSIONS.find(m=>m[0]===pending.mission_code):undefined,[pending?.mission_code])
   const ownLocked=pending?(member.side===pending.attacker_side?pending.attacker_muster_locked:pending.defender_muster_locked):false
   const myPlayer=players.find(p=>p.side===member.side)
@@ -194,8 +200,12 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     </section>
 
     <section className="panel">
-      <div className="section-head"><div><div className="eyebrow">MISSION</div><h2>{pending.mission_code==='TBD'?'Не определена':`${pending.mission_code} · ${mission?.[1]??''}`}</h2></div><Dices/></div>
+      <div className="section-head"><div><div className="eyebrow">MISSION</div><h2>{pending.mission_code==='TBD'?'Не определена':pending.mission_code==='CHOICE'?'Noctis Relay: выберите результат':`${pending.mission_code} · ${mission?.[1]??''}`}</h2></div><Dices/></div>
       {pending.mission_code==='TBD'?<button className="primary" disabled={working} onClick={()=>rpc('battle_roll_mission',{p_battle:pending.id})}>Бросить миссию</button>:
+      pending.mission_code==='CHOICE'?<div className="mission-choice">
+        <p className="muted">Noctis Relay бросил D3 дважды. Выбор принадлежит {sideLabel(pending.mission_choice_side)}.</p>
+        <div className="button-row">{(pending.mission_options??[]).map(code=>{const m=MISSIONS.find(x=>x[0]===code);return <button key={code} className="ghost" disabled={working||member.side!==pending.mission_choice_side} onClick={()=>chooseMission(code)}>{code} · {m?.[1]??''}</button>})}</div>
+      </div>:
       <div className="mission-line"><span>{mission?.[2]}</span><div className="button-row">
         <button className="ghost compact" disabled={working||(myPlayer?.intelligence??0)<1} onClick={()=>rpc('battle_reroll_mission',{p_battle:pending.id})}><RefreshCw size={14}/> Re-roll · 1 Intel</button>
         <button className="ghost compact" disabled={working||ownRecon||(myPlayer?.intelligence??0)<1||pending.attacker_muster_locked||pending.defender_muster_locked} onClick={useReconLock}><LockKeyhole size={14}/> Recon Lock · 1 Intel</button>
@@ -212,7 +222,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
         {u.location_type==='garrison'?<select disabled={ownLocked||!p.selected||p.resting} value={p.role} onChange={e=>toggle(u.id,{role:e.target.value as Pick['role']})}><option value="garrison_initial">Initial</option><option value="garrison_reinforcement">Reinforcement</option></select>:<span className="tag">Field</span>}
         <label className="rest-toggle"><input type="checkbox" checked={p.resting} disabled={ownLocked||!p.selected||u.damage===0} onChange={e=>toggle(u.id,{resting:e.target.checked})}/> Rest</label>
       </div>})}</div>}
-      {!ownLocked&&<button className="primary action-main" disabled={working||pending.mission_code==='TBD'} onClick={lockMuster}><LockKeyhole size={15}/> Lock Muster</button>}
+      {!ownLocked&&<button className="primary action-main" disabled={working||pending.mission_code==='TBD'||pending.mission_code==='CHOICE'} onClick={lockMuster}><LockKeyhole size={15}/> Lock Muster</button>}
       {ownLocked&&!bothLocked&&<div className="notice">Ваш Muster сохранён. Ожидается вторая сторона.</div>}
     </section>
 
