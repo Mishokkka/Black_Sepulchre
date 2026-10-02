@@ -70,3 +70,6 @@ nav{display:grid;gap:.35rem;margin-top:1.25rem}nav button{display:flex;gap:.65re
 
 .campaign-effects-panel{border-color:#4a4332}.campaign-effects-list{display:grid;gap:.45rem}.campaign-effects-list>div{display:grid;grid-template-columns:minmax(120px,.35fr) 1fr auto;gap:.65rem;align-items:center;padding:.6rem .65rem;border:1px solid #37362f;background:#11130f;border-radius:4px}.campaign-effects-list span{font-size:.75rem;line-height:1.45;color:#a0a69f}.campaign-effects-list small{color:#b49b68}.strategic-global-effects{display:grid;gap:.25rem;margin-top:.8rem}
 @media(max-width:700px){.campaign-effects-list>div{grid-template-columns:1fr}}
+
+.d66-choice{display:grid;gap:.45rem;margin:.55rem 0;padding:.6rem;border:1px solid #3a382f;background:#141510;border-radius:4px}.d66-choice.done{font-size:.75rem;color:#8fa18f}.d66-choice-row{display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:.45rem}.d66-choice .button-row{margin:0}.choice-message{display:block;color:#9dab9f!important}.event-card .d66-choice select{min-width:0}
+@media(max-width:700px){.d66-choice-row{grid-template-columns:1fr}.d66-choice-row button{width:100%}}
