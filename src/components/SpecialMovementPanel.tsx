@@ -19,9 +19,9 @@ function supplied(side:string,sector:string,sectors:Sector[]){
 }
 
 export default function SpecialMovementPanel({
-  activationId,startSector,currentSector,member,sectors,intelligence,onResolved
+  activationId,startSector,currentSector,member,sectors,intelligence,orbitalDisabled,onResolved
 }:{
-  activationId:string;startSector:string;currentSector:string;member:Member;sectors:Sector[];intelligence:number;onResolved:(data:any,message:string)=>void
+  activationId:string;startSector:string;currentSector:string;member:Member;sectors:Sector[];intelligence:number;orbitalDisabled:boolean;onResolved:(data:any,message:string)=>void
 }){
   const[target,setTarget]=useState(''),[friendly,setFriendly]=useState(''),[working,setWorking]=useState(false),[msg,setMsg]=useState('')
   const enemyTwo=useMemo(()=>sectors.filter(s=>s.owner_side&&s.owner_side!==member.side&&distance(currentSector,s.sector_key)===2&&s.sector_class!=='Home Stronghold'),[sectors,member.side,currentSector])
@@ -44,7 +44,7 @@ export default function SpecialMovementPanel({
     onResolved(data,`Airlift to sector ${friendly}.`)
   }
 
-  const canC=startSector==='C'&&currentSector==='C'
+  const canC=startSector==='C'&&currentSector==='C'&&!orbitalDisabled
   const canH=startSector==='H'&&currentSector==='H'
   return <section className="panel special-move-panel">
     <div className="section-head"><div><div className="eyebrow">SPECIAL MOVEMENT</div><h2>Разведка и переброска</h2></div><Route/></div>
@@ -52,6 +52,7 @@ export default function SpecialMovementPanel({
       <div><div><Radar/><span><strong>Deep Raid</strong><small>2 Intel · при активном G bonus первый Deep Raid стадии дешевле на 1 · нужен Supply Line</small></span></div>
         <div className="inline-control"><select value={target} onChange={e=>setTarget(e.target.value)}><option value="">Цель</option>{enemyTwo.map(s=><option key={s.sector_key} value={s.sector_key}>{s.sector_key} · {s.name}</option>)}</select><button className="ghost" disabled={working||intelligence<1||!target} onClick={()=>special('deep_raid',target)}>1–2 Intel</button></div>
       </div>
+      {orbitalDisabled&&startSector==='C'&&currentSector==='C'&&<div className="notice">Broken Map: Orbital Ossuary Lift отключён до конца следующей tabletop battle.</div>}
       {canC&&<><div><div><Orbit/><span><strong>Orbital Airlift</strong><small>1 MP · controlled supplied sector до двух связей от C</small></span></div>
         <div className="inline-control"><select value={friendly} onChange={e=>setFriendly(e.target.value)}><option value="">Destination</option>{cFriendly.map(s=><option key={s.sector_key} value={s.sector_key}>{s.sector_key} · {s.name}</option>)}</select><button className="ghost" disabled={working||!friendly} onClick={airliftMove}>1 MP</button></div>
       </div>
