@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowRight, BatteryCharging, Castle, Eye, Footprints, Hammer, Radio, ShieldAlert, Wrench } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import LogisticsPanel from './LogisticsPanel'
+import ReorganisePanel from './ReorganisePanel'
 import { ADJACENCY, STAGES, fortifyCost, mobiliseGain, stageIndexForBattles } from '../data/campaign'
 import type { Campaign, Member, PlayerState, Sector, Unit } from '../types'
 
@@ -52,6 +53,7 @@ export default function StrategicPanel({
   const[msg,setMsg]=useState('')
   const[working,setWorking]=useState(false)
   const[sabotageTarget,setSabotageTarget]=useState('')
+  const[showReorganise,setShowReorganise]=useState(false)
 
   const me=players.find(p=>p.side===member.side)
   const stage=STAGES[stageIndexForBattles(campaign.battle_count)]
@@ -63,6 +65,7 @@ export default function StrategicPanel({
   })
   const isMyTurn=campaign.active_side===member.side
   const currentSupplied=me?supplied(member.side,me.main_force_sector,sectors):false
+  const canInvestigate=campaign.black_choir>=4&&!!current&&(current.sector_key==='G'||((ADJACENCY[current.sector_key]??[]).includes('G')&&current.owner_side===member.side))
 
   const fetchActivation=useCallback(async()=>{
     const{data}=await supabase.from('activations').select('*').eq('campaign_id',campaign.id).in('status',['open','battle_pending','logistics']).order('sequence_no',{ascending:false}).limit(1)
