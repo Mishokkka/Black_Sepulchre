@@ -150,3 +150,27 @@ export const CAMPAIGN_ARMOURY = [
  {code:'recovery_cache',name:'Recovery Cache',cost:35,cr:0,effect:'Одноразово: следующий paid recovery 1 Damage стоит половину, округляя вверх до 5.'},
  {code:'blackglass_ward',name:'Blackglass Ward',cost:70,cr:5,effect:'Один раз за battle перебросьте Battle-shock test, вызванный Black Glass/Black Choir.'},
 ] as const
+
+
+export const TACTICAL_ASSETS = [
+ {code:'Prepared Barricades',effect:'После setup поставьте до двух small barricades полностью в своей deployment zone.'},
+ {code:'Smoke Screen',effect:'Один раз за battle выбранный unit получает Benefit of Cover против Shooting до конца phase.'},
+ {code:'Emergency Coordinates',effect:'После deployment переместите один INFANTRY unit до 3", оставаясь legal.'},
+ {code:'Field Reserves',effect:'Получите +1 CP в начале battle round 2.'},
+ {code:'Booby-trapped Objective',effect:'Выберите objective вне enemy deployment. Первый enemy unit, закончивший move в его range, на 4+ получает D3 mortal wounds.'},
+ {code:'Hard Evacuation',effect:'Первый уничтоженный non-CHARACTER после battle получает +1 Casualty Roll.'},
+] as const
+
+export const DEFENSIVE_ASSETS = [
+ {code:'Prepared Barricades',effect:'После terrain setup поставьте две небольшие barricade pieces полностью в Defender half, не ближе 3" к objective.'},
+ {code:'Mine Corridor',effect:'После deployment отметьте полосу 9×3" вне deployment zones и objectives. Первый enemy unit, который Advance/Charge через неё, получает D3 mortal wounds на 4+.'},
+ {code:'Reserve Beacon',effect:'Первый Garrison Reinforcement может перебросить один failed reserve-related roll/placement check или Charge roll в ход прибытия.'},
+ {code:'Hardened Stores',effect:'После battle один участвовавший garrison unit получает +1 к Casualty Roll.'},
+] as const
+
+export const BREACH_ASSETS = [
+ {code:'Suppression Window',effect:'Один раз за battle в начале Defender Movement phase задержите один Garrison Reinforcement на round.'},
+ {code:'Breach Charge',effect:'Один ваш unit один раз за battle игнорирует Benefit of Cover до конца своей Shooting или Fight activation.'},
+ {code:'Infiltration Route',effect:'Один INFANTRY unit можно бесплатно начать в Strategic Reserves; прибывает не раньше round 2 по core restrictions.'},
+ {code:'Extraction Beacon',effect:'После battle один уничтоженный Attacker non-CHARACTER получает +1 Casualty Roll.'},
+] as const
