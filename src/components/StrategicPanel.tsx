@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import LogisticsPanel from './LogisticsPanel'
 import ReorganisePanel from './ReorganisePanel'
 import SpecialMovementPanel from './SpecialMovementPanel'
+import ReactionPanel from './ReactionPanel'
 import { ADJACENCY, STAGES, fortifyCost, mobiliseGain, stageIndexForBattles } from '../data/campaign'
 import type { Campaign, Member, PlayerState, Sector, Unit } from '../types'
 
@@ -19,7 +20,7 @@ interface Activation {
   actions_available:number
   actions:any[]
   movement:any[]
-  status:'open'|'battle_pending'|'logistics'|'completed'|'cancelled'
+  status:'open'|'reaction_pending'|'battle_pending'|'logistics'|'completed'|'cancelled'
 }
 
 const label=(s:string|null)=>s==='necrons'?'Necrons':s==='deathwatch'?'Deathwatch':'Neutral'
@@ -69,7 +70,7 @@ export default function StrategicPanel({
   const canInvestigate=campaign.black_choir>=4&&!!current&&(current.sector_key==='G'||((ADJACENCY[current.sector_key]??[]).includes('G')&&current.owner_side===member.side))
 
   const fetchActivation=useCallback(async()=>{
-    const{data}=await supabase.from('activations').select('*').eq('campaign_id',campaign.id).in('status',['open','battle_pending','logistics']).order('sequence_no',{ascending:false}).limit(1)
+    const{data}=await supabase.from('activations').select('*').eq('campaign_id',campaign.id).in('status',['open','reaction_pending','battle_pending','logistics']).order('sequence_no',{ascending:false}).limit(1)
     setActivation((data?.[0] as Activation)??null)
   },[campaign.id])
 
@@ -136,6 +137,10 @@ export default function StrategicPanel({
     </div>
   }
 
+  if(activation.status==='reaction_pending'){
+    return <ReactionPanel activationId={activation.id} member={member} onDone={async message=>{setMsg(message);await refresh()}}/>
+  }
+
   if(activation.status==='logistics'){
     return <LogisticsPanel activationId={activation.id} campaign={campaign} member={member} players={players} sectors={sectors} units={units} reload={reload} onPassed={refresh}/>
   }
@@ -170,7 +175,7 @@ export default function StrategicPanel({
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">MOVEMENT</div><h2>Соседние сектора</h2></div><ArrowRight/></div>
       <div className="move-list">
-        {neighbors.map(k=>{const s=sectors.find(x=>x.sector_key===k)!;const hostile=s.owner_side!==member.side;return <button key={k} className={hostile?'move-button hostile':'move-button'} disabled={working||mpLeft<1} onClick={()=>move(k)}>
+        {neighbors.map(k=>{const s=sectors.find(x=>x.sector_key===k)!;const hostile=s.owner_side!==member.side;return <button key={k} className={hostile?'move-button hostile':'move-button'} disabled={working||!isMyTurn||activation.side!==member.side||mpLeft<1} onClick={()=>move(k)}>
           <span><strong>{k}</strong> {s.name}</span><small>{hostile?(s.owner_side?label(s.owner_side):'Neutral'):'Friendly · 1 MP'}</small>
         </button>})}
       </div>
