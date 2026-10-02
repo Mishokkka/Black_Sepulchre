@@ -70,6 +70,8 @@ export default function StrategicPanel({
   const pendingEffects=(campaign.settings?.pending_effects??[]) as any[]
   const noosphereStatic=pendingEffects.some(e=>e?.code==='noosphere_static')
   const brokenMap=pendingEffects.some(e=>e?.code==='broken_map')
+  const hiddenRouteEffect=pendingEffects.find(e=>e?.code==='hidden_route')
+  const hiddenRouteAvailable=!!hiddenRouteEffect&&!Boolean(hiddenRouteEffect?.[member.side+'_used'])
   const revealII=campaign.black_choir>=4||Number(campaign.settings?.forced_reveal_threshold??0)>=4
   const canInvestigate=revealII&&!!current&&(current.sector_key==='G'||((ADJACENCY[current.sector_key]??[]).includes('G')&&current.owner_side===member.side))
 
@@ -185,7 +187,7 @@ export default function StrategicPanel({
       </div>
     </section>
 
-    <SpecialMovementPanel activationId={activation.id} startSector={activation.start_sector} currentSector={me?.main_force_sector??activation.start_sector} member={member} sectors={sectors} intelligence={me?.intelligence??0} orbitalDisabled={brokenMap} secretRouteSector={campaign.settings?.secret_route?.sector??null} onResolved={async(data,message)=>{setMsg(message);await refresh();if(data?.kind==='battle')onOpenBattles()}}/>
+    <SpecialMovementPanel activationId={activation.id} startSector={activation.start_sector} currentSector={me?.main_force_sector??activation.start_sector} member={member} sectors={sectors} intelligence={me?.intelligence??0} orbitalDisabled={brokenMap} secretRouteSector={campaign.settings?.secret_route?.sector??null} hiddenRouteAvailable={hiddenRouteAvailable} onResolved={async(data,message)=>{setMsg(message);await refresh();if(data?.kind==='battle')onOpenBattles()}}/>
 
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">STRATEGIC ACTIONS</div><h2>Действия</h2></div><BatteryCharging/></div>
