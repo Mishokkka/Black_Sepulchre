@@ -69,7 +69,7 @@ export const D66_EVENTS: Record<string,{name:string;effect:string}> = {
  '22':{name:'Ash Rain',effect:'Следующая tabletop battle: Ash Storm в battle round 3; ranged attacks дальше 24" невозможны до конца раунда.'},
  '23':{name:'The Missing Hour',effect:'В следующую Strategic Activation каждый тайно записывает первое Strategic Action; на 4+ оно срабатывает, на 1–3 теряется без оплаты ресурса.'},
  '24':{name:'Living Metal Dust',effect:'Necrons бесплатно снимают 1 Damage одному unit. Deathwatch получает +20 Supply.'},
- '25':{name:'Bone Bloom',effect:'Следующая battle: центральный objective окружён 5" Difficult Ground. Победитель +10 Supply.'},
+ '25':{name:'Bone Bloom',effect:'Следующая battle: центральный objective окружён 5" Rough Ground. Победитель +10 Supply.'},
  '26':{name:'Machine Hymn',effect:'В следующей battle первый VEHICLE/MONSTER, который должен стать Battle-shocked, получает D3 mortal wounds и считается прошедшим test.'},
  '31':{name:'Stragglers',effect:'Каждый может заплатить 10 Supply и дать одному Recruit unit +1 XP.'},
  '32':{name:'Captured Servitor',effect:'Победитель выбирает +25 Supply или +1 Intel; проигравший получает оставшуюся награду. При Draw выбирает игрок с меньшим числом секторов.'},
@@ -135,7 +135,7 @@ export const BATTLE_HONOURS = [
 export const SIGNATURE_HONOURS = [
  {code:'purge_protocol_absolute',side:'deathwatch',name:'Purge Protocol: Absolute',cr:15,effect:'Один раз за battle выберите видимый XENOS unit; до конца phase перебрасывайте по одному Hit и Wound roll в каждой activation против этой цели.'},
  {code:'watch_endures',side:'deathwatch',name:'The Watch Endures',cr:15,effect:'Первый раз за battle, когда unit должен быть уничтожен, оставьте одну model с 1 wound; затем unit Battle-shocked.'},
- {code:'black_spear_veteran',side:'deathwatch',name:'Black Spear Veteran',cr:15,effect:'Один раз за battle после Normal Move выполняйте Mission Action без запрета Shooting, но не Charge.'},
+ {code:'black_spear_veteran',side:'deathwatch',name:'Black Spear Veteran',cr:15,effect:'Один раз за battle после Normal Move может начать Named Action без запрета Shooting, но не Charge.'},
  {code:'protocol_inevitable',side:'necrons',name:'Protocol: Inevitable',cr:15,effect:'Один раз за battle после failed Saving Throw уменьшите Damage атаки до 0; затем -1" Move до конца следующего хода.'},
  {code:'ancient_murder_logic',side:'necrons',name:'Ancient Murder-Logic',cr:15,effect:'Один раз за Fight phase один melee weapon profile получает +1 Attack на model, максимум +5 attacks.'},
  {code:'memory_eternity',side:'necrons',name:'Memory of Eternity',cr:15,effect:'Один раз за battle после failed Battle-shock считайте test успешным; если unit выжил, +1 XP после battle.'},
@@ -145,7 +145,7 @@ export const SIGNATURE_HONOURS = [
 export const CAMPAIGN_ARMOURY = [
  {code:'field_medicae',name:'Field Medicae / Repair Node',cost:40,cr:0,effect:'Одноразово после Casualty Roll уменьшите полученный Damage на 1.'},
  {code:'reinforced_plating',name:'Reinforced Plating',cost:60,cr:5,effect:'Один раз за battle уменьшите Damage одной успешной атаки по model на 1, минимум 1.'},
- {code:'tactical_relay',name:'Tactical Relay',cost:50,cr:5,effect:'Один раз за battle +1 к одному броску, напрямую связанному с Mission Action/sector rule.'},
+ {code:'tactical_relay',name:'Tactical Relay',cost:50,cr:5,effect:'Один раз за battle +1 к одному броску, напрямую связанному с Named Action/sector rule.'},
  {code:'reserve_beacon',name:'Reserve Beacon',cost:60,cr:5,effect:'Один раз за battle перебросьте Charge roll unit в turn, когда он прибыл из Reserves/Garrison Reinforcements.'},
  {code:'recovery_cache',name:'Recovery Cache',cost:35,cr:0,effect:'Одноразово: следующий paid recovery 1 Damage стоит половину, округляя вверх до 5.'},
  {code:'blackglass_ward',name:'Blackglass Ward',cost:70,cr:5,effect:'Один раз за battle перебросьте Battle-shock test, вызванный Black Glass/Black Choir.'},
