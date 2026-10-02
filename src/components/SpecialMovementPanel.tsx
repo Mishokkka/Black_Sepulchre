@@ -34,7 +34,7 @@ export default function SpecialMovementPanel({
     const{data,error}=await supabase.rpc('activation_special_attack',{p_activation:activationId,p_target:t,p_method:method})
     setWorking(false)
     if(error){setMsg(error.message);return}
-    onResolved(data,method==='deep_raid'?'Deep Raid declared.':method==='airlift_attack'?`Attacking Airlift: D6 ${data.airlift_roll}${data.c_exhausted?' · C Exhausted':''}.`:'Glass Wastes route used.')
+    onResolved(data,method==='deep_raid'?`Deep Raid declared. Intel cost ${data.intel_cost}.`:method==='airlift_attack'?`Attacking Airlift: D6 ${data.airlift_roll}${data.c_exhausted?' · C Exhausted':''}.`:'Glass Wastes route used.')
   }
   async function airliftMove(){
     setWorking(true);setMsg('')
@@ -49,8 +49,8 @@ export default function SpecialMovementPanel({
   return <section className="panel special-move-panel">
     <div className="section-head"><div><div className="eyebrow">SPECIAL MOVEMENT</div><h2>Разведка и переброска</h2></div><Route/></div>
     <div className="special-move-list">
-      <div><div><Radar/><span><strong>Deep Raid</strong><small>2 Intel · enemy sector ровно в двух связях · нужен Supply Line</small></span></div>
-        <div className="inline-control"><select value={target} onChange={e=>setTarget(e.target.value)}><option value="">Цель</option>{enemyTwo.map(s=><option key={s.sector_key} value={s.sector_key}>{s.sector_key} · {s.name}</option>)}</select><button className="ghost" disabled={working||intelligence<2||!target} onClick={()=>special('deep_raid',target)}>2 Intel</button></div>
+      <div><div><Radar/><span><strong>Deep Raid</strong><small>2 Intel · при активном G bonus первый Deep Raid стадии дешевле на 1 · нужен Supply Line</small></span></div>
+        <div className="inline-control"><select value={target} onChange={e=>setTarget(e.target.value)}><option value="">Цель</option>{enemyTwo.map(s=><option key={s.sector_key} value={s.sector_key}>{s.sector_key} · {s.name}</option>)}</select><button className="ghost" disabled={working||intelligence<1||!target} onClick={()=>special('deep_raid',target)}>1–2 Intel</button></div>
       </div>
       {canC&&<><div><div><Orbit/><span><strong>Orbital Airlift</strong><small>1 MP · controlled supplied sector до двух связей от C</small></span></div>
         <div className="inline-control"><select value={friendly} onChange={e=>setFriendly(e.target.value)}><option value="">Destination</option>{cFriendly.map(s=><option key={s.sector_key} value={s.sector_key}>{s.sector_key} · {s.name}</option>)}</select><button className="ghost" disabled={working||!friendly} onClick={airliftMove}>1 MP</button></div>
