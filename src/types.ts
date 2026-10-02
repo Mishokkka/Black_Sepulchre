@@ -2,5 +2,5 @@ import type { Side } from './data/campaign'
 export interface Campaign {id:string;name:string;rules_version:string;snapshot_date:string;invite_code:string;status:string;battle_count:number;stage_index:number;active_side:Side|null;black_choir:number;winner_side:Side|null}
 export interface Member {campaign_id:string;user_id:string;side:Side;role:'owner'|'player';display_name:string}
 export interface PlayerState {campaign_id:string;side:Side;supply:number;intelligence:number;recovery_supply:number;main_force_sector:string;resource_recon_used:boolean;resource_mobilise_used:boolean;secret_fragments:number;fortress_integrity:number}
-export interface Sector {campaign_id:string;sector_key:string;name:string;sector_class:string;owner_side:Side|null;fortified:boolean;state:string;state_counter:number}
+export interface Sector {campaign_id:string;sector_key:string;name:string;sector_class:string;owner_side:Side|null;fortified:boolean;state:string;state_counter:number;conditions:string[]}
 export interface Unit {id:string;campaign_id:string;side:Side;name:string;datasheet:string;reference_cost:number;campaign_rating:number;xp:number;damage:number;location_type:'field'|'garrison';sector_key:string|null;status:string;size_label:string;keywords:string[];is_character:boolean;is_epic_hero:boolean;is_battleline:boolean;garrison_class:string;honours:unknown[];scars:unknown[]}
