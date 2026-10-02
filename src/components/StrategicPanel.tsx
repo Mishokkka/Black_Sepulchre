@@ -197,6 +197,8 @@ export default function StrategicPanel({
       </div></>:<p className="muted">Нет соседних enemy-controlled секторов.</p>}
     </section>
 
+    {showReorganise&&current&&<div className="wide"><ReorganisePanel activationId={activation.id} member={member} currentSector={current.sector_key} units={units} onCancel={()=>setShowReorganise(false)} onDone={async message=>{setShowReorganise(false);setMsg(message);await refresh()}}/></div>}
+
     <section className="panel">
       <div className="eyebrow">CURRENT SECTOR</div><h2>{current?.name}</h2>
       <dl className="rows">
