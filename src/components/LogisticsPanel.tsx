@@ -3,6 +3,7 @@ import { Coins, PackagePlus, RotateCcw, Send, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { STAGES, stageIndexForBattles } from '../data/campaign'
 import type { Campaign, Member, PlayerState, Sector, Unit } from '../types'
+import LogisticsUpgrades from './LogisticsUpgrades'
 
 export default function LogisticsPanel({
   activationId,campaign,member,players,sectors,units,reload,onPassed
@@ -84,6 +85,8 @@ export default function LogisticsPanel({
         <button className="ghost compact danger" disabled={working} onClick={()=>disband(u)}><Trash2 size={14}/></button>
       </div>)}</div>
     </section>
+
+    <LogisticsUpgrades activationId={activationId} member={member} currentSector={me?.main_force_sector??''} units={units} reload={reload} onMessage={setMsg}/>
 
     <section className="panel wide pass-panel">
       <div><div className="eyebrow">END LOGISTICS</div><h2>Все покупки и восстановление закончены?</h2><p className="muted">После передачи хода изменить эту Logistics Phase уже нельзя.</p></div>
