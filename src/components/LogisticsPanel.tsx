@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { STAGES, stageIndexForBattles } from '../data/campaign'
 import type { Campaign, Member, PlayerState, Sector, Unit } from '../types'
 import LogisticsUpgrades from './LogisticsUpgrades'
+import ForceDoctrinePanel from './ForceDoctrinePanel'
 
 export default function LogisticsPanel({
   activationId,campaign,member,players,sectors,units,reload,onPassed
@@ -97,6 +98,7 @@ export default function LogisticsPanel({
       {lost.length>0&&<p className="muted small-note">{lost.length} CHARACTER отмечено как Lost и хранится только в campaign history.</p>}
     </section>
 
+    {me&&<ForceDoctrinePanel activationId={activationId} campaign={campaign} player={me} currentSector={me.main_force_sector} units={units} reload={reload} onMessage={setMsg}/>}
     <LogisticsUpgrades activationId={activationId} member={member} currentSector={me?.main_force_sector??''} units={units} reload={reload} onMessage={setMsg}/>
 
     <section className="panel wide pass-panel">
