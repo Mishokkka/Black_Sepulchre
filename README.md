@@ -736,6 +736,7 @@ login
 - Tactical Assets / Underdog selection;
 - Fortified Defensive Asset selection;
 - Breach Asset selection;
+- post-battle Casualty modifiers from Hard Evacuation, Hardened Stores and Extraction Beacon, with server-side target validation;
 - Field Roster / garrison role checks;
 - 50/75/100 Initial tiers;
 - 25/35/50/75 Reserve tiers;
@@ -803,7 +804,7 @@ login
    Основные persistent bonuses A–K уже закрыты заметно плотнее: A/K recovery и enemy-control Intel, B adjacent-victory Intel, C Airlift, D recovery/D66, E income, F mission/reactive Intel, G Stronghold/raid discount/BLACK CHOIR escalation, H long attack, I Rest/Deathwatch Intel/owner-change salvage, J qualifying garrison discount. Основной крупный пробел сектора J сейчас связан со Scavenge и его interaction с Exhausted; tabletop-only modifiers B/H и отдельные mission-facing bonuses остаются памятками.
 
 4. **Battle Assets effects.**
-   Tactical/Defensive/Breach Assets уже рассчитываются, выбираются и сохраняются. Большинство их tabletop effects остаётся памяткой. Post-battle modifiers вроде Hard Evacuation / Hardened Stores / Extraction Beacon пока не привязаны автоматически к конкретному unit.
+   Tactical/Defensive/Breach Assets рассчитываются, выбираются и сохраняются. Post-battle Casualty effects Hard Evacuation / Hardened Stores / Extraction Beacon уже привязаны к конкретному destroyed unit и валидируются сервером. Остальные tabletop effects, которые происходят непосредственно на столе, остаются памяткой.
 
 5. **Mission-specific campaign outcomes.**
    Автоматически применяются простые outcomes, однозначно выводимые из winner/result: B3, C2, E1, E2, F1, F2, G2, G3, H1, I2. Остальные outcomes, требующие tabletop facts или выбора target/reward, пока должны получать специализированный input.
@@ -930,6 +931,7 @@ Realtime используется не только для удобства. К�
 - `advisor_cleanup_d66_and_reactions`
 - `sector_bonus_corrections`
 - `missing_hour_strategic_action_gate`
+- `post_battle_asset_casualty_bonuses`
 
 Перед новым handoff первым делом выполните Supabase `list_migrations`, потому что production DB может быть новее этого README.
 
@@ -1162,7 +1164,7 @@ garrison_reinforcement
 3. Расширить mission-specific outcomes, особенно те, которым нужен target/tabletop fact input.
 4. Довести delayed D66 battle effects от UI-reminder до полного automatic enforcement там, где это возможно без моделирования самой tabletop игры.
 5. J Scavenge и оставшиеся sector-specific interactions.
-6. Автоматическое применение post-battle Battle Assets: Hard Evacuation, Hardened Stores, Extraction Beacon и т.п.
+6. Довести оставшиеся Battle Asset effects, которые можно автоматизировать без моделирования tabletop; Casualty effects Hard Evacuation / Hardened Stores / Extraction Beacon уже работают.
 7. Relics, Detachment/Enhancement management.
 8. unit size upgrades / paid wargear changes.
 9. Автоматические tests для основных state transitions.
