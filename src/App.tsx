@@ -86,25 +86,21 @@ function MapView({sectors,players,selected,onSelect}:{sectors:Sector[];players:P
  </div>
 }
 
-function RosterView({units,member,reload}:{units:Unit[];member:Member;reload:()=>void}){
- const[form,setForm]=useState({name:'',datasheet:'',cost:'',sector:''})
+function RosterView({units,member}:{units:Unit[];member:Member}){
  const mine=units.filter(u=>u.side===member.side),enemy=units.filter(u=>u.side!==member.side)
- async function addUnit(){
-  const cost=Number(form.cost);if(!form.name||!form.datasheet||!Number.isFinite(cost))return
-  const{error}=await supabase.from('units').insert({campaign_id:member.campaign_id,side:member.side,name:form.name,datasheet:form.datasheet,reference_cost:cost,location_type:form.sector?'garrison':'field',sector_key:form.sector||null,garrison_class:form.sector?'unknown':'core'})
-  if(!error){setForm({name:'',datasheet:'',cost:'',sector:''});reload()}
- }
- async function patch(id:string,values:Partial<Unit>){await supabase.from('units').update(values).eq('id',id);reload()}
- const render=(rows:Unit[],editable:boolean)=><div className="unit-list">{rows.map(u=><div className="unit-row" key={u.id}>
+ const rank=(xp:number)=>xp>=18?'Legendary':xp>=12?'Elite':xp>=7?'Veteran':xp>=3?'Blooded':'Recruit'
+ const render=(rows:Unit[])=><div className="unit-list">{rows.map(u=><div className="unit-row" key={u.id}>
   <div><strong>{u.name}</strong><small>{u.datasheet} · {u.location_type==='field'?'Field Roster':'Garrison '+u.sector_key}</small></div>
-  <div className="stat"><span>RC</span>{u.reference_cost}</div><div className="stat"><span>CR</span>+{u.campaign_rating}%</div><div className="stat"><span>Campaign</span>+{campaignSurcharge(u.reference_cost,u.campaign_rating)}</div>
-  <div className="stat"><span>XP</span>{editable?<input className="mini" type="number" value={u.xp} min={0} onChange={e=>patch(u.id,{xp:Number(e.target.value)})}/>:u.xp}</div>
-  <div className="stat"><span>Damage</span>{editable?<select className="mini" value={u.damage} onChange={e=>patch(u.id,{damage:Number(e.target.value)})}>{[0,1,2,3].map(n=><option key={n}>{n}</option>)}</select>:u.damage}</div>
-  <div className={'status-pill d'+u.damage}>{u.damage===3?'Shattered':u.status}</div>
+  <div className="stat"><span>Base</span>{u.reference_cost}</div>
+  <div className="stat"><span>CR</span>+{u.campaign_rating}%</div>
+  <div className="stat"><span>Effective</span>{u.reference_cost+campaignSurcharge(u.reference_cost,u.campaign_rating)}</div>
+  <div className="stat"><span>XP</span>{u.xp}</div>
+  <div className="stat"><span>Rank</span>{rank(u.xp)}</div>
+  <div className={'status-pill d'+u.damage}>{u.damage===3?'Shattered':'Damage '+u.damage}</div>
  </div>)}</div>
- return <div><div className="section-head"><div><div className="eyebrow">PERSISTENT UNITS</div><h2>{sideLabel(member.side)}</h2></div></div>{render(mine,true)}
-  <div className="add-unit"><input placeholder="Имя unit" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/><input placeholder="Datasheet" value={form.datasheet} onChange={e=>setForm({...form,datasheet:e.target.value})}/><input placeholder="RC" type="number" value={form.cost} onChange={e=>setForm({...form,cost:e.target.value})}/><select value={form.sector} onChange={e=>setForm({...form,sector:e.target.value})}><option value="">Field Roster</option>{Object.keys(SECTOR_META).map(k=><option key={k} value={k}>Garrison {k}</option>)}</select><button className="primary" onClick={addUnit}>Добавить</button></div>
-  <div className="section-head secondary"><div><div className="eyebrow">OPPONENT</div><h2>{sideLabel(member.side==='necrons'?'deathwatch':'necrons')}</h2></div></div>{render(enemy,false)}
+ return <div><div className="section-head"><div><div className="eyebrow">PERSISTENT UNITS</div><h2>{sideLabel(member.side)}</h2></div></div>{render(mine)}
+  <p className="muted roster-note">Покупка, recovery и расформирование выполняются только в Logistics Phase. XP и Damage меняются через Battle Aftermath.</p>
+  <div className="section-head secondary"><div><div className="eyebrow">OPPONENT</div><h2>{sideLabel(member.side==='necrons'?'deathwatch':'necrons')}</h2></div></div>{render(enemy)}
  </div>
 }
 
@@ -133,7 +129,7 @@ function App(){
     <section className="panel wide"><div className="section-head"><div><div className="eyebrow">LIVE MAP</div><h2>Strategic situation</h2></div></div><MapView sectors={sectors} players={players} selected={selectedSector} onSelect={setSelectedSector}/></section></div></>}
    {tab==='strategy'&&<StrategicPanel campaign={campaign} member={member} players={players} sectors={sectors} units={units} reload={load} onOpenBattles={()=>setTab('battles')}/>} 
    {tab==='map'&&<section className="panel map-page"><MapView sectors={sectors} players={players} selected={selectedSector} onSelect={setSelectedSector}/></section>}
-   {tab==='rosters'&&<RosterView units={units} member={member} reload={load}/>}
+   {tab==='rosters'&&<RosterView units={units} member={member}/>}
    {tab==='battles'&&<BattleCenter campaign={campaign} member={member} players={players} sectors={sectors} units={units} reload={load}/>}
    {tab==='log'&&<section className="panel"><div className="section-head"><div><div className="eyebrow">AUDIT LOG</div><h2>История кампании</h2></div></div><div className="log-list">{logs.map(l=><div key={l.id}><time>{new Date(l.created_at).toLocaleString('ru')}</time><strong>{l.action}</strong><span>{l.entity_type} {l.entity_id??''}</span></div>)}</div></section>}
   </main></div>
