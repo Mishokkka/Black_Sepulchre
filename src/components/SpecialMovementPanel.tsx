@@ -19,11 +19,11 @@ function supplied(side:string,sector:string,sectors:Sector[]){
 }
 
 export default function SpecialMovementPanel({
-  activationId,startSector,currentSector,member,sectors,intelligence,orbitalDisabled,secretRouteSector,onResolved
+  activationId,startSector,currentSector,member,sectors,intelligence,orbitalDisabled,secretRouteSector,hiddenRouteAvailable,onResolved
 }:{
-  activationId:string;startSector:string;currentSector:string;member:Member;sectors:Sector[];intelligence:number;orbitalDisabled:boolean;secretRouteSector:string|null;onResolved:(data:any,message:string)=>void
+  activationId:string;startSector:string;currentSector:string;member:Member;sectors:Sector[];intelligence:number;orbitalDisabled:boolean;secretRouteSector:string|null;hiddenRouteAvailable:boolean;onResolved:(data:any,message:string)=>void
 }){
-  const[target,setTarget]=useState(''),[friendly,setFriendly]=useState(''),[routeTarget,setRouteTarget]=useState(''),[working,setWorking]=useState(false),[msg,setMsg]=useState('')
+  const[target,setTarget]=useState(''),[friendly,setFriendly]=useState(''),[routeTarget,setRouteTarget]=useState(''),[hiddenTarget,setHiddenTarget]=useState(''),[working,setWorking]=useState(false),[msg,setMsg]=useState('')
   const enemyTwo=useMemo(()=>sectors.filter(s=>s.owner_side&&s.owner_side!==member.side&&distance(currentSector,s.sector_key)===2&&s.sector_class!=='Home Stronghold'),[sectors,member.side,currentSector])
   const cEnemy=useMemo(()=>sectors.filter(s=>s.owner_side&&s.owner_side!==member.side&&distance('C',s.sector_key)===2&&s.sector_class!=='Home Stronghold'),[sectors,member.side])
   const hEnemy=useMemo(()=>sectors.filter(s=>s.owner_side&&s.owner_side!==member.side&&distance('H',s.sector_key)===2&&s.sector_class!=='Home Stronghold'),[sectors,member.side])
@@ -53,6 +53,14 @@ export default function SpecialMovementPanel({
     if(error){setMsg(error.message);return}
     onResolved(data,`SECRET ROUTE used: ${currentSector} → ${routeTarget}.`)
   }
+  async function hiddenRouteAttack(){
+    if(!hiddenTarget)return
+    setWorking(true);setMsg('')
+    const{data,error}=await supabase.rpc('activation_hidden_route_attack',{p_activation:activationId,p_target:hiddenTarget})
+    setWorking(false)
+    if(error){setMsg(error.message);return}
+    onResolved(data,`Hidden Route attack declared on sector ${hiddenTarget} for 1 Intel.`)
+  }
 
   const canC=startSector==='C'&&currentSector==='C'&&!orbitalDisabled
   const canH=startSector==='H'&&currentSector==='H'
@@ -64,6 +72,9 @@ export default function SpecialMovementPanel({
       </div>
       {secretRouteSector&&<div><div><Route/><span><strong>SECRET ROUTE · token {secretRouteSector}</strong><small>{routeOwner===member.side?'Вы владеете token sector: один виртуальный соседний move/attack к любому сектору рядом с G.':'Использовать может текущий владелец token sector.'}</small></span></div>
         {routeOwner===member.side&&<div className="inline-control"><select value={routeTarget} onChange={e=>setRouteTarget(e.target.value)}><option value="">Destination</option>{routeTargets.map(s=><option key={s.sector_key} value={s.sector_key}>{s.sector_key} · {s.name}{s.owner_side===member.side?' · friendly':s.owner_side?' · enemy':' · neutral'}</option>)}</select><button className="ghost" disabled={working||!routeTarget} onClick={secretRouteMove}>Use route</button></div>}
+      </div>}
+      {hiddenRouteAvailable&&<div><div><Radar/><span><strong>Hidden Route</strong><small>D66 35 · один раз вашей стороне до следующей tabletop battle: enemy sector ровно в двух связях за 1 Intel.</small></span></div>
+        <div className="inline-control"><select value={hiddenTarget} onChange={e=>setHiddenTarget(e.target.value)}><option value="">Цель</option>{enemyTwo.map(s=><option key={s.sector_key} value={s.sector_key}>{s.sector_key} · {s.name}</option>)}</select><button className="ghost" disabled={working||intelligence<1||!hiddenTarget} onClick={hiddenRouteAttack}>1 Intel</button></div>
       </div>}
       {orbitalDisabled&&startSector==='C'&&currentSector==='C'&&<div className="notice">Broken Map: Orbital Ossuary Lift отключён до конца следующей tabletop battle.</div>}
       {canC&&<><div><div><Orbit/><span><strong>Orbital Airlift</strong><small>1 MP · controlled supplied sector до двух связей от C</small></span></div>
