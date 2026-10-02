@@ -61,7 +61,7 @@ export function garrisonCaps(limit:number,sectorClass:string,fortified:boolean,p
 export const D66_EVENTS: Record<string,{name:string;effect:string}> = {
  '11':{name:'The Silent Survivors',effect:'Игрок с меньшим числом секторов выбирает: +1 Intel или +25 Supply; при выборе Supply BLACK CHOIR +1.'},
  '12':{name:'Munitorum Cache',effect:'Каждый игрок получает +20 Supply. Победитель может вместо этого получить Recovery Cache.'},
- '13':{name:'Blackglass Shards',effect:'Игрок, контролирующий G или соседний с G сектор, получает Blackglass Ward; если он уже есть, +1 Intel.'},
+ '13':{name:'Blackglass Shards',effect:'Player, контролирующий G или adjacent G sector, получает Blackglass Ward бесплатно; если слот/предмет не нужен, +1 Intel.'},
  '14':{name:'Recovery Crew',effect:'Каждый выбирает один уничтоженный unit: его Casualty Roll улучшается на +1 задним числом, максимум 6; Scar от отменённого Catastrophic Loss удаляется.'},
  '15':{name:'Empty Coffins',effect:'BLACK CHOIR +1.'},
  '16':{name:'Damaged Relic',effect:'Победитель получает случайный Minor Armoury item. После первого использования на D6=1 предмет уничтожается.'},
@@ -107,25 +107,25 @@ export const BLACK_CHOIR_REVEALS = [
 
 export const BATTLE_HONOURS = [
  {code:'hard_lessons',name:'Hard Lessons',category:'SURVIVORS',tier:'Minor',cr:5,effect:'Один раз за battle перебросьте один failed Saving Throw этого unit.'},
- {code:'dig_in',name:'Dig In',category:'SURVIVORS',tier:'Minor',cr:5,effect:'Если unit не делал Normal/Advance/Fall Back в текущем ходу, +1 к Battle-shock test.'},
- {code:'hold_fast',name:'Hold Fast',category:'SURVIVORS',tier:'Minor',cr:5,effect:'Пока unit у objective и не Battle-shocked, +1 OC каждому model.'},
- {code:'last_line',name:'Last Line',category:'SURVIVORS',tier:'Major',cr:10,effect:'Один раз за battle при Below Half-strength: Battle-shock; при успехе игнорируйте модификаторы OC до конца round.'},
- {code:'kill_confirmed',name:'Kill Confirmed',category:'EXECUTIONERS',tier:'Minor',cr:5,effect:'Один раз за phase перебросьте один Hit roll против enemy unit, уже потерявшего wound/model.'},
+ {code:'dig_in',name:'Dig In',category:'SURVIVORS',tier:'Minor',cr:5,effect:'Пока unit контролирует objective и не Battle-shocked, +1 к его Battle-shock tests.'},
+ {code:'hold_fast',name:'Hold Fast',category:'SURVIVORS',tier:'Minor',cr:5,effect:'Пока unit в range objective и не Battle-shocked, +1 OC каждой model, максимум +1/model.'},
+ {code:'last_line',name:'Last Line',category:'SURVIVORS',tier:'Major',cr:10,effect:'Один раз за battle, когда unit становится Below Half-strength, сделайте Battle-shock test; при успехе до конца round игнорируйте negative OC modifiers.'},
+ {code:'kill_confirmed',name:'Kill Confirmed',category:'EXECUTIONERS',tier:'Minor',cr:5,effect:'Один раз за phase перебросьте один Hit roll против enemy unit, уже потерявшего wound/model в battle.'},
  {code:'measured_fire',name:'Measured Fire',category:'EXECUTIONERS',tier:'Minor',cr:5,effect:'Один раз за battle один weapon profile игнорирует Benefit of Cover в Shooting phase.'},
  {code:'finisher',name:'Finisher',category:'EXECUTIONERS',tier:'Minor',cr:5,effect:'Один раз за battle перебросьте один Wound roll против Below Half-strength enemy unit.'},
- {code:'extermination_pattern',name:'Extermination Pattern',category:'EXECUTIONERS',tier:'Major',cr:10,effect:'Один раз за battle один weapon profile получает Sustained Hits 1 до конца activation.'},
+ {code:'extermination_pattern',name:'Extermination Pattern',category:'EXECUTIONERS',tier:'Major',cr:10,effect:'Один раз за battle один weapon profile получает Sustained Hits 1 до конца activation; не складывается с уже имеющимся Sustained Hits.'},
  {code:'forced_march_honour',name:'Forced March',category:'HUNTERS',tier:'Minor',cr:5,effect:'Один раз за battle вместо Advance roll используйте 6.'},
  {code:'pathfinders',name:'Pathfinders',category:'HUNTERS',tier:'Minor',cr:5,effect:'Перед первым battle round Scout 3", если его нет; не работает на VEHICLE/MONSTER.'},
  {code:'pursuit',name:'Pursuit',category:'HUNTERS',tier:'Minor',cr:5,effect:'Один раз за battle перебросьте Charge roll против enemy unit, уже потерявшего wounds/models.'},
  {code:'relentless_track',name:'Relentless Track',category:'HUNTERS',tier:'Major',cr:10,effect:'Один раз за battle после enemy Normal Move в 9" сделайте Normal Move до 3", заканчивая не ближе 6".'},
  {code:'shock_presence',name:'Shock Presence',category:'LINEBREAKERS',tier:'Minor',cr:5,effect:'После успешного Charge до конца round unit получает +1 OC.'},
- {code:'breach_discipline',name:'Breach Discipline',category:'LINEBREAKERS',tier:'Minor',cr:5,effect:'Один раз за battle игнорируйте один mission penalty за debris, Difficult Ground или sector hazard.'},
- {code:'take_the_ground',name:'Take the Ground',category:'LINEBREAKERS',tier:'Minor',cr:5,effect:'Если unit закончил ход на objective, ранее контролировавшемся противником, +1 к следующему Battle-shock test до конца round.'},
+ {code:'breach_discipline',name:'Breach Discipline',category:'LINEBREAKERS',tier:'Minor',cr:5,effect:'Один раз за battle unit игнорирует один campaign/mission movement penalty от Rough Ground, debris или sector hazard.'},
+ {code:'take_the_ground',name:'Take the Ground',category:'LINEBREAKERS',tier:'Minor',cr:5,effect:'Если unit закончил ваш turn на objective, который в начале turn контролировал opponent, +1 к следующему Battle-shock test до конца вашей следующей Command phase.'},
  {code:'no_step_back',name:'No Step Back',category:'LINEBREAKERS',tier:'Major',cr:10,effect:'Один раз за battle автоматически пройдите Desperate Escape или аналогичный test для всего unit.'},
- {code:'mission_experts',name:'Mission Experts',category:'SPECIALISTS',tier:'Minor',cr:5,effect:'Mission Action завершается на шаг раньше; иначе +1 к одному связанному roll.'},
- {code:'field_engineers',name:'Field Engineers',category:'SPECIALISTS',tier:'Minor',cr:5,effect:'Один раз за battle после objective/terminal оставьте marker; первый enemy action получает -1 или требует +1 Control Point.'},
- {code:'secure_extract',name:'Secure and Extract',category:'SPECIALISTS',tier:'Minor',cr:5,effect:'Unit может выполнять Mission Action после Advance, но не может Shoot или Charge.'},
- {code:'operational_mastery',name:'Operational Mastery',category:'SPECIALISTS',tier:'Major',cr:10,effect:'Один раз за battle выполняйте Mission Action и стреляйте с -1 Hit.'},
+ {code:'mission_experts',name:'Mission Experts',category:'SPECIALISTS',tier:'Minor',cr:5,effect:'Один раз за battle Named Action этого unit завершается немедленно после старта, если mission не запрещает.'},
+ {code:'field_engineers',name:'Field Engineers',category:'SPECIALISTS',tier:'Minor',cr:5,effect:'Один раз за battle после interaction с objective/terminal оставьте marker. Первый enemy Named Action на нём завершается в конце следующего enemy turn вместо обычного timing.'},
+ {code:'secure_extract',name:'Secure and Extract',category:'SPECIALISTS',tier:'Minor',cr:5,effect:'Unit может начать Named Action после Advance как campaign exception; до конца turn всё равно не может Shoot/Charge.'},
+ {code:'operational_mastery',name:'Operational Mastery',category:'SPECIALISTS',tier:'Major',cr:10,effect:'Один раз за battle unit может начать Named Action и оставаться eligible to shoot; до конца Shooting phase -1 Hit.'},
  {code:'command_presence',name:'Command Presence',category:'COMMAND',tier:'Minor',cr:5,character:true,effect:'Только CHARACTER. Attached Unit получает +1 к одному Battle-shock test за round.'},
  {code:'contingency_orders',name:'Contingency Orders',category:'COMMAND',tier:'Minor',cr:5,character:true,effect:'Только CHARACTER. Один раз за battle после определения первого хода бесплатно переместите Attached Unit в Strategic Reserves, если setup позволяет.'},
  {code:'calculated_risk',name:'Calculated Risk',category:'COMMAND',tier:'Minor',cr:5,character:true,effect:'Только CHARACTER. Один раз за battle после Advance/Charge roll перебросьте один die.'},
@@ -146,9 +146,19 @@ export const CAMPAIGN_ARMOURY = [
  {code:'field_medicae',name:'Field Medicae / Repair Node',cost:40,cr:0,effect:'Одноразово после Casualty Roll уменьшите полученный Damage на 1.'},
  {code:'reinforced_plating',name:'Reinforced Plating',cost:60,cr:5,effect:'Один раз за battle уменьшите Damage одной успешной атаки по model на 1, минимум 1.'},
  {code:'tactical_relay',name:'Tactical Relay',cost:50,cr:5,effect:'Один раз за battle +1 к одному броску, напрямую связанному с Mission Action/sector rule.'},
- {code:'reserve_beacon',name:'Reserve Beacon',cost:60,cr:5,effect:'Один раз за battle перебросьте reserve-related roll или Charge roll в ход прибытия.'},
+ {code:'reserve_beacon',name:'Reserve Beacon',cost:60,cr:5,effect:'Один раз за battle перебросьте Charge roll unit в turn, когда он прибыл из Reserves/Garrison Reinforcements.'},
  {code:'recovery_cache',name:'Recovery Cache',cost:35,cr:0,effect:'Одноразово: следующий paid recovery 1 Damage стоит половину, округляя вверх до 5.'},
  {code:'blackglass_ward',name:'Blackglass Ward',cost:70,cr:5,effect:'Один раз за battle перебросьте Battle-shock test, вызванный Black Glass/Black Choir.'},
+ {code:'combat_auspex',name:'Combat Auspex',cost:40,cr:5,effect:'Один раз за battle одна Shooting activation игнорирует Benefit of Cover; до следующей Command phase unit +1 к одному Battle-shock test.'},
+] as const
+
+export const CAMPAIGN_RELICS = [
+ {roll:1,code:'blackglass_shard',name:'Blackglass Shard',cr:5,tier:'Minor',effect:'Один раз за battle перебросьте один Battle-shock test.'},
+ {roll:2,code:'chronal_sliver',name:'Chronal Sliver',cr:5,tier:'Minor',effect:'Один раз за battle перебросьте Advance или Charge roll.'},
+ {roll:3,code:'ossuary_key',name:'Ossuary Key',cr:5,tier:'Minor',effect:'Один раз за battle после успешного Named Action получите +1 VP, не выше mission maximum.'},
+ {roll:4,code:'blackglass_lens',name:'Blackglass Lens',cr:5,tier:'Minor',effect:'Один раз за battle один ranged weapon profile unit игнорирует Benefit of Cover до конца activation.'},
+ {roll:5,code:'mnemonic_crown',name:'Mnemonic Crown',cr:10,tier:'Major',effect:'Один раз за battle после завершения Named Action unit получает +1 OC до конца следующей Command phase.'},
+ {roll:6,code:'anchor_fragment',name:'Anchor Fragment',cr:10,tier:'Major',effect:'Один раз за battle после enemy Normal Move в 9" unit может переместиться до 3", заканчивая не ближе 6" от enemy.'},
 ] as const
 
 
@@ -164,13 +174,13 @@ export const TACTICAL_ASSETS = [
 export const DEFENSIVE_ASSETS = [
  {code:'Prepared Barricades',effect:'После terrain setup поставьте две небольшие barricade pieces полностью в Defender half, не ближе 3" к objective.'},
  {code:'Mine Corridor',effect:'После deployment отметьте полосу 9×3" вне deployment zones и objectives. Первый enemy unit, который Advance/Charge через неё, получает D3 mortal wounds на 4+.'},
- {code:'Reserve Beacon',effect:'Первый Garrison Reinforcement может перебросить один failed reserve-related roll/placement check или Charge roll в ход прибытия.'},
+ {code:'Reserve Beacon',effect:'Первый Garrison Reinforcement в battle один раз может перебросить Charge roll в ход прибытия.'},
  {code:'Hardened Stores',effect:'После battle один участвовавший garrison unit получает +1 к Casualty Roll.'},
 ] as const
 
 export const BREACH_ASSETS = [
  {code:'Suppression Window',effect:'Один раз за battle в начале Defender Movement phase задержите один Garrison Reinforcement на round.'},
  {code:'Breach Charge',effect:'Один ваш unit один раз за battle игнорирует Benefit of Cover до конца своей Shooting или Fight activation.'},
- {code:'Infiltration Route',effect:'Один INFANTRY unit можно бесплатно начать в Strategic Reserves; прибывает не раньше round 2 по core restrictions.'},
+ {code:'Infiltration Route',effect:'После deployment, до определения первого turn, один ваш INFANTRY unit полностью вне Engagement Range может сделать Normal Move до 6". Не может закончить в enemy deployment zone или Engagement Range.'},
  {code:'Extraction Beacon',effect:'После battle один уничтоженный Attacker non-CHARACTER получает +1 Casualty Roll.'},
 ] as const
