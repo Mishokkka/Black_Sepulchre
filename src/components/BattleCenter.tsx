@@ -133,7 +133,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   const bothRecon=reconSides.length>=2
   const ownInterdict=pending?(member.side===pending.attacker_side?pending.attacker_interdict:pending.defender_interdict):null
   const enemyInterdict=pending?(member.side===pending.attacker_side?pending.defender_interdict:pending.attacker_interdict):null
-  const interdictOptions=[...TACTICAL_ASSETS,...BREACH_ASSETS]
+  const interdictOptions=member.side===pending?.attacker_side?[...TACTICAL_ASSETS]:[...TACTICAL_ASSETS,...BREACH_ASSETS]
 
   const eligible=useMemo(()=>{
     if(!pending)return []
@@ -198,7 +198,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
       {pending.mission_code==='TBD'?<button className="primary" disabled={working} onClick={()=>rpc('battle_roll_mission',{p_battle:pending.id})}>Бросить миссию</button>:
       <div className="mission-line"><span>{mission?.[2]}</span><div className="button-row">
         <button className="ghost compact" disabled={working||(myPlayer?.intelligence??0)<1} onClick={()=>rpc('battle_reroll_mission',{p_battle:pending.id})}><RefreshCw size={14}/> Re-roll · 1 Intel</button>
-        <button className="ghost compact" disabled={working||ownRecon||(myPlayer?.intelligence??0)<1||bothLocked} onClick={useReconLock}><LockKeyhole size={14}/> Recon Lock · 1 Intel</button>
+        <button className="ghost compact" disabled={working||ownRecon||(myPlayer?.intelligence??0)<1||pending.attacker_muster_locked||pending.defender_muster_locked} onClick={useReconLock}><LockKeyhole size={14}/> Recon Lock · 1 Intel</button>
       </div></div>}
       {reconSides.length>0&&<div className="notice">{bothRecon?'Обе стороны активировали Recon Lock: порядок раскрытия не меняется.':`Recon Lock: ${sideLabel(reconSides[0])} фиксирует Muster после соперника.`}</div>}
     </section>
