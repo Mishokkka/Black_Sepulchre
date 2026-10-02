@@ -118,6 +118,12 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
     return {data,error}
   }
 
+  async function useReconPreRoll(){
+    if(!pending)return
+    const r=await rpc('battle_use_recon',{p_battle:pending.id})
+    if(r.data)setMsg(`Recon: mission ${r.data.mission}; Intelligence ${r.data.intel_before} → ${r.data.intel_after}; осталось Actions: ${r.data.actions_remaining}.`)
+  }
+
   async function useReconLock(){
     if(!pending)return
     const r=await rpc('battle_use_recon_lock',{p_battle:pending.id},'Recon Lock активирован.')
@@ -275,7 +281,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
 
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">MISSION</div><h2>{pending.mission_code==='TBD'?'Не определена':pending.mission_code==='CHOICE'?'Noctis Relay: выберите результат':`${pending.mission_code} · ${mission?.[1]??''}`}</h2></div><Dices/></div>
-      {pending.mission_code==='TBD'?<button className="primary" disabled={working} onClick={()=>rpc('battle_roll_mission',{p_battle:pending.id})}>Бросить миссию</button>:
+      {pending.mission_code==='TBD'?<div className="button-row"><button className="primary" disabled={working} onClick={()=>rpc('battle_roll_mission',{p_battle:pending.id})}>Бросить миссию</button><button className="ghost" disabled={working} onClick={useReconPreRoll}><Radio size={14}/> Recon pre-roll · 1 Action{noosphereStatic?' + 1 Intel':''}</button></div>:
       pending.mission_code==='CHOICE'?<div className="mission-choice">
         <p className="muted">Noctis Relay бросил D3 дважды. Выбор принадлежит {sideLabel(pending.mission_choice_side)}.</p>
         <div className="button-row">{(pending.mission_options??[]).map(code=>{const m=MISSIONS.find(x=>x[0]===code);return <button key={code} className="ghost" disabled={working||member.side!==pending.mission_choice_side} onClick={()=>chooseMission(code)}>{code} · {m?.[1]??''}</button>})}</div>
