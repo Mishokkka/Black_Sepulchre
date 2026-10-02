@@ -749,11 +749,11 @@ Server-authoritative логика уже покрывает:
 - sector states, включая некумулятивный Unsupplied/Exhausted reinforcement penalty, Disrupted, Contested, Ruined Fortifications и F3 short Sabotage; Exhausted сохраняется при смене владельца, Sabotaged снимается только своей обычной длительностью/Repair, а Occupation корректно превращает Fortified в Ruined Fortifications;
 - OBC/RC/Effective Cost split: per-unit OBC фиксируется в Muster, CR surcharge считается от RC;
 - secret Muster с RLS: до reveal соперник не читает чужой `battle_units`; Recon Lock реально раскрывает opponent Committed Force первым;
-- Unit Limits, Initial/Capacity tiers, local-garrison replacement в Field Battle, RESTING, DISPLACED;
+- Unit Limits, Initial/Capacity tiers, v2 faction garrison datasheet/keyword legality, local-garrison replacement в Field Battle, RESTING, DISPLACED;
 - Tactical/Defensive/Breach Assets, Interdict и post-battle Hard Evacuation/Hardened Stores/Extraction Beacon;
 - Hybrid Attrition, Damage, D12 Battle Scars, fourth-Scar lock;
 - полный Critical Injury D6, Lost/Evacuation, Epic Hero rule, Evacuation payment, Out of Action/Systemic Failure;
-- Participation/Deed/Distinguished XP, Honours, Signature Honours, Campaign Rating;
+- Participation/Deed/Distinguished XP, Attached Unit one-Deed allocation, Field-only Distinguished, Honours, Signature Honours, Campaign Rating;
 - Campaign Armoury, Random Minor Armoury D6, Campaign Relics D6, Veteran Drill;
 - Paid Recovery, Emergency Overhaul, Emergency Field Repair, Recovery Supply, Recovery Cache, Field Medicae, Rehabilitation/Deep Reconstruction;
 - persistent size/loadout refit, Stage Detachment Package, Doctrine Refit и Enhancement assignments/reassignment;
@@ -973,7 +973,7 @@ Account A creates campaign
 - Recovery Cache consumption;
 - Field Medicae consumption;
 - Noctis double mission choice;
-- Fleshworks double D66 choice;
+- Fleshworks double D66 choice и D3 triple-D66 amplification;
 - Salvage/D66 rerolls before Logistics spending;
 - D66 24/31/33/41/52/53/54/56 both-side resolution;
 - queued Noosphere Static / False Orders / Broken Map / Ceasefire;
