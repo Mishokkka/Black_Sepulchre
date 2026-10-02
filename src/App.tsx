@@ -4,6 +4,7 @@ import { Activity, BookOpen, Copy, LogOut, Map, RefreshCw, Shield, Skull, Swords
 import StrategicPanel from './components/StrategicPanel'
 import BattleCenter from './components/BattleCenter'
 import EventsPanel from './components/EventsPanel'
+import HonourClaims from './components/HonourClaims'
 import { supabase } from './lib/supabase'
 import { ADJACENCY, SECTOR_META, STAGES, campaignSurcharge, recoveryCost, stageIndexForBattles } from './data/campaign'
 import type { Campaign, Member, PlayerState, Sector, Unit } from './types'
@@ -87,7 +88,7 @@ function MapView({sectors,players,selected,onSelect}:{sectors:Sector[];players:P
  </div>
 }
 
-function RosterView({units,member}:{units:Unit[];member:Member}){
+function RosterView({units,member,reload}:{units:Unit[];member:Member;reload:()=>void}){
  const mine=units.filter(u=>u.side===member.side),enemy=units.filter(u=>u.side!==member.side)
  const rank=(xp:number)=>xp>=18?'Legendary':xp>=12?'Elite':xp>=7?'Veteran':xp>=3?'Blooded':'Recruit'
  const render=(rows:Unit[])=><div className="unit-list">{rows.map(u=><div className="unit-row" key={u.id}>
@@ -99,7 +100,7 @@ function RosterView({units,member}:{units:Unit[];member:Member}){
   <div className="stat"><span>Rank</span>{rank(u.xp)}</div>
   <div className={'status-pill d'+u.damage}>{u.damage===3?'Shattered':'Damage '+u.damage}</div>
  </div>)}</div>
- return <div><div className="section-head"><div><div className="eyebrow">PERSISTENT UNITS</div><h2>{sideLabel(member.side)}</h2></div></div>{render(mine)}
+ return <div><HonourClaims units={units} member={member} reload={reload}/><div className="section-head roster-head"><div><div className="eyebrow">PERSISTENT UNITS</div><h2>{sideLabel(member.side)}</h2></div></div>{render(mine)}
   <p className="muted roster-note">Покупка, recovery и расформирование выполняются только в Logistics Phase. XP и Damage меняются через Battle Aftermath.</p>
   <div className="section-head secondary"><div><div className="eyebrow">OPPONENT</div><h2>{sideLabel(member.side==='necrons'?'deathwatch':'necrons')}</h2></div></div>{render(enemy)}
  </div>
@@ -130,7 +131,7 @@ function App(){
     <section className="panel wide"><div className="section-head"><div><div className="eyebrow">LIVE MAP</div><h2>Strategic situation</h2></div></div><MapView sectors={sectors} players={players} selected={selectedSector} onSelect={setSelectedSector}/></section></div></>}
    {tab==='strategy'&&<StrategicPanel campaign={campaign} member={member} players={players} sectors={sectors} units={units} reload={load} onOpenBattles={()=>setTab('battles')}/>} 
    {tab==='map'&&<section className="panel map-page"><MapView sectors={sectors} players={players} selected={selectedSector} onSelect={setSelectedSector}/></section>}
-   {tab==='rosters'&&<RosterView units={units} member={member}/>}
+   {tab==='rosters'&&<RosterView units={units} member={member} reload={load}/>}
    {tab==='battles'&&<BattleCenter campaign={campaign} member={member} players={players} sectors={sectors} units={units} reload={load}/>}\n   {tab==='events'&&<EventsPanel campaign={campaign}/>}
    {tab==='log'&&<section className="panel"><div className="section-head"><div><div className="eyebrow">AUDIT LOG</div><h2>История кампании</h2></div></div><div className="log-list">{logs.map(l=><div key={l.id}><time>{new Date(l.created_at).toLocaleString('ru')}</time><strong>{l.action}</strong><span>{l.entity_type} {l.entity_id??''}</span></div>)}</div></section>}
   </main></div>
