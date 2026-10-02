@@ -3,6 +3,7 @@ import { Check, Dices, LockKeyhole, RefreshCw, Skull, Swords } from 'lucide-reac
 import { supabase } from '../lib/supabase'
 import { ADJACENCY, MISSIONS, STAGES, campaignSurcharge, stageIndexForBattles } from '../data/campaign'
 import type { Campaign, Member, PlayerState, Sector, Unit } from '../types'
+import BattleAssets from './BattleAssets'
 
 type Side='necrons'|'deathwatch'
 type Battle={
@@ -10,6 +11,7 @@ type Battle={
   battle_type:'Field Battle'|'Garrison Battle'|'Stronghold Assault';attacker_side:Side;defender_side:Side;attacker_origin:string;
   attacker_vp:number;defender_vp:number;outcome:string|null;status:'draft'|'completed';
   attacker_muster_locked:boolean;defender_muster_locked:boolean;salvage_attacker:number|null;salvage_defender:number|null;
+  attacker_tactical_assets:string[];defender_tactical_assets:string[];defensive_asset:string|null;breach_assets:string[];
   event_code:string|null;aftermath:any;report:any;created_at:string;completed_at:string|null
 }
 type BattleUnit={
@@ -189,6 +191,8 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
       {!ownLocked&&<button className="primary action-main" disabled={working||pending.mission_code==='TBD'} onClick={lockMuster}><LockKeyhole size={15}/> Lock Muster</button>}
       {ownLocked&&!bothLocked&&<div className="notice">Ваш Muster сохранён. Ожидается вторая сторона.</div>}
     </section>
+
+    {bothLocked&&<BattleAssets battle={pending} campaign={campaign} member={member} sectors={sectors} units={units} battleUnits={battleUnits} onSaved={async message=>{setMsg(message);await refresh()}}/>}
 
     {bothLocked&&<section className="panel">
       <div className="section-head"><div><div className="eyebrow">TABLETOP RESULT</div><h2>Battle Report</h2></div><Skull/></div>
