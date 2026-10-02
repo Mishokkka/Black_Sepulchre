@@ -56,3 +56,50 @@ export function garrisonCaps(limit:number,sectorClass:string,fortified:boolean,p
  if(penalty)reserve=Math.max(0,reserve-.10)
  return {initial:Math.floor(limit*initial/5)*5,reserve:Math.floor(limit*reserve/5)*5}
 }
+
+
+export const D66_EVENTS: Record<string,{name:string;effect:string}> = {
+ '11':{name:'The Silent Survivors',effect:'Игрок с меньшим числом секторов выбирает: +1 Intel или +25 Supply; при выборе Supply BLACK CHOIR +1.'},
+ '12':{name:'Munitorum Cache',effect:'Каждый игрок получает +20 Supply. Победитель может вместо этого получить Recovery Cache.'},
+ '13':{name:'Blackglass Shards',effect:'Игрок, контролирующий G или соседний с G сектор, получает Blackglass Ward; если он уже есть, +1 Intel.'},
+ '14':{name:'Recovery Crew',effect:'Каждый выбирает один уничтоженный unit: его Casualty Roll улучшается на +1 задним числом, максимум 6; Scar от отменённого Catastrophic Loss удаляется.'},
+ '15':{name:'Empty Coffins',effect:'BLACK CHOIR +1.'},
+ '16':{name:'Damaged Relic',effect:'Победитель получает случайный Minor Armoury item. После первого использования на D6=1 предмет уничтожается.'},
+ '21':{name:'Vox From the Dead',effect:'Проигравший получает +1 Intel. В следующей битве его первый failed Battle-shock можно перебросить.'},
+ '22':{name:'Ash Rain',effect:'Следующая tabletop battle: Ash Storm в battle round 3; ranged attacks дальше 24" невозможны до конца раунда.'},
+ '23':{name:'The Missing Hour',effect:'В следующую Strategic Activation каждый тайно записывает первое Strategic Action; на 4+ оно срабатывает, на 1–3 теряется без оплаты ресурса.'},
+ '24':{name:'Living Metal Dust',effect:'Necrons бесплатно снимают 1 Damage одному unit. Deathwatch получает +20 Supply.'},
+ '25':{name:'Bone Bloom',effect:'Следующая battle: центральный objective окружён 5" Difficult Ground. Победитель +10 Supply.'},
+ '26':{name:'Machine Hymn',effect:'В следующей battle первый VEHICLE/MONSTER, который должен стать Battle-shocked, получает D3 mortal wounds и считается прошедшим test.'},
+ '31':{name:'Stragglers',effect:'Каждый может заплатить 10 Supply и дать одному Recruit unit +1 XP.'},
+ '32':{name:'Captured Servitor',effect:'Победитель выбирает +25 Supply или +1 Intel; проигравший получает оставшуюся награду. При Draw выбирает игрок с меньшим числом секторов.'},
+ '33':{name:'Xenos Script',effect:'Deathwatch +1 Intel. Necrons: одному unit +1 XP. Если Deathwatch контролирует I или K, также +10 Supply.'},
+ '34':{name:'Auspex Ghost',effect:'В следующей battle оба получают Recon Lock бесплатно. Если оба используют его, армии раскрываются одновременно и каждый получает +1 Intel после Muster.'},
+ '35':{name:'Hidden Route',effect:'До конца следующей tabletop battle каждый один раз может объявить атаку на сектор в двух связях за 1 Intel.'},
+ '36':{name:'Broken Map',effect:'Бонусы Noctis Relay и Orbital Ossuary Lift отключены до конца следующей tabletop battle.'},
+ '41':{name:'Ammunition Rot',effect:'Каждый платит 10 Supply или выбирает unit, который не может использовать Campaign Armoury item в следующей battle.'},
+ '42':{name:'Noosphere Static',effect:'Recon, Recon Lock и Sabotage стоят на 1 Intel дороже до конца следующей tabletop battle.'},
+ '43':{name:'Reanimating Corpse',effect:'Поставьте UNRESOLVED. Если 43 выпадет снова, BLACK CHOIR +2 и Reveal II открывается, если ещё не открыт.'},
+ '44':{name:'False Orders',effect:'Игрок с большим числом секторов получает на 1 Strategic Action меньше в следующую Activation; при равенстве эффекта нет.'},
+ '45':{name:'Contaminated Supply',effect:'Каждый бросает D6. На 1–2 теряет 10% текущего Supply, округляя вниз до 5; на 3–6 ничего.'},
+ '46':{name:'Delayed Reinforcements',effect:'В следующей battle первый campaign-granted Reserve или Garrison Reinforcement каждой стороны прибывает на один round позже.'},
+ '51':{name:'The Wrong Bodies',effect:'Игрок, потерявший больше units, получает +25 Recovery Supply. BLACK CHOIR +1.'},
+ '52':{name:'Mutual Atrocity',effect:'Каждый независимо выбирает: +20 Supply и один свой сектор Exhausted, или ничего.'},
+ '53':{name:'Unmarked Kill Team',effect:'Deathwatch +1 Intel; Necrons +15 Supply. Если Deathwatch контролирует G, он может вместо Intel получить +20 Supply.'},
+ '54':{name:'Tomb Echo',effect:'Necrons +1 Intel; Deathwatch +15 Supply. Если Necrons контролируют G, они могут вместо Intel получить +20 Supply.'},
+ '55':{name:'Ceasefire That Never Was',effect:'Следующий игрок, объявивший атаку, получает +1 Intel после выбора сектора.'},
+ '56':{name:'The Corpse Ledger',effect:'Каждый может выбрать unit с Battle Scar и заплатить 10 Supply: следующий Rehabilitation roll получает +1.'},
+ '61':{name:'Choir Beneath the Floor',effect:'BLACK CHOIR +1; новый Reveal открывается немедленно.'},
+ '62':{name:'Nine Seconds Repeated',effect:'Следующая battle: в начале round 2 повторите эффект round 1 одной sector Catastrophe, если применимо; иначе каждый +1 CP.'},
+ '63':{name:'Names in the Static',effect:'Каждый называет CHARACTER. Если выжил следующую battle, +1 XP; если уничтожен, Casualty Roll -1.'},
+ '64':{name:'The Door Behind the Door',effect:'SECRET ROUTE на случайный non-home sector. До следующего захвата владелец один раз считает любой сектор рядом с G соседним для movement/attack.'},
+ '65':{name:'Black Sun',effect:'BLACK CHOIR +1. Следующая battle: round 4 без Benefit of Cover по всему полю.'},
+ '66':{name:'The Mouth Opens',effect:'BLACK CHOIR +2. Откройте следующий неоткрытый Reveal независимо от значения. Каждый +1 Intel.'},
+}
+
+export const BLACK_CHOIR_REVEALS = [
+ {threshold:2,label:'Reveal I',effect:'Отмечайте Resonance events в Battle Log.'},
+ {threshold:4,label:'Reveal II',effect:'Открывается Strategic Action Investigate Choir.'},
+ {threshold:6,label:'Reveal III',effect:'Stronghold missions получают Secret Objective Extract the Index.'},
+ {threshold:8,label:'Reveal IV',effect:'Контроль G можно заменить 3 Secret Fragments.'},
+] as const
