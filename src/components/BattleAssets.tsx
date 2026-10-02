@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Shield, Target } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { BREACH_ASSETS, DEFENSIVE_ASSETS, STAGES, TACTICAL_ASSETS, campaignSurcharge, stageIndexForBattles } from '../data/campaign'
+import { BREACH_ASSETS, DEFENSIVE_ASSETS, TACTICAL_ASSETS, campaignSurcharge } from '../data/campaign'
 import type { Campaign, Member, Sector, Unit } from '../types'
 
 type Side='necrons'|'deathwatch'
@@ -11,7 +11,7 @@ type BattleLike={
   attacker_tactical_assets:string[];defender_tactical_assets:string[];
   defensive_asset:string|null;breach_assets:string[];attacker_interdict:string|null;defender_interdict:string|null;
 }
-type BattleUnitLike={unit_id:string;side:Side;role:'field'|'garrison_initial'|'garrison_reinforcement';participated:boolean}
+type BattleUnitLike={unit_id:string;side:Side;role:'field'|'garrison_initial'|'garrison_reinforcement';participated:boolean;official_battle_cost?:number|null;effective_cost?:number|null}
 
 const label=(s:string)=>s==='necrons'?'Necrons':'Deathwatch'
 
@@ -20,7 +20,6 @@ export default function BattleAssets({
 }:{
   battle:BattleLike;campaign:Campaign;member:Member;sectors:Sector[];units:Unit[];battleUnits:BattleUnitLike[];onSaved:(message:string)=>void
 }){
-  const stage=STAGES[stageIndexForBattles(campaign.battle_count)]
   const sector=sectors.find(s=>s.sector_key===battle.sector_key)
   const side=member.side
   const[working,setWorking]=useState(false),[msg,setMsg]=useState('')
@@ -31,12 +30,12 @@ export default function BattleAssets({
   const totals=useMemo(()=>{
     const total=(s:Side)=>battleUnits.filter(b=>b.side===s&&b.participated&&(b.role==='field'||b.role==='garrison_initial')).reduce((sum,b)=>{
       const u=units.find(x=>x.id===b.unit_id)
-      return sum+(u?u.reference_cost+campaignSurcharge(u.reference_cost,u.campaign_rating):0)
+      return sum+(u?(b.effective_cost??((b.official_battle_cost??u.reference_cost)+campaignSurcharge(u.reference_cost,u.campaign_rating))):0)
     },0)
     return {attacker:total(battle.attacker_side),defender:total(battle.defender_side)}
   },[battleUnits,units,battle.attacker_side,battle.defender_side])
 
-  const hasLocalGarrison=useMemo(()=>units.some(u=>u.side===battle.defender_side&&u.location_type==='garrison'&&u.sector_key===battle.sector_key&&u.status!=='lost'),[units,battle.defender_side,battle.sector_key])
+  const hasLocalGarrison=useMemo(()=>battleUnits.some(b=>b.side===battle.defender_side&&b.participated&&(b.role==='garrison_initial'||b.role==='garrison_reinforcement')),[battleUnits,battle.defender_side])
   const hasReinforcementPool=useMemo(()=>battleUnits.some(b=>b.side===battle.defender_side&&b.participated&&b.role==='garrison_reinforcement'),[battleUnits,battle.defender_side])
 
   const underdog=useMemo(()=>{
