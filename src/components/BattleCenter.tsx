@@ -14,7 +14,9 @@ type Battle={
   attacker_tactical_assets:string[];defender_tactical_assets:string[];defensive_asset:string|null;breach_assets:string[];
   recon_lock_sides:string[];attacker_interdict:string|null;defender_interdict:string|null;
   mission_options:string[];mission_choice_side:Side|null;
-  event_code:string|null;aftermath:any;report:any;created_at:string;completed_at:string|null
+  attacker_salvage_choice:string|null;defender_salvage_choice:string|null;salvage_rerolled_sides:string[];
+  event_code:string|null;event_options:string[];event_choice_side:Side|null;d66_rerolled:boolean;
+  aftermath:any;report:any;created_at:string;completed_at:string|null
 }
 type BattleUnit={
   battle_id:string;unit_id:string;side:Side;role:'field'|'garrison_initial'|'garrison_reinforcement';
@@ -62,6 +64,7 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   const[attSalvage,setAttSalvage]=useState('supply'),[defSalvage,setDefSalvage]=useState('supply')
   const[narrative,setNarrative]=useState('')
   const[interdictAsset,setInterdictAsset]=useState('')
+  const[salvageRerollChoice,setSalvageRerollChoice]=useState<'supply'|'intelligence'>('supply')
   const[msg,setMsg]=useState(''),[working,setWorking]=useState(false)
 
   const fetchBattles=useCallback(async()=>{
@@ -184,6 +187,24 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   const localGarrison=useMemo(()=>pending?units.filter(u=>u.side===pending.defender_side&&u.location_type==='garrison'&&u.sector_key===pending.sector_key):[],[pending,units])
   const legalGarRetreat=useMemo(()=>pending?(ADJACENCY[pending.sector_key]??[]).filter(k=>sectors.find(s=>s.sector_key===k)?.owner_side===pending.defender_side):[],[pending,sectors])
 
+  async function rerollSalvage(b:Battle){
+    setWorking(true);setMsg('')
+    const{data,error}=await supabase.rpc('battle_reroll_salvage',{p_battle:b.id,p_choice:salvageRerollChoice})
+    setWorking(false)
+    if(error){setMsg(error.message);return}
+    setMsg(`Salvage re-roll: ${data.old_roll} → ${data.new_roll}. Reward: ${data.supply_reward} Supply, ${data.intel_reward} Intel.`)
+    await refresh()
+  }
+
+  async function rerollD66(b:Battle){
+    setWorking(true);setMsg('')
+    const{data,error}=await supabase.rpc('battle_reroll_d66',{p_battle:b.id})
+    setWorking(false)
+    if(error){setMsg(error.message);return}
+    setMsg(`D66 re-roll: ${b.event_code} → ${data}. Второй результат обязателен.`)
+    await refresh()
+  }
+
   async function resolve(){
     if(!pending)return
     const unitResults=battleUnits.map(bu=>({unit_id:bu.unit_id,...(resultPicks[bu.unit_id]??{destroyed:false,deed:'',distinguished:false,casualty_modifier:0,mission_xp:0,use_medicae:false,khepra_rest:false})}))
@@ -198,7 +219,14 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   if(!pending)return <div className="battle-page">
     <section className="panel empty-state"><Swords size={42}/><h2>Нет активного боя</h2><p>Контакт создаётся автоматически, когда Main Force входит во вражеский сектор. После этого здесь появится Mission → Muster → Report → Aftermath.</p></section>
     {history.length>0&&<section className="panel"><div className="section-head"><div><div className="eyebrow">BATTLE LOG</div><h2>Завершённые бои</h2></div></div>
-      <div className="battle-history">{history.map(b=><div key={b.id}><div><strong>#{b.sequence_no} · {b.mission_code}</strong><small>{b.battle_type} · Sector {b.sector_key}</small></div><div>{b.attacker_vp}:{b.defender_vp}</div><div>{outcomeLabel[b.outcome??'']??b.outcome}</div><div><small>Salvage {b.salvage_attacker}/{b.salvage_defender} · D66 {b.event_code??'—'}</small></div></div>)}</div>
+      <div className="battle-history">{history.map((b,i)=>{const mySalvage=member.side===b.attacker_side?b.salvage_attacker:b.salvage_defender;const logisticsOpen=i===0&&campaign.active_side===b.attacker_side;const salvageUsed=(b.salvage_rerolled_sides??[]).includes(member.side);return <div key={b.id} className="battle-history-row"><div><strong>#{b.sequence_no} · {b.mission_code}</strong><small>{b.battle_type} · Sector {b.sector_key}</small></div><div>{b.attacker_vp}:{b.defender_vp}</div><div>{outcomeLabel[b.outcome??'']??b.outcome}</div><div><small>Ваш Salvage {mySalvage??'—'} · D66 {b.event_code??'—'}</small></div>
+        {logisticsOpen&&<div className="history-actions">
+          {!salvageUsed&&<><select value={salvageRerollChoice} onChange={e=>setSalvageRerollChoice(e.target.value as 'supply'|'intelligence')}><option value="supply">Если 6: +20 Supply</option><option value="intelligence">Если 6: +1 Intel</option></select><button className="ghost compact" disabled={working||(players.find(p=>p.side===member.side)?.intelligence??0)<1} onClick={()=>rerollSalvage(b)}><RefreshCw size={13}/> Salvage · 1 Intel</button></>}
+          {!b.d66_rerolled&&b.event_code?.match(/^[1-6][1-6]$/)&&<button className="ghost compact" disabled={working||(players.find(p=>p.side===member.side)?.intelligence??0)<2} onClick={()=>rerollD66(b)}><Dices size={13}/> D66 · 2 Intel</button>}
+          {b.event_code==='CHOICE'&&<small>Сначала выберите Fleshworks D66 в «Событиях».</small>}
+        </div>}
+      </div>})}</div>
+      {msg&&<div className="notice">{msg}</div>}
     </section>}
   </div>
 
