@@ -40,13 +40,7 @@ function supplied(side:string,sector:string,sectors:Sector[]){
 }
 
 function caps(battle:Battle,campaign:Campaign,sectors:Sector[]){
-  const stage=STAGES[stageIndexForBattles(campaign.battle_count)]
-  const reconSides=pending?.recon_lock_sides??[]
-  const ownRecon=reconSides.includes(member.side)
-  const bothRecon=reconSides.length>=2
-  const ownInterdict=pending?(member.side===pending.attacker_side?pending.attacker_interdict:pending.defender_interdict):null
-  const enemyInterdict=pending?(member.side===pending.attacker_side?pending.defender_interdict:pending.attacker_interdict):null
-  const interdictOptions=[...TACTICAL_ASSETS,...BREACH_ASSETS],s=sectors.find(x=>x.sector_key===battle.sector_key)
+  const stage=STAGES[stageIndexForBattles(campaign.battle_count)],s=sectors.find(x=>x.sector_key===battle.sector_key)
   if(!s)return {initial:0,reserve:0,arrival:3}
   let ip=s.sector_class==='Home Stronghold'?100:s.fortified?100:s.sector_class==='Strategic Node'?75:50
   let rp=s.sector_class==='Home Stronghold'?75:s.fortified?50:s.sector_class==='Strategic Node'?35:25
@@ -134,6 +128,12 @@ export default function BattleCenter({campaign,member,players,sectors,units,relo
   const myPlayer=players.find(p=>p.side===member.side)
   const c=pending?caps(pending,campaign,sectors):null
   const stage=STAGES[stageIndexForBattles(campaign.battle_count)]
+  const reconSides=pending?.recon_lock_sides??[]
+  const ownRecon=reconSides.includes(member.side)
+  const bothRecon=reconSides.length>=2
+  const ownInterdict=pending?(member.side===pending.attacker_side?pending.attacker_interdict:pending.defender_interdict):null
+  const enemyInterdict=pending?(member.side===pending.attacker_side?pending.defender_interdict:pending.attacker_interdict):null
+  const interdictOptions=[...TACTICAL_ASSETS,...BREACH_ASSETS]
 
   const eligible=useMemo(()=>{
     if(!pending)return []
