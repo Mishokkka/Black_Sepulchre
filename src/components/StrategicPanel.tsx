@@ -67,7 +67,11 @@ export default function StrategicPanel({
   })
   const isMyTurn=campaign.active_side===member.side
   const currentSupplied=me?supplied(member.side,me.main_force_sector,sectors):false
-  const canInvestigate=campaign.black_choir>=4&&!!current&&(current.sector_key==='G'||((ADJACENCY[current.sector_key]??[]).includes('G')&&current.owner_side===member.side))
+  const pendingEffects=(campaign.settings?.pending_effects??[]) as any[]
+  const noosphereStatic=pendingEffects.some(e=>e?.code==='noosphere_static')
+  const brokenMap=pendingEffects.some(e=>e?.code==='broken_map')
+  const revealII=campaign.black_choir>=4||Number(campaign.settings?.forced_reveal_threshold??0)>=4
+  const canInvestigate=revealII&&!!current&&(current.sector_key==='G'||((ADJACENCY[current.sector_key]??[]).includes('G')&&current.owner_side===member.side))
 
   const fetchActivation=useCallback(async()=>{
     const{data}=await supabase.from('activations').select('*').eq('campaign_id',campaign.id).in('status',['open','reaction_pending','battle_pending','logistics']).order('sequence_no',{ascending:false}).limit(1)
@@ -181,17 +185,17 @@ export default function StrategicPanel({
       </div>
     </section>
 
-    <SpecialMovementPanel activationId={activation.id} startSector={activation.start_sector} currentSector={me?.main_force_sector??activation.start_sector} member={member} sectors={sectors} intelligence={me?.intelligence??0} onResolved={async(data,message)=>{setMsg(message);await refresh();if(data?.kind==='battle')onOpenBattles()}}/>
+    <SpecialMovementPanel activationId={activation.id} startSector={activation.start_sector} currentSector={me?.main_force_sector??activation.start_sector} member={member} sectors={sectors} intelligence={me?.intelligence??0} orbitalDisabled={brokenMap} onResolved={async(data,message)=>{setMsg(message);await refresh();if(data?.kind==='battle')onOpenBattles()}}/>
 
     <section className="panel">
       <div className="section-head"><div><div className="eyebrow">STRATEGIC ACTIONS</div><h2>Действия</h2></div><BatteryCharging/></div>
       <div className="action-list">
-        <button disabled={working||!canAct||reconBlocked||actionUsed('recon')} onClick={()=>rpc('activation_recon',{p_activation:activation.id},'+1 Intelligence.')}><Eye/><span><strong>Recon</strong><small>{reconBlocked?'Недоступно до battle/Occupation':'+1 Intelligence'}</small></span></button>
+        <button disabled={working||!canAct||reconBlocked||actionUsed('recon')||(noosphereStatic&&(me?.intelligence??0)<1)} onClick={()=>rpc('activation_recon',{p_activation:activation.id},noosphereStatic?'Recon under Noosphere Static resolved.':'+1 Intelligence.')}><Eye/><span><strong>Recon</strong><small>{reconBlocked?'Недоступно до battle/Occupation':noosphereStatic?'Noosphere Static: 1 Intel fee · затем +1 Intel':'+1 Intelligence'}</small></span></button>
         <button disabled={working||!canAct||mobiliseBlocked||current?.sector_class==='Home Stronghold'||!currentSupplied||actionUsed('mobilise')} onClick={()=>rpc('activation_mobilise',{p_activation:activation.id},'Mobilise: +'+mobGain+' Supply; сектор Exhausted.')}><BatteryCharging/><span><strong>Mobilise</strong><small>+{mobGain} Supply · Exhausted 2</small></span></button>
         <button disabled={working||!canAct||actionUsed('forced_march')} onClick={()=>rpc('activation_forced_march',{p_activation:activation.id},'+1 March Point.')}><Footprints/><span><strong>Forced March</strong><small>+1 MP · без нового garrison в конце</small></span></button>
         <button disabled={working||!canAct||!!current?.fortified||!currentSupplied||actionUsed('fortify')||(me?.supply??0)<fortCost} onClick={()=>rpc('activation_fortify',{p_activation:activation.id},'Fortified. Потрачено '+fortCost+' Supply.')}><Castle/><span><strong>Fortify</strong><small>{fortCost} Supply</small></span></button>
         <button disabled={working||!canAct||actionUsed('reorganise')} onClick={()=>setShowReorganise(true)}><Wrench/><span><strong>Reorganise Forces</strong><small>Field Roster ↔ local garrison</small></span></button>
-        {campaign.black_choir>=4&&<button disabled={working||!canAct||!canInvestigate||actionUsed('investigate_choir')||(me?.intelligence??0)<1} onClick={()=>rpc('activation_investigate_choir',{p_activation:activation.id},'Investigate Choir resolved.')}><Radio/><span><strong>Investigate Choir</strong><small>1 Intel · у G после Reveal II</small></span></button>}
+        {revealII&&<button disabled={working||!canAct||!canInvestigate||actionUsed('investigate_choir')||(me?.intelligence??0)<1} onClick={()=>rpc('activation_investigate_choir',{p_activation:activation.id},'Investigate Choir resolved.')}><Radio/><span><strong>Investigate Choir</strong><small>1 Intel · у G после Reveal II</small></span></button>}
         {conditionList.filter(c=>c==='Exhausted'||c==='Sabotaged').map(c=><button key={c} disabled={working||!canAct} onClick={()=>rpc('activation_repair_network',{p_activation:activation.id,p_condition:c},'Снято состояние '+c+'.')}><Wrench/><span><strong>Repair Network</strong><small>Снять {c}</small></span></button>)}
       </div>
     </section>
@@ -200,8 +204,8 @@ export default function StrategicPanel({
       <div className="section-head"><div><div className="eyebrow">SABOTAGE</div><h2>Соседняя вражеская сеть</h2></div><Hammer/></div>
       {enemyNeighbors.length?<><select value={sabotageTarget} onChange={e=>setSabotageTarget(e.target.value)}><option value="">Выберите сектор</option>{enemyNeighbors.map(k=><option key={k} value={k}>{k} · {sectors.find(s=>s.sector_key===k)?.name}</option>)}</select>
       <div className="button-row">
-        <button className="ghost" disabled={working||!canAct||!sabotageTarget||actionUsed('sabotage')||(me?.intelligence??0)<1} onClick={()=>rpc('activation_sabotage',{p_activation:activation.id,p_target:sabotageTarget,p_auto:false})}>1 Intel · бросок 4+</button>
-        <button className="ghost" disabled={working||!canAct||!sabotageTarget||actionUsed('sabotage')||(me?.intelligence??0)<2} onClick={()=>rpc('activation_sabotage',{p_activation:activation.id,p_target:sabotageTarget,p_auto:true})}>2 Intel · автоуспех</button>
+        <button className="ghost" disabled={working||!canAct||!sabotageTarget||actionUsed('sabotage')||(me?.intelligence??0)<(noosphereStatic?2:1)} onClick={()=>rpc('activation_sabotage',{p_activation:activation.id,p_target:sabotageTarget,p_auto:false})}>{noosphereStatic?'2':'1'} Intel · бросок 4+</button>
+        <button className="ghost" disabled={working||!canAct||!sabotageTarget||actionUsed('sabotage')||(me?.intelligence??0)<(noosphereStatic?3:2)} onClick={()=>rpc('activation_sabotage',{p_activation:activation.id,p_target:sabotageTarget,p_auto:true})}>{noosphereStatic?'3':'2'} Intel · автоуспех</button>
       </div></>:<p className="muted">Нет соседних enemy-controlled секторов.</p>}
     </section>
 
@@ -215,6 +219,7 @@ export default function StrategicPanel({
         <div><dt>Fortified</dt><dd>{current?.fortified?'Да':'Нет'}</dd></div>
         <div><dt>Conditions</dt><dd>{conditionList.length?conditionList.join(', '):'Normal'}</dd></div>
       </dl>
+      {(noosphereStatic||brokenMap)&&<div className="notice strategic-global-effects">{noosphereStatic&&<span>Noosphere Static: Recon / Recon Lock / Sabotage +1 Intel.</span>}{brokenMap&&<span>Broken Map: Noctis Relay и Orbital Ossuary Lift отключены до конца следующей battle.</span>}</div>}
       <button className="ghost action-main" disabled={working||!isMyTurn} onClick={()=>rpc('end_activation',{p_activation:activation.id},'Открыта Logistics Phase.')}>Завершить Activation</button>
     </section>
   </div>
