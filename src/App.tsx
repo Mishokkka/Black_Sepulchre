@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { Activity, BookOpen, Copy, LogOut, Map, RefreshCw, Shield, Skull, Swords, Users } from 'lucide-react'
+import { Activity, BookOpen, Copy, LogOut, Map, RefreshCw, Shield, Skull, Swords, Users, Footprints } from 'lucide-react'
+import StrategicPanel from './components/StrategicPanel'
 import { supabase } from './lib/supabase'
 import { ADJACENCY, SECTOR_META, STAGES, campaignSurcharge, recoveryCost, stageIndexForBattles } from './data/campaign'
 import type { Campaign, Member, PlayerState, Sector, Unit } from './types'
 
-type Tab='dashboard'|'map'|'rosters'|'battles'|'log'
+type Tab='dashboard'|'strategy'|'map'|'rosters'|'battles'|'log'
 const sideLabel=(s:string|null)=>s==='necrons'?'Necrons':s==='deathwatch'?'Deathwatch':'Neutral'
 
 function AuthScreen(){
@@ -78,7 +79,7 @@ function MapView({sectors,players,selected,onSelect}:{sectors:Sector[];players:P
   </svg></div>
   <div className="sector-panel">{selected&&byKey[selected]?<>
    <div className="eyebrow">{selected} · {byKey[selected].sector_class}</div><h2>{byKey[selected].name}</h2>
-   <dl><div><dt>Владелец</dt><dd>{sideLabel(byKey[selected].owner_side)}</dd></div><div><dt>Состояние</dt><dd>{byKey[selected].state}</dd></div><div><dt>Fortified</dt><dd>{byKey[selected].fortified?'Да':'Нет'}</dd></div><div><dt>Соседи</dt><dd>{ADJACENCY[selected].join(', ')}</dd></div></dl>
+   <dl><div><dt>Владелец</dt><dd>{sideLabel(byKey[selected].owner_side)}</dd></div><div><dt>Состояние</dt><dd>{byKey[selected].conditions?.length?byKey[selected].conditions.join(', '):'Normal'}</dd></div><div><dt>Fortified</dt><dd>{byKey[selected].fortified?'Да':'Нет'}</dd></div><div><dt>Соседи</dt><dd>{ADJACENCY[selected].join(', ')}</dd></div></dl>
    {players.filter(p=>p.main_force_sector===selected).map(p=><div className="tag" key={p.side}>{sideLabel(p.side)} Main Force</div>)}
   </>:<p className="muted">Выберите сектор.</p>}</div>
  </div>
@@ -117,18 +118,19 @@ function App(){
   supabase.from('campaigns').select('*').eq('id',campaignId).single(),supabase.from('campaign_members').select('*').eq('campaign_id',campaignId).eq('user_id',session.user.id).single(),supabase.from('players').select('*').eq('campaign_id',campaignId).order('side'),supabase.from('sectors').select('*').eq('campaign_id',campaignId).order('sector_key'),supabase.from('units').select('*').eq('campaign_id',campaignId).order('side').order('created_at'),supabase.from('audit_log').select('*').eq('campaign_id',campaignId).order('created_at',{ascending:false}).limit(40)])
   if(c.data)setCampaign(c.data as Campaign);if(m.data)setMember(m.data as Member);setPlayers((p.data??[]) as PlayerState[]);setSectors((s.data??[]) as Sector[]);setUnits((u.data??[]) as Unit[]);setLogs(l.data??[]);setBusy(false)},[campaignId,session])
  useEffect(()=>{load()},[load])
- useEffect(()=>{if(!campaignId)return;const ch=supabase.channel('campaign-'+campaignId);['players','sectors','units','battles','audit_log'].forEach(table=>{ch.on('postgres_changes',{event:'*',schema:'public',table,filter:'campaign_id=eq.'+campaignId},()=>load())});ch.on('postgres_changes',{event:'*',schema:'public',table:'campaigns',filter:'id=eq.'+campaignId},()=>load());ch.subscribe();return()=>{supabase.removeChannel(ch)}},[campaignId,load])
+ useEffect(()=>{if(!campaignId)return;const ch=supabase.channel('campaign-'+campaignId);['players','sectors','units','activations','battles','audit_log'].forEach(table=>{ch.on('postgres_changes',{event:'*',schema:'public',table,filter:'campaign_id=eq.'+campaignId},()=>load())});ch.on('postgres_changes',{event:'*',schema:'public',table:'campaigns',filter:'id=eq.'+campaignId},()=>load());ch.subscribe();return()=>{supabase.removeChannel(ch)}},[campaignId,load])
  if(!session)return <AuthScreen/>;if(!campaignId)return <CampaignGate onReady={setCampaignId}/>;if(!campaign||!member)return <main className="loading"><RefreshCw className="spin"/>Загрузка кампании…</main>
  const stage=STAGES[stageIndexForBattles(campaign.battle_count)],me=players.find(p=>p.side===member.side),enemy=players.find(p=>p.side!==member.side)
  const rosterRC=units.filter(u=>u.side===member.side&&u.location_type==='field').reduce((a,u)=>a+u.reference_cost,0)
  return <div className="app"><aside><div className="brand"><Skull/><div><strong>BLACK SEPULCHRE</strong><small>Campaign Command</small></div></div>
-  <nav>{([['dashboard',Activity,'Сводка'],['map',Map,'Карта'],['rosters',Users,'Армии'],['battles',Swords,'Бои'],['log',BookOpen,'Журнал']] as [Tab,typeof Activity,string][]).map(([id,Icon,label])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}><Icon size={18}/>{label}</button>)}</nav>
+  <nav>{([['dashboard',Activity,'Сводка'],['strategy',Footprints,'Стратегия'],['map',Map,'Карта'],['rosters',Users,'Армии'],['battles',Swords,'Бои'],['log',BookOpen,'Журнал']] as [Tab,typeof Activity,string][]).map(([id,Icon,label])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}><Icon size={18}/>{label}</button>)}</nav>
   <div className="side-foot"><span className={'faction '+member.side}>{sideLabel(member.side)}</span><button className="ghost compact" onClick={()=>supabase.auth.signOut()}><LogOut size={16}/> Выйти</button></div></aside>
   <main className="content"><header><div><div className="eyebrow">RULES v{campaign.rules_version} · SNAPSHOT {campaign.snapshot_date}</div><h1>{campaign.name}</h1></div><div className="header-actions"><button className="ghost compact" onClick={()=>navigator.clipboard.writeText(campaign.invite_code)}><Copy size={15}/> {campaign.invite_code}</button><button className="ghost compact" onClick={load}><RefreshCw size={15} className={busy?'spin':''}/></button></div></header>
    {tab==='dashboard'&&<><div className="metric-grid"><div className="metric"><span>Stage</span><strong>{stage.armyLimit}</strong><small>Army Limit</small></div><div className="metric"><span>Battle</span><strong>{campaign.battle_count+1}</strong><small>{campaign.battle_count} completed</small></div><div className="metric"><span>Supply</span><strong>{me?.supply??0}</strong><small>{enemy?.supply??0} enemy</small></div><div className="metric"><span>Intelligence</span><strong>{me?.intelligence??0}</strong><small>soft cap 6</small></div><div className="metric choir"><span>Black Choir</span><strong>{campaign.black_choir}</strong><small>hidden track</small></div></div>
     <div className="dashboard-grid"><section className="panel"><div className="section-head"><div><div className="eyebrow">YOUR FORCE</div><h2>{sideLabel(member.side)}</h2></div><Shield/></div><dl className="rows"><div><dt>Main Force</dt><dd>{me?.main_force_sector}</dd></div><div><dt>Field Roster</dt><dd>{rosterRC} / {stage.rosterCap} RC</dd></div><div><dt>Army Limit</dt><dd>{stage.armyLimit}</dd></div><div><dt>Recovery Supply</dt><dd>{me?.recovery_supply??0}</dd></div><div><dt>Secret Fragments</dt><dd>{me?.secret_fragments??0}</dd></div><div><dt>Fortress Integrity</dt><dd>{me?.fortress_integrity??2}</dd></div></dl></section>
     <section className="panel"><div className="section-head"><div><div className="eyebrow">STAGE RULES</div><h2>{stage.battles} battles</h2></div></div><dl className="rows"><div><dt>Detachment</dt><dd>{stage.dp}</dd></div><div><dt>Enhancements</dt><dd>{stage.enhancements}</dd></div><div><dt>Battlefield</dt><dd>{stage.field}</dd></div><div><dt>Recovery example</dt><dd>{recoveryCost(100)} / RC 100</dd></div></dl></section>
     <section className="panel wide"><div className="section-head"><div><div className="eyebrow">LIVE MAP</div><h2>Strategic situation</h2></div></div><MapView sectors={sectors} players={players} selected={selectedSector} onSelect={setSelectedSector}/></section></div></>}
+   {tab==='strategy'&&<StrategicPanel campaign={campaign} member={member} players={players} sectors={sectors} reload={load} onOpenBattles={()=>setTab('battles')}/>} 
    {tab==='map'&&<section className="panel map-page"><MapView sectors={sectors} players={players} selected={selectedSector} onSelect={setSelectedSector}/></section>}
    {tab==='rosters'&&<RosterView units={units} member={member} reload={load}/>}
    {tab==='battles'&&<section className="panel empty-state"><Swords size={42}/><h2>Battle workflow</h2><p>Muster → ввод результата tabletop battle → automatic Aftermath. Схема battle/battle_units уже создана; интерфейс будет подключён следующим модулем.</p></section>}
