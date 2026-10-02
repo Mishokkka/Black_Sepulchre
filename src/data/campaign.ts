@@ -103,3 +103,40 @@ export const BLACK_CHOIR_REVEALS = [
  {threshold:6,label:'Reveal III',effect:'Stronghold missions получают Secret Objective Extract the Index.'},
  {threshold:8,label:'Reveal IV',effect:'Контроль G можно заменить 3 Secret Fragments.'},
 ] as const
+
+
+export const BATTLE_HONOURS = [
+ {code:'hard_lessons',name:'Hard Lessons',category:'SURVIVORS',tier:'Minor',cr:5,effect:'Один раз за battle перебросьте один failed Saving Throw этого unit.'},
+ {code:'dig_in',name:'Dig In',category:'SURVIVORS',tier:'Minor',cr:5,effect:'Если unit не делал Normal/Advance/Fall Back в текущем ходу, +1 к Battle-shock test.'},
+ {code:'hold_fast',name:'Hold Fast',category:'SURVIVORS',tier:'Minor',cr:5,effect:'Пока unit у objective и не Battle-shocked, +1 OC каждому model.'},
+ {code:'last_line',name:'Last Line',category:'SURVIVORS',tier:'Major',cr:10,effect:'Один раз за battle при Below Half-strength: Battle-shock; при успехе игнорируйте модификаторы OC до конца round.'},
+ {code:'kill_confirmed',name:'Kill Confirmed',category:'EXECUTIONERS',tier:'Minor',cr:5,effect:'Один раз за phase перебросьте один Hit roll против enemy unit, уже потерявшего wound/model.'},
+ {code:'measured_fire',name:'Measured Fire',category:'EXECUTIONERS',tier:'Minor',cr:5,effect:'Один раз за battle один weapon profile игнорирует Benefit of Cover в Shooting phase.'},
+ {code:'finisher',name:'Finisher',category:'EXECUTIONERS',tier:'Minor',cr:5,effect:'Один раз за battle перебросьте один Wound roll против Below Half-strength enemy unit.'},
+ {code:'extermination_pattern',name:'Extermination Pattern',category:'EXECUTIONERS',tier:'Major',cr:10,effect:'Один раз за battle один weapon profile получает Sustained Hits 1 до конца activation.'},
+ {code:'forced_march_honour',name:'Forced March',category:'HUNTERS',tier:'Minor',cr:5,effect:'Один раз за battle вместо Advance roll используйте 6.'},
+ {code:'pathfinders',name:'Pathfinders',category:'HUNTERS',tier:'Minor',cr:5,effect:'Перед первым battle round Scout 3", если его нет; не работает на VEHICLE/MONSTER.'},
+ {code:'pursuit',name:'Pursuit',category:'HUNTERS',tier:'Minor',cr:5,effect:'Один раз за battle перебросьте Charge roll против enemy unit, уже потерявшего wounds/models.'},
+ {code:'relentless_track',name:'Relentless Track',category:'HUNTERS',tier:'Major',cr:10,effect:'Один раз за battle после enemy Normal Move в 9" сделайте Normal Move до 3", заканчивая не ближе 6".'},
+ {code:'shock_presence',name:'Shock Presence',category:'LINEBREAKERS',tier:'Minor',cr:5,effect:'После успешного Charge до конца round unit получает +1 OC.'},
+ {code:'breach_discipline',name:'Breach Discipline',category:'LINEBREAKERS',tier:'Minor',cr:5,effect:'Один раз за battle игнорируйте один mission penalty за debris, Difficult Ground или sector hazard.'},
+ {code:'take_the_ground',name:'Take the Ground',category:'LINEBREAKERS',tier:'Minor',cr:5,effect:'Если unit закончил ход на objective, ранее контролировавшемся противником, +1 к следующему Battle-shock test до конца round.'},
+ {code:'no_step_back',name:'No Step Back',category:'LINEBREAKERS',tier:'Major',cr:10,effect:'Один раз за battle автоматически пройдите Desperate Escape или аналогичный test для всего unit.'},
+ {code:'mission_experts',name:'Mission Experts',category:'SPECIALISTS',tier:'Minor',cr:5,effect:'Mission Action завершается на шаг раньше; иначе +1 к одному связанному roll.'},
+ {code:'field_engineers',name:'Field Engineers',category:'SPECIALISTS',tier:'Minor',cr:5,effect:'Один раз за battle после objective/terminal оставьте marker; первый enemy action получает -1 или требует +1 Control Point.'},
+ {code:'secure_extract',name:'Secure and Extract',category:'SPECIALISTS',tier:'Minor',cr:5,effect:'Unit может выполнять Mission Action после Advance, но не может Shoot или Charge.'},
+ {code:'operational_mastery',name:'Operational Mastery',category:'SPECIALISTS',tier:'Major',cr:10,effect:'Один раз за battle выполняйте Mission Action и стреляйте с -1 Hit.'},
+ {code:'command_presence',name:'Command Presence',category:'COMMAND',tier:'Minor',cr:5,character:true,effect:'Только CHARACTER. Attached Unit получает +1 к одному Battle-shock test за round.'},
+ {code:'contingency_orders',name:'Contingency Orders',category:'COMMAND',tier:'Minor',cr:5,character:true,effect:'Только CHARACTER. Один раз за battle после определения первого хода бесплатно переместите Attached Unit в Strategic Reserves, если setup позволяет.'},
+ {code:'calculated_risk',name:'Calculated Risk',category:'COMMAND',tier:'Minor',cr:5,character:true,effect:'Только CHARACTER. Один раз за battle после Advance/Charge roll перебросьте один die.'},
+ {code:'field_commander',name:'Field Commander',category:'COMMAND',tier:'Major',cr:10,character:true,effect:'Только CHARACTER. Один раз за battle после Stratagem на Attached Unit: D6, на 5+ получите 1CP с core limits.'},
+] as const
+
+export const SIGNATURE_HONOURS = [
+ {code:'purge_protocol_absolute',side:'deathwatch',name:'Purge Protocol: Absolute',cr:15,effect:'Один раз за battle выберите видимый XENOS unit; до конца phase перебрасывайте по одному Hit и Wound roll в каждой activation против этой цели.'},
+ {code:'watch_endures',side:'deathwatch',name:'The Watch Endures',cr:15,effect:'Первый раз за battle, когда unit должен быть уничтожен, оставьте одну model с 1 wound; затем unit Battle-shocked.'},
+ {code:'black_spear_veteran',side:'deathwatch',name:'Black Spear Veteran',cr:15,effect:'Один раз за battle после Normal Move выполняйте Mission Action без запрета Shooting, но не Charge.'},
+ {code:'protocol_inevitable',side:'necrons',name:'Protocol: Inevitable',cr:15,effect:'Один раз за battle после failed Saving Throw уменьшите Damage атаки до 0; затем -1" Move до конца следующего хода.'},
+ {code:'ancient_murder_logic',side:'necrons',name:'Ancient Murder-Logic',cr:15,effect:'Один раз за Fight phase один melee weapon profile получает +1 Attack на model, максимум +5 attacks.'},
+ {code:'memory_eternity',side:'necrons',name:'Memory of Eternity',cr:15,effect:'Один раз за battle после failed Battle-shock считайте test успешным; если unit выжил, +1 XP после battle.'},
+] as const
