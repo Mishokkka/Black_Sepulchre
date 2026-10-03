@@ -20,6 +20,7 @@ import { aftermathCommand } from './aftermath.ts'
 import { inLogistics, logistics } from './logistics.ts'
 import { acceptSiteRules, snapshotCommand } from './snapshot.ts'
 import { validateCard, validateTransportRule } from './datasheets.ts'
+import { expandStartingCatalogue, starterUnavailable } from './starting-catalogue.ts'
 const STRATEGY = ['move', 'attack', 'action', 'end_strategy', 'select_force']
 const PREP = [
   'defender_force',
@@ -93,6 +94,13 @@ export function command(state: State, c: Command, context: Context): State {
   )
   if (c.type === 'accept_site_rules') {
     // The agreement was supplied by the campaign owner; no game resources change.
+  } else if (c.type === 'expand_starting_catalogue') {
+    assert(
+      !s.battle && ['setup', 'strategy', 'logistics'].includes(s.phase),
+      'Каталог расширяется между боями',
+    )
+    expandStartingCatalogue(s)
+    validateSnapshot(s.snapshot)
   } else if (
     [
       'save_catalog',
@@ -139,6 +147,11 @@ export function command(state: State, c: Command, context: Context): State {
     s.setupApproved = s.setupApproved.filter((side) => side !== ctx.actor)
   } else if (c.type === 'setup_add') {
     assert(s.phase === 'setup', 'Setup закрыт')
+    const cat = s.snapshot.catalog.find(
+      (cat) => cat.id === c.payload.catalogId && cat.side === ctx.actor,
+    )
+    assert(cat, 'Нет datasheet вашей фракции')
+    assert(!starterUnavailable(s, ctx.actor, cat), starterUnavailable(s, ctx.actor, cat) ?? '')
     const u = newUnit(s, ctx.actor, str(c.payload.catalogId, 250), str(c.payload.name), ctx)
     s.units.push(u)
     s.players[ctx.actor].starter.push(u.catalogId)

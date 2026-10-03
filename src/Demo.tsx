@@ -16,7 +16,7 @@ import type { Send } from './App'
 import { CatalogView, type LibraryAPI, type LibraryEntry } from './views/CatalogView'
 import { parseNewRecruit } from '../shared/datasheets'
 export default function Demo() {
-  const [s, setS] = useState(fixture),
+  const [s, setS] = useState(() => fixture(true)),
     [side, setSide] = useState<Side>('deathwatch'),
     [tab, setTab] = useState('strategy'),
     [error, setError] = useState('')
@@ -51,7 +51,7 @@ export default function Demo() {
     }
   }
   const load = (mode: string) => {
-    const next = fixture()
+    const next = fixture(true)
     if (mode === 'setup') {
       next.phase = 'setup'
       next.setupApproved = []

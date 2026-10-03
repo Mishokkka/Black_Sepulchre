@@ -16,7 +16,8 @@ import {
   STAGES,
   supplied,
 } from '../../shared/rules'
-import { command } from '../../shared/engine'
+import { command, startingArmy } from '../../shared/engine'
+import { starterChoices } from '../../shared/starting-catalogue'
 import type { SectorKey, Side, State, Unit } from '../../shared/model'
 import { labels, phases, type Send } from '../App'
 export interface Props {
@@ -185,8 +186,25 @@ export function CampaignMap({ s, side }: { s: State; side: Side }) {
   )
 }
 export function SetupView({ s, side, send }: Props) {
-  const [catalog, setCatalog] = useState('')
-  const rows = s.units.filter((u) => u.side === side && u.status === 'active')
+  const [catalog, setCatalog] = useState(''),
+    [search, setSearch] = useState('')
+  const rows = s.units.filter(
+    (u) => u.side === side && u.location === 'field' && u.status === 'active',
+  )
+  const choices = starterChoices(s, side)
+  const visible = choices.filter((c) =>
+    `${c.datasheet} ${c.size} ${c.card?.models.flatMap((g) => g.equipment.map((e) => e.name)).join(' ') ?? ''}`
+      .toLowerCase()
+      .includes(search.toLowerCase()),
+  )
+  const selected = choices.find((c) => c.id === catalog)
+  let armyProblem = '',
+    effective = rows.reduce((n, u) => n + u.rc, 0)
+  try {
+    effective = startingArmy(s, side).effective
+  } catch (error) {
+    armyProblem = error instanceof Error ? error.message : 'Проверьте состав'
+  }
   return (
     <>
       <section className="hero">
@@ -209,14 +227,48 @@ export function SetupView({ s, side, send }: Props) {
       </section>
       <section className="panel">
         <h2>Ваш бесплатный старт</h2>
-        <p>470–500 Effective. Получается один раз.</p>
+        <p>
+          470–500 Effective. Нужен CHARACTER во главе армии. Один отряд — не дороже 200 RC; максимум
+          две копии Battleline и одна остальных datasheet.
+        </p>
+        <Options
+          label="Стартовый detachment"
+          value={s.players[side].package[0] ?? ''}
+          change={(id) => {
+            if (id) void send('setup_package', { package: [id] })
+          }}
+          items={s.snapshot.detachments
+            .filter((d) => !d.side || d.side === side)
+            .map((d) => ({ id: d.id, name: `${d.name} · ${d.dp} DP` }))}
+        />
+        <small>
+          На старте выбирается один detachment любой стоимости DP. Его правила применяются в битвах
+          за столом.
+        </small>
         {rows.map((u) => (
           <div className="unit-row" key={u.id}>
             <div>
               <strong>{u.name}</strong>
               <small>
-                {entry(s, u).datasheet} · {u.rc} RC
+                {entry(s, u).datasheet} · {entry(s, u).size} · {u.rc} RC
               </small>
+              <Options
+                label={`Заменить вариант: ${u.name}`}
+                value={u.catalogId}
+                change={(id) => {
+                  if (id) void send('setup_unit', { id: u.id, catalogId: id })
+                }}
+                items={s.snapshot.catalog
+                  .filter(
+                    (c) =>
+                      c.side === side &&
+                      sameDatasheet(c.datasheet, entry(s, u).datasheet) &&
+                      !c.epic &&
+                      !c.keywords.includes('TITANIC') &&
+                      c.rc <= 200,
+                  )
+                  .map((c) => ({ id: c.id, name: `${c.size} · ${c.rc} RC` }))}
+              />
             </div>
             <button
               className="quiet"
@@ -227,45 +279,54 @@ export function SetupView({ s, side, send }: Props) {
           </div>
         ))}
         <p>
-          Всего: <strong>{rows.reduce((n, u) => n + u.rc, 0)} RC</strong>
+          Всего: <strong>{effective} Effective / 500</strong>
         </p>
+        {armyProblem ? (
+          <p className="notice">{armyProblem}</p>
+        ) : (
+          <p className="success">Стартовая армия подходит по правилам кампании.</p>
+        )}
+        <h3>Добавить другой отряд</h3>
+        <label>
+          Поиск юнита или оружия
+          <input
+            aria-label="Поиск юнита или оружия"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Например: Lychguard, Captain, plasma…"
+          />
+        </label>
+        <small>
+          {visible.length} вариантов для добавления. Большие отряды и Epic Heroes доступны позже во
+          вкладке «Каталог».
+        </small>
         <Options
           label="Добавить вариант из каталога"
-          value={catalog}
+          value={visible.some((c) => c.id === catalog) ? catalog : ''}
           change={setCatalog}
-          items={s.snapshot.catalog
-            .filter((c) => c.side === side)
-            .map((c) => ({ id: c.id, name: `${c.datasheet} · ${c.size} · ${c.rc}` }))}
+          items={visible.map((c) => ({
+            id: c.id,
+            name: `${c.datasheet} · ${c.size} · ${c.rc} RC`,
+          }))}
         />
         <button
           className="quiet"
-          disabled={!catalog}
+          disabled={!selected || !visible.some((c) => c.id === catalog)}
           onClick={() =>
             send('setup_add', {
               catalogId: catalog,
-              name: s.snapshot.catalog.find((c) => c.id === catalog)!.datasheet,
+              name: selected!.datasheet,
             })
           }
         >
           Добавить в старт
         </button>
-        <h3>Stage Package</h3>
-        {s.snapshot.detachments
-          .filter((d) => !d.side || d.side === side)
-          .map((d) => (
-            <Check
-              key={d.id}
-              label={`${d.name} · ${d.dp} DP`}
-              value={s.players[side].package.includes(d.id)}
-              change={(v) =>
-                send('setup_package', {
-                  package: v
-                    ? [...s.players[side].package, d.id]
-                    : s.players[side].package.filter((id) => id !== d.id),
-                })
-              }
-            />
-          ))}
+        {selected && (
+          <details className="choice">
+            <summary>Состав и вооружение выбранного варианта</summary>
+            <DatasheetView card={selected.card} />
+          </details>
+        )}
         <button disabled={s.setupApproved.includes(side)} onClick={() => send('ready_army')}>
           {s.setupApproved.includes(side) ? 'Армия готова · ждём второго игрока' : 'Армия готова'}
         </button>
