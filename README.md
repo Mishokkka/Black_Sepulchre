@@ -1,6 +1,6 @@
 # The Black Sepulchre · 2.2.1
 
-Приложение для двух командиров: Deathwatch и Necrons. Актуальный игровой источник — [PDF правил 2.2.1](docs/Black_Sepulchre_v2.2.1_RU.pdf) и четыре Markdown-файла той же версии в `docs/`. Старые материалы 2.1/2.2 сохранены для истории и не подключаются к движку.
+Приложение для двух командиров: Deathwatch и Necrons. Актуальный игровой источник — [PDF правил 2.2.1](Black_Sepulchre_40k11_Campaign_Rules_v2.2.1_RU.pdf) и четыре Markdown-файла той же версии в `docs/`. Старые материалы 2.1/2.2 сохранены для истории и не подключаются к движку.
 
 [Открыть кампанию](https://mishokkka.github.io/Black_Sepulchre/)
 
@@ -65,3 +65,4 @@ npm run dev
 Не откатывать только клиент к 2.1 после инициализации: старые строки заморожены. Для восстановления использовать сохранённый checkpoint/legacy_backup и согласованную миграцию; произвольное повторное применение income недопустимо.
 
 После развёртывания Security Advisor сообщает о двух намеренно доступных RPC (`create_campaign`, `v221_join_campaign`) и двух private-таблицах с RLS без клиентских policies: это deny-by-default, доступ даёт только сервер. Остаётся прежняя настройка Auth: [проверка паролей по базе утечек отключена](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). Настройка аккаунтов этим обновлением не менялась.
+
