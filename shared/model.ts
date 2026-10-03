@@ -34,6 +34,10 @@ export interface CatalogUnit {
   garrison: 'core' | 'heavy' | 'other' | 'forbidden'
   leaderFor: string[]
   coLeaders?: string[]
+  supportFor?: string[]
+  transportRule?: TransportRule
+  card?: DatasheetCard
+  packageCosts?: { name: string; cost: number; detachments: string[] }[]
   transport: number
   cargoKeywords: string[]
   ranged: boolean
@@ -358,3 +362,4 @@ export interface Context {
 export interface View extends Omit<State, 'finalModes'> {
   finalModes: Partial<Record<Side, 'PACT' | 'WAR' | 'sealed'>>
 }
+import type { DatasheetCard, TransportRule } from './datasheets.ts'

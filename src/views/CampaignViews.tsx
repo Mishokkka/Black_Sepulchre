@@ -1,4 +1,6 @@
 import { SnapshotManager, STFManager } from './CampaignExtras'
+import { DatasheetView } from './DatasheetView'
+import { sameDatasheet } from '../../shared/datasheets'
 import { lazy, useEffect, useState } from 'react'
 import { HONOURS, SCARS } from '../../shared/rules.generated'
 import {
@@ -684,6 +686,7 @@ export function RosterView({ s, side, send }: Props) {
               ? 'Available'
               : `Unavailable · ${u.status}${u.evacDebt ? ` · Evac ${u.evacDebt}` : ''}${u.flags.outOfAction ? ' · Out of Action' : ''}${u.trauma ? ' · Trauma Lock' : ''}`}
           </p>
+          <DatasheetView card={entry(s, u).card} />
           {u.honours.map((id) => {
             const h = HONOURS.find((h) => h.id === id)!
             return (
@@ -912,7 +915,15 @@ function UnitService({ s, side, send, u }: Props & { u: Unit }) {
           value=""
           change={(catalogId) => send('refit', { id: u.id, catalogId, kind: refitKind })}
           items={s.snapshot.catalog
-            .filter((c) => c.datasheet === entry(s, u).datasheet && c.id !== u.catalogId)
+            .filter(
+              (c) =>
+                c.side === side &&
+                sameDatasheet(c.datasheet, entry(s, u).datasheet) &&
+                c.id !== u.catalogId &&
+                (refitKind === 'size'
+                  ? c.models !== entry(s, u).models
+                  : c.models === entry(s, u).models),
+            )
             .map((c) => ({ id: c.id, name: `${c.size} · ${c.rc} RC` }))}
         />
         <Options

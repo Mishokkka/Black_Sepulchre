@@ -19,6 +19,7 @@ import { tableCommand } from './table.ts'
 import { aftermathCommand } from './aftermath.ts'
 import { inLogistics, logistics } from './logistics.ts'
 import { snapshotCommand } from './snapshot.ts'
+import { validateCard, validateTransportRule } from './datasheets.ts'
 const STRATEGY = ['move', 'attack', 'action', 'end_strategy', 'select_force']
 const PREP = [
   'defender_force',
@@ -301,6 +302,32 @@ function validateSnapshot(s: Snapshot) {
     for (const field of ['copyPrices', 'keywords', 'leaderFor', 'cargoKeywords'] as const)
       assert(Array.isArray(c[field]), 'Неверный catalog field')
     c.copyPrices.forEach((n) => integer(n, 5, 3000))
+    if (c.supportFor)
+      assert(
+        Array.isArray(c.supportFor) &&
+          c.supportFor.every((v) => typeof v === 'string' && v.length <= 250),
+        'Неверные цели Support',
+      )
+    if (c.card) validateCard(c.card, c.models)
+    if (c.transportRule) validateTransportRule(c.transportRule, c.transport)
+    if (c.packageCosts) {
+      assert(
+        Array.isArray(c.packageCosts) && c.packageCosts.length <= 20,
+        'Неверные платные опции Package',
+      )
+      for (const p of c.packageCosts) {
+        str(p.name)
+        integer(p.cost, 0, 300)
+        assert(
+          Array.isArray(p.detachments) &&
+            p.detachments.length > 0 &&
+            p.detachments.every((id) =>
+              s.detachments.some((d) => d.id === id && (!d.side || d.side === c.side)),
+            ),
+          'Платная опция вне Package',
+        )
+      }
+    }
     for (const b of ['character', 'epic', 'battleline', 'ranged', 'restoration', 'unique'] as const)
       assert(typeof c[b] === 'boolean', 'Неверный datasheet flag')
   }

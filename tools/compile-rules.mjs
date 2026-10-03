@@ -3,7 +3,10 @@ const root = new URL('../', import.meta.url)
 const texts = Object.fromEntries(
   ['core', 'missions', 'crisis', 'reference'].map((k) => [
     k,
-    readFileSync(new URL(`docs/Black_Sepulchre_v2.2.1_${k}_RU.md`, root), 'utf8'),
+    readFileSync(new URL(`docs/Black_Sepulchre_v2.2.1_${k}_RU.md`, root), 'utf8').replace(
+      /\r\n/g,
+      '\n',
+    ),
   ]),
 )
 const sections = Object.entries(texts).flatMap(([book, text]) =>

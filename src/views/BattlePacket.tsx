@@ -4,6 +4,7 @@ import { SIDES } from '../../shared/model'
 import { ARMOURY, RELICS, STAGES } from '../../shared/rules'
 import { Options, type Props } from './CampaignViews'
 import { labels } from '../App'
+import { DatasheetView } from './DatasheetView'
 export function BattlePacket({ s, side, send }: Props) {
   const b = s.battle!,
     [extra, setExtra] = useState('')
@@ -37,6 +38,12 @@ export function BattlePacket({ s, side, send }: Props) {
                       : ''}
                     {p.reserve ? ' · Initial Reserves' : ''}
                   </p>
+                  <DatasheetView
+                    card={
+                      b.snapshot.catalog.find((c) => c.id === u.catalogId)?.card ??
+                      u.retiredCatalog?.card
+                    }
+                  />
                   {p.honours.map((id) => {
                     const h = HONOURS.find((h) => h.id === id)!
                     return (
