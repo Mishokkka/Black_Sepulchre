@@ -1171,4 +1171,3 @@ garrison_reinforcement
 5. не использовать v1.2.1 как источник.
 
 В v2.1 прежние source ambiguity Scavenge и equal-sector tie для D66 11/32 закрыты. Optional Secondary Task Force в приложении по-прежнему следует считать отдельной задачей, если она не была реализована после этого README. Всё, что происходит непосредственно на tabletop, сайт не симулирует, а хранит как rule reminder или post-battle fact input.
-
