@@ -1,17 +1,16 @@
-# The Black Sepulchre - campaign rules v2.2
+# The Black Sepulchre - campaign rules v2.2.1
 
-Новая редакция правил подготовлена по решениям владельца после подробного ревью v2.1. В этой ветке изменены документы правил; production Campaign Command и Supabase пока используют прежнюю реализацию. Новые механики не следует считать автоматизированными.
+Самостоятельный компактный свод после повторного ревью 2.2: **34 страницы вместо 77**, все 33 миссии, 36 событий D66 и оба кризисных финала. Правила рассчитаны на автоматическое ведение кампании в приложении; за столом остаются реальные битвы. Прежние PDF сохранены как история, подключать их дополнения к 2.2.1 не нужно.
 
-- [Единый PDF v2.2](Black_Sepulchre_40k11_Campaign_Rules_v2.2_RU.pdf): изменения, все 33 mission cards, The Last Canticle и неизменённая база v2.1 в одном файле.
-- [Нормативные изменения](docs/Black_Sepulchre_v2.2_amendments_RU.md).
-- [Все миссии v2.2](docs/Black_Sepulchre_v2.2_missions_RU.md).
-- [Endgame crisis и оба финала - спойлеры](docs/Black_Sepulchre_v2.2_crisis_RU.md).
-- [Решения, альтернативы G/Sabotage/Local Supply и покрытие F01-F37](docs/Black_Sepulchre_v2.2_decisions_RU.md).
-- [Результаты аналитических проверок](docs/Black_Sepulchre_v2.2_checks.json).
+- [Правила 2.2.1 - PDF](Black_Sepulchre_40k11_Campaign_Rules_v2.2.1_RU.pdf).
+- [Полный нормативный исходник](docs/Black_Sepulchre_v2.2.1_rules_RU.md).
+- [Повторное ревью 2.2: 20 основных исправлений и их причины](review/Black_Sepulchre_v2.2_review_and_changes_RU.md).
+- [Аналитические проверки](docs/Black_Sepulchre_v2.2.1_checks.json).
+- [Предыдущие решения владельца по F01-F37](docs/Black_Sepulchre_v2.2_decisions_RU.md).
 
-Для кампании v2.2 нормативны authored Markdown выше и собранный из них PDF. В неизменённых вопросах действует v2.1. Сохранены War of Attrition и baseline Garrison Initial/Capacity; кризис начинается после battle12 и завершается отдельным encounter18. Новые Local Supply, Commission, point CR и crisis flags до реализации записываются в отдельный согласованный ручной ledger. Переход текущей кампании описан в amendments §15.
+Редактируемые части: core, missions, crisis, reference с префиксом `Black_Sepulchre_v2.2.1_` в `docs/`. Сборка: `tools/assemble_rules_v221.py`, затем `tools/build_rules_v221_pdf.py`; проверки: `tools/validate_rules_v221.py` и `tools/qa_rules_v221_pdf.py`. PDF содержит оглавление, закладки, схемы, правила перехода и требования к серверной автоматизации. War of Attrition и базовые пределы гарнизонов сохранены.
 
-Исходный v2.1 не перезаписан. Последующие разделы README описывают существующее приложение и его прежний rules source; они не утверждают parity с v2.2. Эти файлы не меняют production schema или live campaign.
+Это обновление документов. Production Campaign Command, React/RPC и Supabase не изменены; соответствие приложения правилам 2.2.1 ещё требует реализации и интеграционных проверок. Ручной ledger не является целевой моделью игры. Последующие разделы README описывают прежнюю реализацию приложения и её исходные reference files, а не подтверждают поддержку новой редакции.
 
 ---
 

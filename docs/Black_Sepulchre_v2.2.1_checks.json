@@ -1,0 +1,131 @@
+{
+  "ruleset": "2.2.1",
+  "scope": "analytical validation of written homebrew rules; no live app or table playtest",
+  "checks": [
+    {
+      "check": "map symmetry and distance",
+      "passed": true,
+      "links": 14,
+      "A_to_K": 5
+    },
+    {
+      "check": "complete catalogue",
+      "passed": true,
+      "missions": 33,
+      "D66_events": 36
+    },
+    {
+      "check": "early local supply feasibility",
+      "passed": true,
+      "AL": 500,
+      "old_cap": 50,
+      "new_cap": 125,
+      "RC100_deposits_from_25": 3
+    },
+    {
+      "check": "casualty modifier monotonicity",
+      "passed": true,
+      "checked_raw_totals": 17,
+      "damage2_shattered_probability": "4/6",
+      "scope": "base table; Critical subtable is a separate narrative result"
+    },
+    {
+      "check": "layouts and moving objects",
+      "passed": true,
+      "cases": [
+        {
+          "field": [
+            44,
+            30
+          ],
+          "procession_exit_round": 5,
+          "platform_moves_to_edge": 3
+        },
+        {
+          "field": [
+            44,
+            44
+          ],
+          "procession_exit_round": 5,
+          "platform_moves_to_edge": 4
+        },
+        {
+          "field": [
+            60,
+            44
+          ],
+          "procession_exit_round": 5,
+          "platform_moves_to_edge": 4
+        }
+      ]
+    },
+    {
+      "check": "F2 latent transmitter distribution",
+      "passed": true,
+      "orders": 120,
+      "probability_per_marker": "1/5"
+    },
+    {
+      "check": "PACT symmetric reachable schedule",
+      "passed": true,
+      "schedule": [
+        {
+          "round": 1,
+          "instability_at_pulse": 2,
+          "keys_total": 0,
+          "instability_end": 3,
+          "prime_possible": false
+        },
+        {
+          "round": 2,
+          "instability_at_pulse": 5,
+          "keys_total": 2,
+          "instability_end": 3,
+          "prime_possible": false
+        },
+        {
+          "round": 3,
+          "instability_at_pulse": 5,
+          "keys_total": 4,
+          "instability_end": 3,
+          "prime_possible": false
+        },
+        {
+          "round": 4,
+          "instability_at_pulse": 5,
+          "keys_total": 6,
+          "instability_end": 3,
+          "prime_possible": false
+        },
+        {
+          "round": 5,
+          "instability_at_pulse": 5,
+          "keys_total": 6,
+          "instability_end": 5,
+          "prime_possible": true
+        }
+      ],
+      "no_key_failure": "end R4 without suppression",
+      "assumes": "support destroys Echo before ENCODE completion; actors survive and remain eligible; no suppression used"
+    },
+    {
+      "check": "Echo ranged baseline",
+      "passed": true,
+      "target": "T4 Sv3+, AP-1, no Cover/invulnerable/mitigation",
+      "expected_unsaved_damage": 2.6666666666666665,
+      "not_a_winrate": true
+    },
+    {
+      "check": "WAR score ceiling",
+      "passed": true,
+      "max_score": 48,
+      "all_candidates_require_override": true
+    },
+    {
+      "check": "publication completeness",
+      "passed": true,
+      "unresolved_placeholders": 0,
+      "server_contract": "specified, not implemented or integration-tested"
+    }
+  ]
+}
