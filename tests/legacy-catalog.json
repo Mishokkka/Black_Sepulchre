@@ -1,0 +1,203 @@
+[
+  {
+    "side": "deathwatch",
+    "datasheet": "Assault Intercessor Squad",
+    "reference_cost": 75,
+    "size_label": "5 models",
+    "keywords": [
+      "INFANTRY",
+      "BATTLELINE",
+      "ADEPTUS ASTARTES"
+    ],
+    "is_character": false,
+    "is_epic_hero": false,
+    "is_battleline": true,
+    "garrison_class": "core",
+    "loadout": {}
+  },
+  {
+    "side": "deathwatch",
+    "datasheet": "Bladeguard Veteran Squad",
+    "reference_cost": 80,
+    "size_label": "3 models",
+    "keywords": [
+      "INFANTRY",
+      "ADEPTUS ASTARTES"
+    ],
+    "is_character": false,
+    "is_epic_hero": false,
+    "is_battleline": false,
+    "garrison_class": "core",
+    "loadout": {}
+  },
+  {
+    "side": "deathwatch",
+    "datasheet": "Deathwatch Veterans",
+    "reference_cost": 100,
+    "size_label": "5 models",
+    "keywords": [
+      "INFANTRY",
+      "DEATHWATCH"
+    ],
+    "is_character": false,
+    "is_epic_hero": false,
+    "is_battleline": false,
+    "garrison_class": "core",
+    "loadout": {}
+  },
+  {
+    "side": "deathwatch",
+    "datasheet": "Eliminator Squad",
+    "reference_cost": 75,
+    "size_label": "3 models",
+    "keywords": [
+      "INFANTRY",
+      "ADEPTUS ASTARTES"
+    ],
+    "is_character": false,
+    "is_epic_hero": false,
+    "is_battleline": false,
+    "garrison_class": "core",
+    "loadout": {}
+  },
+  {
+    "side": "deathwatch",
+    "datasheet": "Intercessor Squad",
+    "reference_cost": 80,
+    "size_label": "5 models",
+    "keywords": [
+      "INFANTRY",
+      "BATTLELINE",
+      "ADEPTUS ASTARTES"
+    ],
+    "is_character": false,
+    "is_epic_hero": false,
+    "is_battleline": true,
+    "garrison_class": "core",
+    "loadout": {}
+  },
+  {
+    "side": "deathwatch",
+    "datasheet": "Librarian",
+    "reference_cost": 75,
+    "size_label": "1 model",
+    "keywords": [
+      "CHARACTER",
+      "INFANTRY",
+      "ADEPTUS ASTARTES"
+    ],
+    "is_character": true,
+    "is_epic_hero": false,
+    "is_battleline": false,
+    "garrison_class": "forbidden",
+    "loadout": {}
+  },
+  {
+    "side": "necrons",
+    "datasheet": "Canoptek Scarab Swarms",
+    "reference_cost": 40,
+    "size_label": "3 models",
+    "keywords": [
+      "SWARM",
+      "CANOPTEK",
+      "NECRONS"
+    ],
+    "is_character": false,
+    "is_epic_hero": false,
+    "is_battleline": false,
+    "garrison_class": "core",
+    "loadout": {}
+  },
+  {
+    "side": "necrons",
+    "datasheet": "Deathmarks",
+    "reference_cost": 60,
+    "size_label": "5 models",
+    "keywords": [
+      "INFANTRY",
+      "NECRONS"
+    ],
+    "is_character": false,
+    "is_epic_hero": false,
+    "is_battleline": false,
+    "garrison_class": "core",
+    "loadout": {}
+  },
+  {
+    "side": "necrons",
+    "datasheet": "Immortals",
+    "reference_cost": 70,
+    "size_label": "5 models",
+    "keywords": [
+      "INFANTRY",
+      "BATTLELINE",
+      "NECRONS"
+    ],
+    "is_character": false,
+    "is_epic_hero": false,
+    "is_battleline": true,
+    "garrison_class": "core",
+    "loadout": {}
+  },
+  {
+    "side": "necrons",
+    "datasheet": "Lokhust Heavy Destroyer",
+    "reference_cost": 50,
+    "size_label": "1 model",
+    "keywords": [
+      "MOUNTED",
+      "NECRONS"
+    ],
+    "is_character": false,
+    "is_epic_hero": false,
+    "is_battleline": false,
+    "garrison_class": "core",
+    "loadout": {}
+  },
+  {
+    "side": "necrons",
+    "datasheet": "Necron Warriors",
+    "reference_cost": 80,
+    "size_label": "10 models",
+    "keywords": [
+      "INFANTRY",
+      "BATTLELINE",
+      "NECRONS"
+    ],
+    "is_character": false,
+    "is_epic_hero": false,
+    "is_battleline": true,
+    "garrison_class": "core",
+    "loadout": {}
+  },
+  {
+    "side": "necrons",
+    "datasheet": "Skorpekh Destroyers",
+    "reference_cost": 85,
+    "size_label": "3 models",
+    "keywords": [
+      "INFANTRY",
+      "NECRONS"
+    ],
+    "is_character": false,
+    "is_epic_hero": false,
+    "is_battleline": false,
+    "garrison_class": "unknown",
+    "loadout": {}
+  },
+  {
+    "side": "necrons",
+    "datasheet": "Skorpekh Lord",
+    "reference_cost": 90,
+    "size_label": "1 model",
+    "keywords": [
+      "CHARACTER",
+      "NECRONS"
+    ],
+    "is_character": true,
+    "is_epic_hero": false,
+    "is_battleline": false,
+    "garrison_class": "forbidden",
+    "loadout": {}
+  }
+]
