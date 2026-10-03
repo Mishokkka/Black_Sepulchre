@@ -130,4 +130,3 @@
 [GitHub: Black Sepulchre](https://github.com/Mishokkka/Black_Sepulchre)
 
 Это неофициальная homebrew кампания; профили Echo, сценарии и исключения выше относятся только к ней. Официальные datasheets здесь не перепечатываются.
-
