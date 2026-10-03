@@ -3,6 +3,23 @@ import { SIDES, type Command, type Context, type Snapshot, type State } from './
 import { assert, credit, entry, present, spend, str, supplied } from './rules.ts'
 import { loadoutSignature, sameDatasheet } from './datasheets.ts'
 
+export const SITE_RULES_SOURCE =
+  'Правила и цены сайта Black Sepulchre · 2.2.1 · приняты для дружеской кампании'
+export const STARTER_DETACHMENTS = {
+  deathwatch: { name: 'Gladius Task Force', dp: 3 },
+  necrons: { name: 'Awakened Dynasty', dp: 3 },
+} as const
+
+/** The owners use the site's current data; agreement is not a separate game action. */
+export function acceptSiteRules(s: State) {
+  if (!s.snapshot.sources.length) s.snapshot.sources = [SITE_RULES_SOURCE]
+  for (const d of s.snapshot.detachments)
+    if (d.side && d.name.startsWith('Укажите')) Object.assign(d, STARTER_DETACHMENTS[d.side])
+  s.snapshot.approved = [...SIDES]
+  s.flags.siteRulesAccepted = true
+  s.flags.migrationReview = false
+}
+
 export function snapshotCommand(
   s: State,
   c: Command,
@@ -11,10 +28,16 @@ export function snapshotCommand(
 ) {
   assert(
     !s.battle && ['strategy', 'logistics', 'setup'].includes(s.phase),
-    'Snapshot меняется только между боями до hostile declaration',
+    'Каталог меняется между боями, до объявления атаки',
   )
-  if (c.type === 'propose_snapshot') {
-    const snapshot = c.payload.snapshot as Snapshot
+  if (['save_catalog', 'edit_snapshot', 'propose_snapshot', 'approve_snapshot'].includes(c.type)) {
+    // Old clients can still submit their old command names, without a second signature.
+    const snapshot =
+      c.type === 'approve_snapshot'
+        ? s.snapshotProposal?.snapshot
+        : (c.payload.snapshot as Snapshot)
+    if (!snapshot && c.type === 'approve_snapshot') return
+    assert(snapshot, 'Нет каталога для сохранения')
     validate(snapshot)
     if (s.battles > 0 || s.phase !== 'setup')
       for (const old of s.snapshot.catalog) {
@@ -31,21 +54,12 @@ export function snapshotCommand(
         if (old.card && next?.card)
           assert(
             loadoutSignature(old.card) === loadoutSignature(next.card),
-            'Для другого вооружения создайте отдельный вариант и используйте Refit; Snapshot обновляет тот же состав',
+            'Для другого вооружения создайте отдельный вариант и используйте Refit',
           )
       }
-    snapshot.approved = []
-    s.snapshotProposal = { snapshot: structuredClone(snapshot), approved: [ctx.actor] }
-    return
-  }
-  if (c.type === 'approve_snapshot') {
-    const proposal = s.snapshotProposal
-    assert(proposal && !proposal.approved.includes(ctx.actor), 'Нет нового предложения')
-    proposal.approved.push(ctx.actor)
-    if (!SIDES.every((side) => proposal.approved.includes(side))) return
     for (const u of s.units) {
       const old = entry(s, u),
-        next = proposal.snapshot.catalog.find((c) => c.id === u.catalogId && c.side === u.side)
+        next = snapshot.catalog.find((c) => c.id === u.catalogId && c.side === u.side)
       if (next) {
         u.rc = next.rc
         delete u.retiredCatalog
@@ -56,13 +70,23 @@ export function snapshotCommand(
       })
       u.flags.pendingHonours = pending.join(',')
     }
-    s.snapshot = structuredClone(proposal.snapshot)
-    s.snapshot.approved = [...SIDES]
+    const previous = s.snapshot
+    s.snapshot = structuredClone(snapshot)
+    acceptSiteRules(s)
     s.snapshotProposal = null
     for (const side of SIDES) {
       const p = s.players[side]
+      const previousPackage = p.package
       p.package = p.package.filter((id) => s.snapshot.detachments.some((d) => d.id === id))
-      p.packageStage = -1
+      if (
+        p.package.length !== previousPackage.length ||
+        p.package.some(
+          (id) =>
+            JSON.stringify(previous.detachments.find((d) => d.id === id)) !==
+            JSON.stringify(s.snapshot.detachments.find((d) => d.id === id)),
+        )
+      )
+        p.packageStage = -1
       p.enhancements = Object.fromEntries(
         Object.entries(p.enhancements).filter(([id]) =>
           s.snapshot.enhancements.some((e) => e.id === id),
@@ -122,5 +146,5 @@ export function snapshotCommand(
     s.snapshotProposal = null
     return
   }
-  assert(false, 'Неизвестная команда Snapshot')
+  assert(false, 'Неизвестная команда каталога')
 }

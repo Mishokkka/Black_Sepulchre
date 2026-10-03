@@ -1,7 +1,7 @@
-import { SnapshotManager, STFManager } from './CampaignExtras'
+import { CatalogManager, STFManager } from './CampaignExtras'
 import { DatasheetView } from './DatasheetView'
 import { sameDatasheet } from '../../shared/datasheets'
-import { lazy, useEffect, useState } from 'react'
+import { lazy, useState } from 'react'
 import { HONOURS, SCARS } from '../../shared/rules.generated'
 import {
   ADJACENCY,
@@ -17,7 +17,7 @@ import {
   supplied,
 } from '../../shared/rules'
 import { command } from '../../shared/engine'
-import type { SectorKey, Side, Snapshot, State, Unit } from '../../shared/model'
+import type { SectorKey, Side, State, Unit } from '../../shared/model'
 import { labels, phases, type Send } from '../App'
 export interface Props {
   s: State
@@ -185,214 +185,27 @@ export function CampaignMap({ s, side }: { s: State; side: Side }) {
   )
 }
 export function SetupView({ s, side, send }: Props) {
-  const [draft, setDraft] = useState<Snapshot>(structuredClone(s.snapshot)),
-    [json, setJson] = useState(''),
-    [localError, setLocalError] = useState(''),
-    [catalog, setCatalog] = useState('')
-  const snapshotFingerprint = JSON.stringify(s.snapshot)
-  useEffect(() => {
-    setDraft(structuredClone(s.snapshot))
-  }, [snapshotFingerprint])
+  const [catalog, setCatalog] = useState('')
   const rows = s.units.filter((u) => u.side === side && u.status === 'active')
-  const update = (id: string, value: Partial<Snapshot['catalog'][number]>) =>
-    setDraft({
-      ...draft,
-      catalog: draft.catalog.map((c) => (c.id === id ? { ...c, ...value } : c)),
-    })
   return (
     <>
       <section className="hero">
         <div>
-          <p className="eyebrow">ПЕРЕХОД НА 2.2.1</p>
-          <h2>Сначала согласуйте Snapshot</h2>
+          <p className="eyebrow">ПОДГОТОВКА КАМПАНИИ</p>
+          <h2>Подготовьте стартовую армию</h2>
           <p>
-            Составы и ресурсы перенесены. Закрепите точные официальные документы, цены и допустимые
-            армии. После подтверждения обоими начинается первый ход.
-          </p>
-          <p className="muted">
-            Наследованные цены требуют проверки. Каталог также задаёт варианты размера, Leader →
-            Bodyguard, вместимость и contextual copy pricing.
+            Играем по правилам 2.2.1 и текущим ценам сайта. Они уже приняты для вашей дружеской
+            кампании. Выберите стартовый состав и detachment, затем отметьте готовность.
           </p>
         </div>
         <div className="hero-stats">
           {Object.keys(labels).map((who) => (
             <span key={who}>
               {labels[who as Side]}:{' '}
-              {s.setupApproved.includes(who as Side) ? 'подтверждено' : 'ожидает'}
+              {s.setupApproved.includes(who as Side) ? 'армия готова' : 'готовит армию'}
             </span>
           ))}
         </div>
-      </section>
-      <section className="panel">
-        <h2>Season Snapshot</h2>
-        <div className="form-grid">
-          <label>
-            ID Snapshot
-            <input value={draft.id} onChange={(e) => setDraft({ ...draft, id: e.target.value })} />
-          </label>
-          <label>
-            Дата
-            <input
-              type="date"
-              value={draft.date}
-              onChange={(e) => setDraft({ ...draft, date: e.target.value })}
-            />
-          </label>
-          <label className="wide">
-            Версии и ссылки: core, faction, datasheets, MFM, errata
-            <textarea
-              rows={3}
-              value={draft.sources.join('\n')}
-              onChange={(e) =>
-                setDraft({ ...draft, sources: e.target.value.split('\n').filter(Boolean) })
-              }
-            />
-          </label>
-        </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Datasheet / размер</th>
-                <th>RC</th>
-                <th>Garrison</th>
-                <th>Leader присоединяется к</th>
-                <th>Copy prices</th>
-              </tr>
-            </thead>
-            <tbody>
-              {draft.catalog.map((c) => (
-                <tr key={c.id}>
-                  <td>
-                    <strong>{c.datasheet}</strong>
-                    <small>
-                      {labels[c.side]} · {c.size}
-                    </small>
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="5"
-                      step="5"
-                      value={c.rc}
-                      onChange={(e) => update(c.id, { rc: Number(e.target.value) })}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      value={c.garrison}
-                      onChange={(e) =>
-                        update(c.id, { garrison: e.target.value as typeof c.garrison })
-                      }
-                    >
-                      {['core', 'heavy', 'other', 'forbidden'].map((v) => (
-                        <option key={v}>{v}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
-                    {c.character && (
-                      <input
-                        aria-label={`Leader targets ${c.datasheet}`}
-                        value={c.leaderFor.join('; ')}
-                        placeholder="Datasheet; Datasheet"
-                        onChange={(e) =>
-                          update(c.id, {
-                            leaderFor: e.target.value
-                              .split(';')
-                              .map((x) => x.trim())
-                              .filter(Boolean),
-                          })
-                        }
-                      />
-                    )}
-                  </td>
-                  <td>
-                    <input
-                      aria-label={`Copy prices ${c.datasheet}`}
-                      value={c.copyPrices.join(',')}
-                      placeholder="RC если пусто"
-                      onChange={(e) =>
-                        update(c.id, {
-                          copyPrices: e.target.value.split(',').filter(Boolean).map(Number),
-                        })
-                      }
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <h3>Detachments и Enhancements</h3>
-        {draft.detachments.map((d, i) => (
-          <div className="form-grid" key={d.id}>
-            <label>
-              Название Detachment
-              <input
-                value={d.name}
-                onChange={(e) =>
-                  setDraft({
-                    ...draft,
-                    detachments: draft.detachments.map((d, j) =>
-                      i === j ? { ...d, name: e.target.value } : d,
-                    ),
-                  })
-                }
-              />
-            </label>
-            <label>
-              DP
-              <input
-                type="number"
-                min="1"
-                max="3"
-                value={d.dp}
-                onChange={(e) =>
-                  setDraft({
-                    ...draft,
-                    detachments: draft.detachments.map((d, j) =>
-                      i === j ? { ...d, dp: Number(e.target.value) } : d,
-                    ),
-                  })
-                }
-              />
-            </label>
-          </div>
-        ))}
-        <details>
-          <summary>Полный каталог: транспорт, варианты, требования и Enhancements</summary>
-          <p>
-            Редактор Snapshot принимает экспорт согласованного каталога. Изменение сбрасывает
-            подтверждения обоих.
-          </p>
-          <button className="quiet" onClick={() => setJson(JSON.stringify(draft, null, 2))}>
-            Открыть структуру
-          </button>
-          <textarea
-            rows={16}
-            value={json}
-            onChange={(e) => setJson(e.target.value)}
-            aria-label="Snapshot JSON"
-          />
-          <button
-            className="quiet"
-            onClick={() => {
-              try {
-                setDraft(JSON.parse(json))
-                setLocalError('')
-              } catch {
-                setLocalError('Невалидный JSON')
-              }
-            }}
-          >
-            Применить к редактору
-          </button>
-          {localError && <p role="alert">{localError}</p>}
-        </details>
-        <button onClick={() => send('edit_snapshot', { snapshot: draft })}>
-          Сохранить общий Snapshot
-        </button>
       </section>
       <section className="panel">
         <h2>Ваш бесплатный старт</h2>
@@ -453,8 +266,8 @@ export function SetupView({ s, side, send }: Props) {
               }
             />
           ))}
-        <button disabled={s.setupApproved.includes(side)} onClick={() => send('approve_setup')}>
-          Подтвердить Snapshot и свою армию
+        <button disabled={s.setupApproved.includes(side)} onClick={() => send('ready_army')}>
+          {s.setupApproved.includes(side) ? 'Армия готова · ждём второго игрока' : 'Армия готова'}
         </button>
       </section>
     </>
@@ -877,7 +690,7 @@ function UnitService({ s, side, send, u }: Props & { u: Unit }) {
       </div>
       {u.retiredCatalog && (
         <div className="notice">
-          <p>Datasheet исчез из общего Snapshot. ID и XP сохранены.</p>
+          <p>Datasheet убран из каталога. ID и XP сохранены.</p>
           <Options
             label="Successor той же роли"
             value=""
@@ -1008,7 +821,7 @@ export function LogisticsView({ s, side, send }: Props) {
             <div>
               <h3>Новая запись</h3>
               <Options
-                label="Каталог Snapshot"
+                label="Каталог юнитов"
                 value={catalog}
                 change={setCatalog}
                 items={s.snapshot.catalog
@@ -1126,7 +939,7 @@ export function LogisticsView({ s, side, send }: Props) {
         </fieldset>
       </section>
       <STFManager s={s} side={side} send={send} />
-      <SnapshotManager s={s} side={side} send={send} />
+      <CatalogManager s={s} side={side} send={send} />
       <RosterView s={s} side={side} send={send} />
     </>
   )

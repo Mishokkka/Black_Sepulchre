@@ -18,7 +18,7 @@ import { revealAllowed, validateMuster } from './muster.ts'
 import { tableCommand } from './table.ts'
 import { aftermathCommand } from './aftermath.ts'
 import { inLogistics, logistics } from './logistics.ts'
-import { snapshotCommand } from './snapshot.ts'
+import { acceptSiteRules, snapshotCommand } from './snapshot.ts'
 import { validateCard, validateTransportRule } from './datasheets.ts'
 const STRATEGY = ['move', 'attack', 'action', 'end_strategy', 'select_force']
 const PREP = [
@@ -49,6 +49,7 @@ const AFTER = [
 export function command(state: State, c: Command, context: Context): State {
   const s = structuredClone(state),
     dice: number[] = []
+  acceptSiteRules(s)
   const ctx = {
     ...context,
     dice: (sides: number) => {
@@ -77,90 +78,46 @@ export function command(state: State, c: Command, context: Context): State {
   )
   assert(
     !s.snapshotProposal ||
-      ['propose_snapshot', 'approve_snapshot', 'cancel_snapshot'].includes(c.type),
-    'Сначала согласуйте или отмените новый Snapshot',
+      [
+        'save_catalog',
+        'edit_snapshot',
+        'propose_snapshot',
+        'approve_snapshot',
+        'cancel_snapshot',
+      ].includes(c.type),
+    'Сохраните или отмените изменения каталога',
   )
   assert(
     !s.pendingAftermath || c.type === 'confirm_aftermath',
     'Preview уже зафиксирован; подтвердите его',
   )
-  if (
-    ['propose_snapshot', 'approve_snapshot', 'cancel_snapshot', 'resolve_retired'].includes(c.type)
+  if (c.type === 'accept_site_rules') {
+    // The agreement was supplied by the campaign owner; no game resources change.
+  } else if (
+    [
+      'save_catalog',
+      'edit_snapshot',
+      'propose_snapshot',
+      'approve_snapshot',
+      'cancel_snapshot',
+      'resolve_retired',
+    ].includes(c.type)
   )
     snapshotCommand(s, c, ctx, validateSnapshot)
-  else if (c.type === 'edit_snapshot') {
-    assert(s.phase === 'setup', 'Snapshot редактируется перед стартом')
-    const snapshot = c.payload.snapshot as unknown as Snapshot
-    validateSnapshot(snapshot)
-    s.snapshot = structuredClone(snapshot)
-    s.snapshot.approved = []
-    s.setupApproved = []
-    for (const u of s.units) {
-      const c = s.snapshot.catalog.find((c) => c.id === u.catalogId)
-      if (c) u.rc = c.rc
-    }
-    for (const side of SIDES) s.players[side].package = []
-  } else if (c.type === 'setup_package') {
+  else if (c.type === 'setup_package') {
     assert(s.phase === 'setup', 'Setup закрыт')
     setPackage(s, ctx.actor, c.payload.package)
     s.setupApproved = s.setupApproved.filter((side) => side !== ctx.actor)
-  } else if (c.type === 'approve_setup') {
+  } else if (c.type === 'ready_army' || c.type === 'approve_setup') {
     assert(
-      s.phase === 'setup' && s.snapshot.sources.length > 0 && !s.setupApproved.includes(ctx.actor),
-      'Укажите версии официальных документов и подтвердите Snapshot',
+      s.phase === 'setup' && !s.setupApproved.includes(ctx.actor),
+      'Подготовка армии уже завершена',
     )
-    assert(
-      s.snapshot.catalog.every((c) => c.rc > 0) &&
-        s.snapshot.detachments.every((d) => !d.name.startsWith('Укажите')),
-      'Snapshot ещё не заполнен',
-    )
-    const us = s.units.filter(
-      (u) => u.side === ctx.actor && u.location === 'field' && u.status === 'active',
-    )
-    const setupBattle = {
-      al: 500,
-      stage: 0,
-      type: 'field',
-      snapshot: s.snapshot,
-      defender: other(ctx.actor),
-      attacker: ctx.actor,
-      pool: 0,
-      initial: 0,
-    } as unknown as NonNullable<State['battle']>
-    const setupMuster: Muster = {
-      picks: us.map((u) => ({
-        id: u.id,
-        role: 'field',
-        formation: u.id,
-        transport: null,
-        reserve: false,
-        enhancement: null,
-        honours: [],
-        armoury: false,
-        relic: false,
-        redemption: null,
-        protocol: 'HOLD',
-      })),
-      rest: [],
-      detachments: s.players[ctx.actor].package,
-      commander: us.find((u) => entry(s, u).character)?.id ?? '',
-      dispositions: [],
-    }
-    const costs = s.battles === 0 ? validateMuster(s, ctx.actor, setupMuster, setupBattle) : {}
-    const price = s.battles === 0 ? Object.values(costs).reduce((n, c) => n + c, 0) : 0
-    assert(
-      s.battles > 0 || (price >= 470 && price <= 500),
-      'Стартовый состав должен быть 470–500 Effective',
-    )
-    for (const u of us)
-      assert(
-        s.snapshot.catalog.some((c) => c.id === u.catalogId),
-        'Юнит отсутствует в Snapshot',
-      )
+    const us = startingArmy(s, ctx.actor).units
     s.players[ctx.actor].starter = us.map((u) => u.catalogId)
     s.setupApproved.push(ctx.actor)
-    s.snapshot.approved.push(ctx.actor)
     if (SIDES.every((side) => s.setupApproved.includes(side))) {
+      for (const side of SIDES) startingArmy(s, side)
       s.flags.migrationReview = false
       if (s.battles >= 17) s.phase = 'finale_mode'
       else beginActivation(s)
@@ -269,6 +226,53 @@ export function command(state: State, c: Command, context: Context): State {
   assertInvariants(s)
   return s
 }
+export function startingArmy(s: State, side: Side) {
+  const us = s.units.filter(
+    (u) => u.side === side && u.location === 'field' && u.status === 'active',
+  )
+  const setupBattle = {
+    al: 500,
+    stage: 0,
+    type: 'field',
+    snapshot: s.snapshot,
+    defender: other(side),
+    attacker: side,
+    pool: 0,
+    initial: 0,
+  } as unknown as NonNullable<State['battle']>
+  const setupMuster: Muster = {
+    picks: us.map((u) => ({
+      id: u.id,
+      role: 'field',
+      formation: u.id,
+      transport: null,
+      reserve: false,
+      enhancement: null,
+      honours: [],
+      armoury: false,
+      relic: false,
+      redemption: null,
+      protocol: 'HOLD',
+    })),
+    rest: [],
+    detachments: s.players[side].package,
+    commander: us.find((u) => entry(s, u).character)?.id ?? '',
+    dispositions: [],
+  }
+  const costs = s.battles === 0 ? validateMuster(s, side, setupMuster, setupBattle) : {}
+  const price = s.battles === 0 ? Object.values(costs).reduce((n, c) => n + c, 0) : 0
+  assert(
+    s.battles > 0 || (price >= 470 && price <= 500),
+    'Стартовый состав должен быть 470–500 Effective',
+  )
+  for (const u of us)
+    assert(
+      s.snapshot.catalog.some((c) => c.id === u.catalogId),
+      'Юнит отсутствует в каталоге',
+    )
+  return { units: us, effective: price }
+}
+
 function validateSnapshot(s: Snapshot) {
   assert(
     s &&
@@ -279,7 +283,7 @@ function validateSnapshot(s: Snapshot) {
       Array.isArray(s.sources) &&
       s.sources.length <= 30 &&
       s.sources.every((v) => typeof v === 'string' && v.length <= 500),
-    'Неверный Snapshot',
+    'Неверные данные каталога',
   )
   assert(
     Array.isArray(s.catalog) &&

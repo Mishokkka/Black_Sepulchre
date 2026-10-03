@@ -1,3 +1,4 @@
+import { SITE_RULES_SOURCE, STARTER_DETACHMENTS } from './snapshot.ts'
 import {
   SIDES,
   type CatalogUnit,
@@ -162,17 +163,16 @@ export function importLegacy(raw: Legacy, ctx: Context): State {
     snapshot: {
       id: 'snapshot-2026-09-30-import',
       date: c.snapshot_date,
-      sources: [],
+      sources: [SITE_RULES_SOURCE],
       catalog,
       enhancements: [],
       detachments: SIDES.map((side) => ({
         id: `snapshot-detachment:${side}`,
-        name: `Укажите legal Detachment ${side}`,
-        dp: 1,
+        ...STARTER_DETACHMENTS[side],
         requiredKeywords: [],
         side,
       })),
-      approved: [],
+      approved: [...SIDES],
     },
     setupApproved: [],
     history: [],
@@ -187,7 +187,7 @@ export function importLegacy(raw: Legacy, ctx: Context): State {
     finalModes: {},
     winner: null,
     log: [],
-    flags: { migrationReview: true },
+    flags: { migrationReview: false, siteRulesAccepted: true },
   }
 }
 export function newUnit(

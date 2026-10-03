@@ -1,4 +1,5 @@
 import type { CatalogUnit, Snapshot } from './model.ts'
+import { SITE_RULES_SOURCE } from './snapshot.ts'
 import {
   cardFromImport,
   keyword,
@@ -159,6 +160,7 @@ export function referenceImport(d: ReferenceSheet): SourceImport {
 export function draftCatalog(source: SourceImport, u: ImportedUnit, id: string): CatalogUnit {
   const card = cardFromImport(source, u),
     keys = [...new Set([...u.keywords, ...u.models.flatMap((g) => g.keywords)].map(keyword))]
+  card.reviewedAgainst = SITE_RULES_SOURCE
   if (source.source.provider === 'Wahapedia') card.profiles = structuredClone(source.profiles)
   // This malformed supplied example otherwise looks like a selectable 14-model variant.
   // A changed official composition can be recorded explicitly in a reviewed Snapshot.

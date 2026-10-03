@@ -20,7 +20,7 @@ import {
 } from '../../shared/catalogue'
 import type { Props } from './CampaignViews'
 import { DatasheetView, ProfileTable } from './DatasheetView'
-import { SnapshotManager } from './CampaignExtras'
+import { CatalogManager } from './CampaignExtras'
 
 export type LibraryAPI = (
   action: 'imports' | 'import_source',
@@ -79,9 +79,7 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
     [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false),
     [search, setSearch] = useState(''),
-    [reference, setReference] = useState<ReferenceLibrary | null>(null),
-    [draft, setDraft] = useState<Snapshot | null>(null),
-    [baseVersion, setBaseVersion] = useState(s.version)
+    [reference, setReference] = useState<ReferenceLibrary | null>(null)
   const load = async () => {
     setBusy(true)
     try {
@@ -138,12 +136,9 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
         </div>
       ))
   const canPublish =
-    !s.battle &&
-    ['setup', 'strategy', 'logistics'].includes(s.phase) &&
-    !s.snapshotProposal &&
-    !s.correctionProposal
-  const addConfiguration = (source: SourceImport) => {
-    const next = structuredClone(draft ?? s.snapshot)
+    !s.battle && ['setup', 'strategy', 'logistics'].includes(s.phase) && !s.correctionProposal
+  const addConfiguration = async (source: SourceImport) => {
+    const next = structuredClone(s.snapshot)
     for (const d of source.detachments.filter((d) => d.dp >= 1 && d.dp <= 3))
       if (!next.detachments.some((v) => (!v.side || v.side === side) && v.name === d.name))
         next.detachments.push({
@@ -159,22 +154,25 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
           ...(next.dispositions ?? []),
           { id: crypto.randomUUID(), name: d.name, side },
         ]
-    if (!draft) setBaseVersion(s.version)
     next.id = crypto.randomUUID()
     next.date = new Date().toISOString().slice(0, 10)
-    next.approved = []
-    setDraft(next)
-    setNotice(
-      'Detachments с DP 1–3 и Dispositions добавлены в черновик. Проверьте их требования в редакторе Snapshot подготовки. Активный Stage Package выбирается отдельно.',
-    )
+    try {
+      const ok = await send('save_catalog', { snapshot: next })
+      if (ok !== false)
+        setNotice(
+          'Detachments и Dispositions добавлены в каталог. Активный Stage Package выбирается отдельно.',
+        )
+    } catch (e) {
+      setError((e as Error).message)
+    }
   }
   return (
     <>
       <section className="panel">
         <h2>Каталог и источники</h2>
         <p>
-          Загрузите выбранные составы New Recruit. После проверки добавьте варианты в общий
-          Snapshot; покупка отрядов и Refit доступны в Logistics.
+          Загрузите составы New Recruit, выберите вариант и сохраните его в каталог. Покупка отрядов
+          и Refit доступны в Logistics. Правила и текущие цены сайта уже приняты.
         </p>
         {error && (
           <p role="alert" className="validation">
@@ -221,11 +219,13 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
                 Каталог {preview.source.catalogueRevision} · система {preview.source.gameRevision} ·{' '}
                 {preview.points} pts {preview.limit !== null ? `/ ${preview.limit}` : ''}
               </p>
-              {preview.issues.map((i, j) => (
-                <p className="muted" key={j}>
-                  {i.message}
-                </p>
-              ))}
+              {preview.issues
+                .filter((i) => i.code !== 'source_review')
+                .map((i, j) => (
+                  <p className="muted" key={j}>
+                    {i.message}
+                  </p>
+                ))}
               <button
                 onClick={async () => {
                   setBusy(true)
@@ -284,16 +284,18 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
               <small>
                 SHA-256 {item.hash} · {item.createdAt}
               </small>
-              {item.data.issues.map((i, j) => (
-                <p key={j}>{i.message}</p>
-              ))}
+              {item.data.issues
+                .filter((i) => i.code !== 'source_review')
+                .map((i, j) => (
+                  <p key={j}>{i.message}</p>
+                ))}
               {(item.data.detachments.length > 0 || item.data.dispositions.length > 0) && (
                 <details>
                   <summary>Конфигурация источника</summary>
                   <p>{item.data.detachments.map((d) => `${d.name}: ${d.dp} DP`).join('; ')}</p>
                   <p>{item.data.dispositions.map((d) => d.name).join('; ')}</p>
                   <button className="quiet" onClick={() => addConfiguration(item.data)}>
-                    Добавить в черновик Snapshot
+                    Добавить в каталог
                   </button>
                 </details>
               )}
@@ -305,9 +307,8 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
       <details className="panel">
         <summary>Wahapedia · остальные юниты и вооружение</summary>
         <p>
-          Справочник из 142 datasheets. Это кандидаты для проверки: доступность для Deathwatch,
-          wargear, цены и обновления официальных документов подтверждаются в Snapshot. Legends и
-          союзники Imperial Agents пока не включены.
+          Справочник из 142 datasheets. Выберите нужный состав и вооружение, затем сохраните вариант
+          в каталог. Legends и союзники Imperial Agents пока не включены.
         </p>
         {!reference && (
           <button
@@ -398,81 +399,34 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
         <TemplateEditor
           key={`${selected.source.source.hash ?? selected.source.source.catalogueId}:${selected.unitId}`}
           selection={selected}
-          snapshot={draft ?? s.snapshot}
+          snapshot={s.snapshot}
+          canSave={canPublish}
           onClose={() => setSelected(null)}
-          onAdd={(c, target) => {
+          onAdd={async (c, target) => {
             try {
               const next = snapshotWithCatalog(
-                draft ?? s.snapshot,
+                s.snapshot,
                 c,
                 target,
                 new Date().toISOString().slice(0, 10),
                 crypto.randomUUID(),
               )
-              if (!draft) setBaseVersion(s.version)
-              setDraft(next)
-              setSelected(null)
-              setNotice('Вариант добавлен в черновик Snapshot. Отправьте черновик после проверки.')
-              setError('')
+              const ok = await send('save_catalog', { snapshot: next })
+              if (ok !== false) {
+                setSelected(null)
+                setNotice('Вариант сохранён в каталоге и доступен для покупки / Refit.')
+                setError('')
+              }
             } catch (e) {
               setError((e as Error).message)
             }
           }}
         />
       )}
-      {draft && (
-        <section className="panel">
-          <h2>Черновик Snapshot</h2>
-          <p>
-            {draft.catalog.length} вариантов · {draft.date}. Можно добавить ещё несколько составов
-            перед отправкой.
-          </p>
-          <details>
-            <summary>Просмотреть полный черновик</summary>
-            <pre className="snapshot-preview">{JSON.stringify(draft, null, 2)}</pre>
-          </details>
-          {s.version !== baseVersion && (
-            <p className="validation">
-              Кампания изменилась после создания черновика. Сбросьте его и повторите обновление,
-              чтобы сохранить новые решения.
-            </p>
-          )}
-          {!canPublish && (
-            <p className="notice">
-              Snapshot доступен между боями; закончите текущий этап или согласуйте имеющееся
-              предложение.
-            </p>
-          )}
-          <div className="buttons">
-            <button
-              disabled={!canPublish || s.version !== baseVersion}
-              onClick={async () => {
-                const ok = await send(s.phase === 'setup' ? 'edit_snapshot' : 'propose_snapshot', {
-                  snapshot: draft,
-                })
-                if (ok !== false) {
-                  setDraft(null)
-                  setNotice(
-                    s.phase === 'setup'
-                      ? 'Snapshot сохранён; оба командира заново подтверждают подготовку.'
-                      : 'Snapshot предложен второму командиру.',
-                  )
-                }
-              }}
-            >
-              {s.phase === 'setup' ? 'Сохранить Snapshot подготовки' : 'Предложить общий Snapshot'}
-            </button>
-            <button className="quiet" onClick={() => setDraft(null)}>
-              Сбросить черновик
-            </button>
-          </div>
-        </section>
-      )}
-      {s.snapshotProposal && <SnapshotManager s={s} side={side} send={send} />}
+      <CatalogManager s={s} side={side} send={send} />
       <details className="panel">
         <summary>
-          Варианты в действующем Snapshot (
-          {s.snapshot.catalog.filter((c) => c.side === side).length})
+          Варианты в каталоге ({s.snapshot.catalog.filter((c) => c.side === side).length})
         </summary>
         {s.snapshot.catalog
           .filter((c) => c.side === side)
@@ -494,11 +448,13 @@ function TemplateEditor({
   snapshot,
   onAdd,
   onClose,
+  canSave,
 }: {
   selection: Selection
   snapshot: Snapshot
   onAdd: (c: CatalogUnit, target: string | null) => void
   onClose: () => void
+  canSave: boolean
 }) {
   const { source, unitId, reference } = selection,
     u = source.units.find((u) => u.id === unitId)!
@@ -513,12 +469,10 @@ function TemplateEditor({
     }),
     [target, setTarget] = useState(''),
     [error, setError] = useState(''),
-    [checked, setChecked] = useState(false),
     [json, setJson] = useState('')
   const card = c.card!,
     update = (patch: Partial<CatalogUnit>) => {
       setC({ ...c, ...patch })
-      setChecked(false)
     },
     editCard = (f: (v: DatasheetCard) => void) => {
       const next = structuredClone(card)
@@ -547,7 +501,7 @@ function TemplateEditor({
   return (
     <section className="panel template-editor">
       <div className="section-head">
-        <h2>{u.datasheet} · проверка варианта</h2>
+        <h2>{u.datasheet} · состав и вооружение</h2>
         <button className="quiet" onClick={onClose}>
           Закрыть
         </button>
@@ -600,7 +554,6 @@ function TemplateEditor({
             value={target}
             onChange={(e) => {
               setTarget(e.target.value)
-              setChecked(false)
             }}
           >
             <option value="">Новый вариант для покупки / Refit</option>
@@ -640,18 +593,6 @@ function TemplateEditor({
               <option key={g}>{g}</option>
             ))}
           </select>
-        </label>
-        <label>
-          Проверено по документу и версии
-          <input
-            value={card.reviewedAgainst}
-            onChange={(e) =>
-              editCard((v) => {
-                v.reviewedAgainst = e.target.value
-              })
-            }
-            placeholder="Faction Pack / MFM / errata, версия и дата"
-          />
         </label>
       </div>
       <div className="buttons">
@@ -830,7 +771,7 @@ function TemplateEditor({
       <details>
         <summary>Уточнить характеристики и профили</summary>
         <p>
-          Изменения сохранятся в этом варианте Snapshot. Профили в исходном файле останутся
+          Изменения сохранятся в этом варианте каталога. Профили в исходном файле останутся
           прежними.
         </p>
         {Object.entries(card.profiles).map(([id, p]) => (
@@ -943,7 +884,6 @@ function TemplateEditor({
               )
               if (next.side !== source.side) throw Error('Фракция не совпадает')
               setC(next)
-              setChecked(false)
               setError('')
             } catch (e) {
               setError((e as Error).message)
@@ -957,18 +897,14 @@ function TemplateEditor({
         <summary>Просмотр карточки ({c.models} моделей)</summary>
         <DatasheetView card={card} />
       </details>
-      <label className="check">
-        <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} />
-        Проверены состав, wargear, keywords, роли, транспорт и актуальные цены. Вариант доступен
-        моей фракции.
-      </label>
       {error && (
         <p className="validation" role="alert">
           {error}
         </p>
       )}
+      {!canSave && <p>Сохранить вариант можно между боями, до объявления атаки.</p>}
       <button
-        disabled={!checked || !card.reviewedAgainst.trim()}
+        disabled={!canSave}
         onClick={() => {
           try {
             if (card.paidOptions.some((p) => !c.packageCosts?.some((x) => x.name === p.name)))
@@ -991,7 +927,7 @@ function TemplateEditor({
           }
         }}
       >
-        Добавить проверенный вариант в черновик Snapshot
+        Сохранить вариант в каталог
       </button>
     </section>
   )

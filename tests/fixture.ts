@@ -22,12 +22,10 @@ export function fixture(): State {
       active_side: 'deathwatch' as const,
     },
     players: [],
-    sectors: 'ABCDEFGHIJK'
-      .split('')
-      .map((k) => ({
-        sector_key: k,
-        owner_side: k === 'G' ? null : 'ABCDE'.includes(k) ? 'deathwatch' : 'necrons',
-      })),
+    sectors: 'ABCDEFGHIJK'.split('').map((k) => ({
+      sector_key: k,
+      owner_side: k === 'G' ? null : 'ABCDE'.includes(k) ? 'deathwatch' : 'necrons',
+    })),
     units: catalog.map((u, i) => ({
       ...u,
       id: `00000000-0000-4000-8000-${String(i + 10).padStart(12, '0')}`,
@@ -41,7 +39,10 @@ export function fixture(): State {
   }
   const s = importLegacy(raw, ctx)
   s.snapshot.sources = ['Pinned official core / MFM / errata test fixture']
-  for (const d of s.snapshot.detachments) d.name = 'Test legal detachment'
+  for (const d of s.snapshot.detachments) {
+    d.name = 'Test legal detachment'
+    d.dp = 1
+  }
   s.snapshot.approved = ['deathwatch', 'necrons']
   s.setupApproved = ['deathwatch', 'necrons']
   for (const u of s.snapshot.catalog) {

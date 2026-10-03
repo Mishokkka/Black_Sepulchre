@@ -348,7 +348,7 @@ export function parseNewRecruit(rawText: string, filename = 'NewRecruit.json'): 
         code: 'composition_review',
         blocking: true,
         message:
-          'В примере Veterans больше 10 моделей. Исправьте состав и количество оружия по актуальному datasheet перед добавлением в Snapshot.',
+          'В примере Veterans больше 10 моделей. Исправьте состав и количество оружия перед добавлением в каталог.',
       })
     if (paidOptions.length)
       issues.push({
@@ -396,8 +396,7 @@ export function parseNewRecruit(rawText: string, filename = 'NewRecruit.json'): 
     {
       code: 'source_review',
       blocking: false,
-      message:
-        'Экспорт отражает выбранную версию NR; актуальность сверяется при согласовании Snapshot',
+      message: 'Карточки и цены взяты из этой версии New Recruit',
     },
   ]
   if (limit !== undefined && points > count(limit, 100000))
@@ -605,7 +604,7 @@ export function validateTransportRule(rule: TransportRule, capacity: number) {
   }
   check(sum === capacity, 'Вместимость должна равняться сумме групп мест')
 }
-/** Draft suggestions for the source examples. The Snapshot editor requires review. */
+/** Initial transport suggestions for variants from the supplied exports. */
 export function suggestedTransport(name: string): TransportRule | undefined {
   const group = (
     capacity: number,

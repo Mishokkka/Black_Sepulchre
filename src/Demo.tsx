@@ -52,7 +52,10 @@ export default function Demo() {
   }
   const load = (mode: string) => {
     const next = fixture()
-    if (mode === 'setup') next.phase = 'setup'
+    if (mode === 'setup') {
+      next.phase = 'setup'
+      next.setupApproved = []
+    }
     if (mode === 'battle') {
       next.players.deathwatch.mf = 'D'
       next.players.necrons.mf = 'F'
