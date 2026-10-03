@@ -542,7 +542,7 @@ function MusterView({ s, side, send }: Props) {
         />
       </div>
       <p className={error ? 'validation' : 'success'}>
-        {error || 'Состав прошёл проверки Snapshot и кампании.'}
+        {error || 'Состав прошёл проверки кампании.'}
       </p>
       <div className="buttons">
         <button disabled={!!error} onClick={() => send('commit_muster', { muster: m })}>

@@ -16,7 +16,7 @@ export function BattlePacket({ s, side, send }: Props) {
         {['WAR', 'PACT'].includes(b.type)
           ? '60 × 44'
           : `${STAGES[b.stage].l} × ${STAGES[b.stage].w}`}{' '}
-        · AL {b.al} · Snapshot {b.snapshot.id}
+        · AL {b.al}
       </p>
       {SIDES.map((who) => (
         <section key={who}>

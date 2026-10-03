@@ -72,7 +72,7 @@ export function DatasheetView({ card }: { card?: DatasheetCard }) {
     return (
       <small>
         Профили ещё не добавлены. Выберите экспорт во вкладке «Каталог» и обновите этот вариант
-        Snapshot.
+        каталога.
       </small>
     )
   const seen = new Set<string>(),

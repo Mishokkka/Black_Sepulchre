@@ -194,7 +194,7 @@ export function validateMuster(
             : limit < 1000
               ? 1
               : stage.copies),
-      `Превышен лимит копий ${name}`,
+      `Превышен лимит отдельных отрядов ${c.datasheet}`,
     )
   }
   for (const f of forms.values()) {
@@ -302,7 +302,7 @@ export function validateMuster(
       m.dispositions.every((id) =>
         b.snapshot.dispositions?.some((d) => d.id === id && d.side === side),
       ),
-    'Disposition отсутствует в Snapshot',
+    'Disposition отсутствует в каталоге',
   )
   const commander = m.picks.find((v) => v.id === m.commander)
   assert(commander, 'Нужен Warlord / Garrison Commander')

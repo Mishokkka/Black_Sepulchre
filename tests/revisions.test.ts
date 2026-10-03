@@ -186,16 +186,14 @@ test('Report revision replays the saved dice and replaces income, XP and depende
   assert.equal(s.battles, 1)
   assert.equal(s.history.length, 1)
 })
-test('Snapshot price changes are free and require both approvals; missing datasheet keeps persistent identity', () => {
+test('Catalogue price changes apply immediately for free; missing datasheet keeps persistent identity', () => {
   let s = fixture()
   const snapshot = structuredClone(s.snapshot),
     id = s.units[0].id
   snapshot.catalog[0].rc = 900
   snapshot.catalog.splice(1, 1)
-  s = run(s, 'propose_snapshot', { snapshot })
-  assert.equal(s.units[0].rc, 75)
-  assert.throws(() => run(s, 'action', { action: 'recon' }), /Snapshot/)
-  s = run(s, 'approve_snapshot', {}, 'necrons')
+  s = run(s, 'save_catalog', { snapshot })
+  assert.equal(s.snapshotProposal, null)
   assert.equal(s.units[0].rc, 900)
   assert.equal(s.players.deathwatch.supply, 100)
   assert.equal(s.units[0].id, id)

@@ -100,7 +100,7 @@ export function bonus(s: State, sector: SectorKey, side: Side): boolean {
 }
 export function entry(s: State, u: Unit, snapshot: Snapshot = s.snapshot): CatalogUnit {
   const c = snapshot.catalog.find((c) => c.id === u.catalogId) ?? u.retiredCatalog
-  assert(c, 'Datasheet отсутствует в Snapshot')
+  assert(c, 'Datasheet отсутствует в каталоге')
   return c
 }
 export function unit(s: State, id: unknown, side?: Side): Unit {

@@ -324,8 +324,7 @@ test('Snapshot update cannot replace a known loadout for free, source-stat updat
   good.catalog.find((c) => c.id === old.id)!.card!.profiles[old.card.models[0].stats[0]].values.T =
     '5'
   const before = s.units.map((u) => [u.id, u.xp, u.honours, u.scars])
-  const proposed = command(s, { type: 'propose_snapshot', payload: { snapshot: good } }, context())
-  const accepted = command(proposed, { type: 'approve_snapshot', payload: {} }, context('necrons'))
+  const accepted = command(s, { type: 'save_catalog', payload: { snapshot: good } }, context())
   assert.deepEqual(
     accepted.units.map((u) => [u.id, u.xp, u.honours, u.scars]),
     before,
