@@ -1,9 +1,31 @@
 {
   "name": "black-sepulchre-campaign",
   "private": true,
-  "version": "0.1.0",
+  "version": "2.2.1",
   "type": "module",
-  "scripts": {"dev":"vite","build":"tsc -b && vite build","preview":"vite preview"},
-  "dependencies":{"@supabase/supabase-js":"^2.57.4","lucide-react":"^0.468.0","react":"^19.1.1","react-dom":"^19.1.1"},
-  "devDependencies":{"@types/react":"^19.1.16","@types/react-dom":"^19.1.9","@vitejs/plugin-react":"^5.0.4","typescript":"^5.9.3","vite":"^7.1.7"}
+  "scripts": {
+    "dev": "npm run rules && vite",
+    "build": "node tools/compile-rules.mjs && tsc -p tsconfig.engine.json && tsc -b && vite build && node tools/build-assets.mjs",
+    "preview": "vite preview",
+    "test": "node tools/compile-rules.mjs && tsx --test tests/*.test.ts",
+    "rules": "node tools/compile-rules.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-markdown": "^10.1.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.4",
+    "prettier": "^3.9.9",
+    "supabase": "^2.119.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.7"
+  }
 }
