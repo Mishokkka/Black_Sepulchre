@@ -138,6 +138,7 @@ export const datasheetName = (s: string) => {
     (
       {
         INTERCESSORS: 'INTERCESSORSQUAD',
+        LOKHUSTHEAVYDESTROYER: 'LOKHUSTHEAVYDESTROYERS',
         PRIMARISANCIENT: 'ANCIENT',
         PRIMARISAPOTHECARY: 'APOTHECARY',
       } as Record<string, string>

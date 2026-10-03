@@ -180,20 +180,25 @@ export function validateMuster(
     'Слишком много Enhancements',
   )
   for (const [name, n] of Object.entries(counts)) {
-    const c = b.snapshot.catalog.find(
-      (c) => datasheetName(c.datasheet) === name && c.side === side,
-    )!
+    const variants = m.picks
+      .map((v) => entry(s, unit(s, v.id), b.snapshot))
+      .filter((c) => datasheetName(c.datasheet) === name)
+    const c = variants[0]
     assert(
       n <=
-        (c.unique || c.epic
-          ? 1
-          : c.battleline
-            ? limit < 1000
-              ? 2
-              : stage.battleline
-            : limit < 1000
+        Math.min(
+          ...variants.map((c) =>
+            c.unique || c.epic
               ? 1
-              : stage.copies),
+              : c.battleline
+                ? limit < 1000
+                  ? 2
+                  : stage.battleline
+                : limit < 1000
+                  ? 1
+                  : stage.copies,
+          ),
+        ),
       `Превышен лимит отдельных отрядов ${c.datasheet}`,
     )
   }

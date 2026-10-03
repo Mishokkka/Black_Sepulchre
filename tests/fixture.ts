@@ -10,7 +10,7 @@ export function context(actor: Context['actor'] = 'deathwatch', value = 4): Cont
     id: () => `00000000-0000-4000-8000-${String(i++).padStart(12, '0')}`,
   }
 }
-export function fixture(): State {
+export function fixture(realDetachments = false): State {
   const ctx = context()
   const raw = {
     campaign: {
@@ -39,7 +39,7 @@ export function fixture(): State {
   }
   const s = importLegacy(raw, ctx)
   s.snapshot.sources = ['Pinned official core / MFM / errata test fixture']
-  for (const d of s.snapshot.detachments) {
+  for (const d of realDetachments ? [] : s.snapshot.detachments) {
     d.name = 'Test legal detachment'
     d.dp = 1
   }

@@ -1,4 +1,5 @@
 import { SITE_RULES_SOURCE, STARTER_DETACHMENTS } from './snapshot.ts'
+import { expandStartingCatalogue } from './starting-catalogue.ts'
 import {
   SIDES,
   type CatalogUnit,
@@ -145,7 +146,7 @@ export function importLegacy(raw: Legacy, ctx: Context): State {
       ]
     }),
   ) as State['sectors']
-  return {
+  const state: State = {
     id: c.id,
     name: c.name,
     rules: '2.2.1',
@@ -189,6 +190,8 @@ export function importLegacy(raw: Legacy, ctx: Context): State {
     log: [],
     flags: { migrationReview: false, siteRulesAccepted: true },
   }
+  expandStartingCatalogue(state)
+  return state
 }
 export function newUnit(
   s: State,

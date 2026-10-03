@@ -48,6 +48,9 @@ export function declareBattle(
             ...(s.players[defender].stf === sector ? ['stf'] : []),
           ] as ('mf' | 'stf')[])
   const actualKind = !type && !assault && defenderForces.length ? 'field' : kind
+  // Freeze all owned variants, including reserve/garrison choices, without copying
+  // hundreds of unowned shopping options into every historical battle record.
+  const owned = new Set(s.units.map((u) => u.catalogId))
   s.battle = {
     id: ctx.id(),
     number: s.battles + 1,
@@ -64,7 +67,10 @@ export function declareBattle(
     raid,
     al: STAGES[s.stage].al,
     stage: s.stage,
-    snapshot: structuredClone(s.snapshot),
+    snapshot: structuredClone({
+      ...s.snapshot,
+      catalog: s.snapshot.catalog.filter((c) => owned.has(c.id)),
+    }),
     sectorSnapshot: sector === 'X' ? null : structuredClone(s.sectors[sector]),
     mission: null,
     options: [],
