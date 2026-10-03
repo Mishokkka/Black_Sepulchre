@@ -1,3 +1,20 @@
+# The Black Sepulchre - campaign rules v2.2
+
+Новая редакция правил подготовлена по решениям владельца после подробного ревью v2.1. В этой ветке изменены документы правил; production Campaign Command и Supabase пока используют прежнюю реализацию. Новые механики не следует считать автоматизированными.
+
+- [Единый PDF v2.2](Black_Sepulchre_40k11_Campaign_Rules_v2.2_RU.pdf): изменения, все 33 mission cards, The Last Canticle и неизменённая база v2.1 в одном файле.
+- [Нормативные изменения](docs/Black_Sepulchre_v2.2_amendments_RU.md).
+- [Все миссии v2.2](docs/Black_Sepulchre_v2.2_missions_RU.md).
+- [Endgame crisis и оба финала - спойлеры](docs/Black_Sepulchre_v2.2_crisis_RU.md).
+- [Решения, альтернативы G/Sabotage/Local Supply и покрытие F01-F37](docs/Black_Sepulchre_v2.2_decisions_RU.md).
+- [Результаты аналитических проверок](docs/Black_Sepulchre_v2.2_checks.json).
+
+Для кампании v2.2 нормативны authored Markdown выше и собранный из них PDF. В неизменённых вопросах действует v2.1. Сохранены War of Attrition и baseline Garrison Initial/Capacity; кризис начинается после battle12 и завершается отдельным encounter18. Новые Local Supply, Commission, point CR и crisis flags до реализации записываются в отдельный согласованный ручной ledger. Переход текущей кампании описан в amendments §15.
+
+Исходный v2.1 не перезаписан. Последующие разделы README описывают существующее приложение и его прежний rules source; они не утверждают parity с v2.2. Эти файлы не меняют production schema или live campaign.
+
+---
+
 # The Black Sepulchre Campaign Command
 
 Веб-приложение для ведения двухигроковой нарративной кампании Warhammer 40,000 11e по правилам **The Black Sepulchre**.
@@ -1154,3 +1171,4 @@ garrison_reinforcement
 5. не использовать v1.2.1 как источник.
 
 В v2.1 прежние source ambiguity Scavenge и equal-sector tie для D66 11/32 закрыты. Optional Secondary Task Force в приложении по-прежнему следует считать отдельной задачей, если она не была реализована после этого README. Всё, что происходит непосредственно на tabletop, сайт не симулирует, а хранит как rule reminder или post-battle fact input.
+
