@@ -1,6 +1,7 @@
 import { HONOURS } from './rules.generated.ts'
 import { SIDES, type Command, type Context, type Snapshot, type State } from './model.ts'
 import { assert, credit, entry, present, spend, str, supplied } from './rules.ts'
+import { loadoutSignature, sameDatasheet } from './datasheets.ts'
 
 export function snapshotCommand(
   s: State,
@@ -15,6 +16,24 @@ export function snapshotCommand(
   if (c.type === 'propose_snapshot') {
     const snapshot = c.payload.snapshot as Snapshot
     validate(snapshot)
+    if (s.battles > 0 || s.phase !== 'setup')
+      for (const old of s.snapshot.catalog) {
+        const next = snapshot.catalog.find((c) => c.id === old.id)
+        if (next)
+          assert(
+            next.side === old.side &&
+              next.models === old.models &&
+              sameDatasheet(next.datasheet, old.datasheet),
+            'Тот же catalog ID должен сохранять datasheet, фракцию и размер; для другого состава создайте вариант',
+          )
+        if (old.card && next)
+          assert(next.card, 'Нельзя удалить карточку известного состава под прежним catalog ID')
+        if (old.card && next?.card)
+          assert(
+            loadoutSignature(old.card) === loadoutSignature(next.card),
+            'Для другого вооружения создайте отдельный вариант и используйте Refit; Snapshot обновляет тот же состав',
+          )
+      }
     snapshot.approved = []
     s.snapshotProposal = { snapshot: structuredClone(snapshot), approved: [ctx.actor] }
     return

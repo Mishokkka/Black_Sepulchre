@@ -3,6 +3,7 @@ import type { Snapshot } from '../../shared/model'
 import { home, STAGES } from '../../shared/rules'
 import { Check, type Props } from './CampaignViews'
 import { labels } from '../App'
+import { DatasheetView } from './DatasheetView'
 export function SnapshotManager({ s, side, send }: Props) {
   const [text, setText] = useState(''),
     [error, setError] = useState('')
@@ -20,9 +21,27 @@ export function SnapshotManager({ s, side, send }: Props) {
             Предложен {s.snapshotProposal.snapshot.id} · {s.snapshotProposal.snapshot.date}
           </p>
           <p>Подтверждения: {s.snapshotProposal.approved.map((v) => labels[v]).join(', ')}</p>
-          <pre className="snapshot-preview">
-            {JSON.stringify(s.snapshotProposal.snapshot, null, 2)}
-          </pre>
+          {s.snapshotProposal.snapshot.catalog
+            .filter(
+              (c) =>
+                JSON.stringify(c) !==
+                JSON.stringify(s.snapshot.catalog.find((old) => old.id === c.id)),
+            )
+            .map((c) => (
+              <details key={c.id}>
+                <summary>
+                  {c.datasheet} · {c.size} · {c.rc} RC ·{' '}
+                  {s.snapshot.catalog.some((old) => old.id === c.id) ? 'обновлён' : 'новый вариант'}
+                </summary>
+                <DatasheetView card={c.card} />
+              </details>
+            ))}
+          <details>
+            <summary>Полный JSON предложения</summary>
+            <pre className="snapshot-preview">
+              {JSON.stringify(s.snapshotProposal.snapshot, null, 2)}
+            </pre>
+          </details>
           <div className="buttons">
             <button
               disabled={s.snapshotProposal.approved.includes(side)}

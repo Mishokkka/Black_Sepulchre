@@ -23,7 +23,8 @@ import {
   StrategyView,
 } from './views/CampaignViews'
 import { BattleView, ReportView } from './views/BattleView'
-export type Send = (type: string, payload?: Record<string, unknown>) => Promise<void>
+import { CatalogView, type LibraryAPI } from './views/CatalogView'
+export type Send = (type: string, payload?: Record<string, unknown>) => Promise<void | boolean>
 export const labels: Record<Side, string> = { deathwatch: 'Deathwatch', necrons: 'Necrons' }
 export const phases: Record<string, string> = {
   setup: 'Подготовка кампании',
@@ -233,6 +234,13 @@ export default function App() {
       setError((e as Error).message)
     }
   }, [id, call])
+  const libraryApi: LibraryAPI = useCallback(
+    async (action, payload = {}) => {
+      if (!id) throw Error('Кампания не выбрана')
+      return call({ campaignId: id, action, ...payload })
+    },
+    [id, call],
+  )
   useEffect(() => {
     load()
   }, [load])
@@ -271,10 +279,12 @@ export default function App() {
     try {
       await call(body)
       setPending(null)
+      return true
     } catch (e) {
       setError((e as Error).message)
       setPending(body)
       await load()
+      return false
     } finally {
       setBusy(false)
     }
@@ -340,6 +350,7 @@ export default function App() {
       ['strategy', Footprints, 'Стратегия'],
       ['map', Map, 'Карта'],
       ['roster', Users, 'Армия'],
+      ['catalog', BookOpen, 'Каталог'],
       ['battle', Swords, 'Текущий бой'],
       ['logistics', Shield, 'Logistics'],
       ['rules', BookOpen, 'Правила'],
@@ -412,7 +423,19 @@ export default function App() {
                 Зависимые действия приостановлены. После общего согласия они будут отменены и
                 последствия боя пересчитаны из прежнего состояния.
               </p>
-              <p>VP Deathwatch {s.correctionProposal.report.vp.deathwatch} : Necrons {s.correctionProposal.report.vp.necrons}</p><p>{s.correctionProposal.report.narrative}</p>{s.correctionProposal.report.units.map(r=><p key={r.id}>{s.units.find(u=>u.id===r.id)?.name}: {r.entered?"участвовал":"не вошёл"}{r.destroyed?" · уничтожен":""}{r.deed?` · ${r.deed}`:""}</p>)}
+              <p>
+                VP Deathwatch {s.correctionProposal.report.vp.deathwatch} : Necrons{' '}
+                {s.correctionProposal.report.vp.necrons}
+              </p>
+              <p>{s.correctionProposal.report.narrative}</p>
+              {s.correctionProposal.report.units.map((r) => (
+                <p key={r.id}>
+                  {s.units.find((u) => u.id === r.id)?.name}:{' '}
+                  {r.entered ? 'участвовал' : 'не вошёл'}
+                  {r.destroyed ? ' · уничтожен' : ''}
+                  {r.deed ? ` · ${r.deed}` : ''}
+                </p>
+              ))}
               <button
                 disabled={s.correctionProposal.approved.includes(side)}
                 onClick={() => {
@@ -436,7 +459,9 @@ export default function App() {
               {correcting && <ReportView s={s} side={side} send={send} correction />}
             </details>
           )}
-          {s.phase === 'setup' ? (
+          {tab === 'catalog' ? (
+            <CatalogView s={s} side={side} send={send} api={libraryApi} />
+          ) : s.phase === 'setup' ? (
             <SetupView s={s} side={side} send={send} />
           ) : (
             <>

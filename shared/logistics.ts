@@ -23,6 +23,7 @@ import {
 } from './rules.ts'
 import { newUnit } from './state.ts'
 import { setPackage } from './strategy.ts'
+import { sameDatasheet } from './datasheets.ts'
 export function inLogistics(s: State, side: Context['actor']) {
   assert(
     s.phase === 'logistics' &&
@@ -371,11 +372,17 @@ export function logistics(s: State, c: Command, ctx: Context) {
       const old = entry(s, u),
         next = s.snapshot.catalog.find(
           (cat) =>
-            cat.id === c.payload.catalogId && cat.side === side && cat.datasheet === old.datasheet,
+            cat.id === c.payload.catalogId &&
+            cat.side === side &&
+            sameDatasheet(cat.datasheet, old.datasheet),
         )
       assert(next, 'Произвольная смена datasheet запрещена')
       const kind = String(c.payload.kind ?? 'loadout'),
         diff = Math.max(0, next.rc - u.rc)
+      assert(
+        kind === 'size' ? next.models !== old.models : next.models === old.models,
+        'Размер меняется через изменение размера; вооружение того же размера — через Refit loadout',
+      )
       let cost = diff
       if (
         kind === 'size' &&

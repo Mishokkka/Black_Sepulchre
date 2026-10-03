@@ -1,4 +1,4 @@
-import { Suspense, useState } from 'react'
+import { Suspense, useState, useCallback } from 'react'
 import { fixture, context } from '../tests/fixture'
 import { command, project } from '../shared/engine'
 import { declareBattle } from '../shared/battle'
@@ -13,18 +13,41 @@ import {
 } from './views/CampaignViews'
 import { BattleView } from './views/BattleView'
 import type { Send } from './App'
+import { CatalogView, type LibraryAPI, type LibraryEntry } from './views/CatalogView'
+import { parseNewRecruit } from '../shared/datasheets'
 export default function Demo() {
   const [s, setS] = useState(fixture),
     [side, setSide] = useState<Side>('deathwatch'),
     [tab, setTab] = useState('strategy'),
     [error, setError] = useState('')
+  const [imports, setImports] = useState<LibraryEntry[]>([])
+  const api: LibraryAPI = useCallback(
+    async (action, payload = {}) => {
+      if (action === 'imports') return { imports: imports.filter((v) => v.data.side === side) }
+      const text = String(payload.text),
+        data = parseNewRecruit(text, String(payload.filename))
+      if (data.side !== side) throw Error('Фракция не совпадает')
+      const hash = Array.from(
+        new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))),
+      )
+        .map((v) => v.toString(16).padStart(2, '0'))
+        .join('')
+      data.source.hash = hash
+      const old = imports.find((i) => i.hash === hash)
+      if (!old) setImports((v) => [{ hash, data, createdAt: new Date().toISOString() }, ...v])
+      return { import: old?.data ?? data, reused: !!old }
+    },
+    [imports, side],
+  )
   const view = project(s, side) as unknown as State
   const send: Send = async (type, payload = {}) => {
     try {
       setS(command(s, { type, payload }, context(side)))
       setError('')
+      return true
     } catch (e) {
       setError((e as Error).message)
+      return false
     }
   }
   const load = (mode: string) => {
@@ -59,7 +82,7 @@ export default function Demo() {
         </select>
       </header>
       <div className="buttons">
-        {['strategy', 'battle', 'logistics', 'roster', 'rules', 'map'].map((t) => (
+        {['strategy', 'battle', 'logistics', 'roster', 'rules', 'map', 'catalog'].map((t) => (
           <button className="quiet" key={t} onClick={() => setTab(t)}>
             {t}
           </button>
@@ -70,6 +93,32 @@ export default function Demo() {
           </button>
         ))}
       </div>
+      {tab === 'catalog' && (
+        <button
+          className="quiet"
+          onClick={async () => {
+            const examples =
+              side === 'necrons'
+                ? [
+                    await import('../tests/fixtures/NecronsExample.json'),
+                    await import('../tests/fixtures/NecronTeamExample.json'),
+                  ]
+                : [
+                    await import('../tests/fixtures/DeathwatchExample.json'),
+                    await import('../tests/fixtures/DeathwatchTeamExample.json'),
+                  ]
+            setImports(
+              examples.map((x, i) => ({
+                hash: `demo-${side}-${i}`,
+                data: parseNewRecruit(JSON.stringify(x.default), `Demo ${side} ${i + 1}.json`),
+                createdAt: 'local',
+              })),
+            )
+          }}
+        >
+          Загрузить обезличенные примеры для проверки
+        </button>
+      )}
       {error && (
         <div role="alert" className="notice">
           {error}
@@ -78,7 +127,9 @@ export default function Demo() {
       <p>
         {s.phase} · State {s.version} · Supply {s.players[side].supply}
       </p>
-      {s.phase === 'setup' ? (
+      {tab === 'catalog' ? (
+        <CatalogView s={view} side={side} send={send} api={api} />
+      ) : s.phase === 'setup' ? (
         <SetupView s={view} side={side} send={send} />
       ) : tab === 'battle' ? (
         <BattleView s={view} side={side} send={send} />

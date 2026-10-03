@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.57.4'
 import { command, project } from '../../../shared/engine.ts'
 import { importLegacy } from '../../../shared/state.ts'
 import type { Command, Context, State } from '../../../shared/model.ts'
+import { parseNewRecruit, MAX_IMPORT_BYTES } from '../../../shared/datasheets.ts'
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization,x-client-info,apikey,content-type',
@@ -32,7 +33,8 @@ Deno.serve(async (req: Request) => {
       { data, error } = await auth.auth.getUser(header.slice(7))
     if (error || !data.user) return json({ error: 'Сессия истекла' }, 401)
     const bytes = await req.text()
-    if (bytes.length > 350000) return json({ error: 'Слишком большой запрос' }, 413)
+    if (new TextEncoder().encode(bytes).length > 2500000)
+      return json({ error: 'Слишком большой запрос' }, 413)
     const body = JSON.parse(bytes),
       id = body.campaignId
     if (typeof id !== 'string' || !/^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/.test(id))
@@ -53,6 +55,38 @@ Deno.serve(async (req: Request) => {
       p_request: requestId,
     })
     if (loaded.error) return json({ error: 'Кампания недоступна' }, 403)
+    if (body.action === 'imports') {
+      const listed = await db.rpc('v221_list_imports', { p_campaign: id, p_actor: actor })
+      if (listed.error) throw listed.error
+      return json({ imports: listed.data, side: loaded.data.side })
+    }
+    if (body.action === 'import_source') {
+      if (
+        typeof body.text !== 'string' ||
+        new TextEncoder().encode(body.text).length > MAX_IMPORT_BYTES
+      )
+        return json({ error: 'Нужен JSON не более 2 МБ' }, 400)
+      const parsed = parseNewRecruit(
+        body.text,
+        typeof body.filename === 'string' ? body.filename : 'NewRecruit.json',
+      )
+      if (parsed.side !== loaded.data.side)
+        return json({ error: 'Загрузите файл своей фракции' }, 403)
+      parsed.source.hash = Array.from(
+        new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body.text))),
+      )
+        .map((n) => n.toString(16).padStart(2, '0'))
+        .join('')
+      const saved = await db.rpc('v221_save_import', {
+        p_campaign: id,
+        p_actor: actor,
+        p_hash: parsed.source.hash,
+        p_data: parsed,
+      })
+      if (saved.error) throw saved.error
+      return json({ import: saved.data.data, reused: saved.data.reused, side: loaded.data.side })
+    }
+    if (body.action) return json({ error: 'Неизвестное действие' }, 400)
     const ctx: Context = { actor: loaded.data.side, dice: die, id: () => crypto.randomUUID() }
     let state = loaded.data.state as State
     if (!state) {

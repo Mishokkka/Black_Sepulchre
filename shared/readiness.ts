@@ -2,6 +2,7 @@ import { HONOURS } from './rules.generated.ts'
 import type { Battle, Muster, Pick, Side, State, Unit } from './model.ts'
 import { available, entry, STAGES, surcharge, effectPrice, ARMOURY, RELICS } from './rules.ts'
 import { validateMuster } from './muster.ts'
+import { sameDatasheet } from './datasheets.ts'
 
 // Search legal Field subsets, leader layouts and optional campaign loadouts. Caps
 // prune the search and an exact AL deployment is an immediate optimum.
@@ -47,6 +48,7 @@ export function maximumReady(source: State, side: Side): number {
       const c = entry(s, u),
         formationRC = al
       let n = Math.max(c.rc, ...c.copyPrices)
+      n += (c.packageCosts ?? []).reduce((sum, p) => sum + p.cost, 0)
       for (const id of u.honours) {
         const h = HONOURS.find((h) => h.id === id)!
         n += effectPrice(h.tier, h.formation, u.rc, formationRC)
@@ -69,7 +71,10 @@ export function maximumReady(source: State, side: Side): number {
         const leader = leaders[i]
         layout(i + 1, picks)
         for (const body of bodies) {
-          if (!entry(s, leader).leaderFor.includes(entry(s, body).datasheet)) continue
+          const cat = entry(s, leader),
+            target = entry(s, body).datasheet
+          if (![...cat.leaderFor, ...(cat.supportFor ?? [])].some((n) => sameDatasheet(n, target)))
+            continue
           const next = structuredClone(picks)
           next.find((p) => p.id === leader.id)!.formation = body.id
           layout(i + 1, next)

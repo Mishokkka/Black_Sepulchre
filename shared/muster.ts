@@ -1,5 +1,7 @@
 import { HONOURS } from './rules.generated.ts'
 import { SIDES, type Battle, type Muster, type Side, type State } from './model.ts'
+import { sameDatasheet, datasheetName } from './datasheets.ts'
+import { validateCargo } from './transport.ts'
 import {
   assert,
   available,
@@ -94,7 +96,7 @@ export function validateMuster(
     )
     const u = allowed(v.id, v.role),
       c = entry(s, u, b.snapshot)
-    counts[c.datasheet] = (counts[c.datasheet] ?? 0) + 1
+    counts[datasheetName(c.datasheet)] = (counts[datasheetName(c.datasheet)] ?? 0) + 1
     const f = forms.get(v.formation) ?? []
     f.push(v)
     forms.set(v.formation, f)
@@ -178,7 +180,9 @@ export function validateMuster(
     'Слишком много Enhancements',
   )
   for (const [name, n] of Object.entries(counts)) {
-    const c = b.snapshot.catalog.find((c) => c.datasheet === name && c.side === side)!
+    const c = b.snapshot.catalog.find(
+      (c) => datasheetName(c.datasheet) === name && c.side === side,
+    )!
     assert(
       n <=
         (c.unique || c.epic
@@ -204,22 +208,27 @@ export function validateMuster(
       leaders = f.filter((v) => entry(s, unit(s, v.id), b.snapshot).character)
     if (f.length > 1) {
       assert(body.length === 1 && leaders.length <= 2, 'Нелегальная Attached формация')
-      if (leaders.length === 2)
-        assert(
-          leaders.some((v, i) =>
-            (entry(s, unit(s, v.id), b.snapshot).coLeaders ?? []).includes(
-              entry(s, unit(s, leaders[1 - i].id), b.snapshot).datasheet,
-            ),
-          ),
-          'Исключение для двух Leaders должно быть задано Snapshot',
+      const target = entry(s, unit(s, body[0].id), b.snapshot).datasheet
+      const roles = leaders.map((v) => entry(s, unit(s, v.id), b.snapshot))
+      const can = (c: (typeof roles)[number], role: 'leader' | 'support') =>
+        (role === 'leader' ? c.leaderFor : (c.supportFor ?? [])).some((name) =>
+          sameDatasheet(name, target),
         )
-      for (const v of leaders)
-        assert(
-          entry(s, unit(s, v.id), b.snapshot).leaderFor.includes(
-            entry(s, unit(s, body[0].id), b.snapshot).datasheet,
-          ),
-          'Leader не присоединяется к Bodyguard',
-        )
+      assert(
+        roles.every((c) => can(c, 'leader') || can(c, 'support')),
+        'Leader/Support не присоединяется к Bodyguard',
+      )
+      if (roles.length === 2) {
+        const mixed =
+          (can(roles[0], 'leader') && can(roles[1], 'support')) ||
+          (can(roles[1], 'leader') && can(roles[0], 'support'))
+        const co =
+          roles.every((c) => can(c, 'leader')) &&
+          roles.some((c, i) =>
+            (c.coLeaders ?? []).some((n) => sameDatasheet(n, roles[1 - i].datasheet)),
+          )
+        assert(mixed || co, 'Нужен один Leader и один Support либо явное исключение двух Leaders')
+      }
     }
     if (limit < 1000)
       assert(
@@ -236,27 +245,30 @@ export function validateMuster(
     )
     const c = entry(s, unit(s, t.id), b.snapshot),
       cargo = m.picks.filter((v) => v.transport === t.id)
-    assert(
-      c.transport > 0 &&
-        cargo.reduce((n, v) => n + entry(s, unit(s, v.id), b.snapshot).models, 0) <= c.transport,
-      'Превышена вместимость транспорта',
-    )
-    assert(
-      cargo.every((v) =>
-        c.cargoKeywords.every((k) => entry(s, unit(s, v.id), b.snapshot).keywords.includes(k)),
-      ),
-      'Нелегальный груз',
+    validateCargo(
+      c,
+      cargo.map((v) => ({
+        catalog: entry(s, unit(s, v.id), b.snapshot),
+        attachedTo: m.picks
+          .filter(
+            (p) => p.formation === v.formation && !entry(s, unit(s, p.id), b.snapshot).character,
+          )
+          .map((p) => entry(s, unit(s, p.id), b.snapshot))[0],
+      })),
     )
   }
   for (const v of m.picks) {
     const u = unit(s, v.id),
       c = entry(s, u, b.snapshot),
       ordered = m.picks
-        .filter((v) => entry(s, unit(s, v.id), b.snapshot).datasheet === c.datasheet)
+        .filter((v) => sameDatasheet(entry(s, unit(s, v.id), b.snapshot).datasheet, c.datasheet))
         .sort((a, b) => a.id.localeCompare(b.id)),
       i = ordered.findIndex((x) => x.id === v.id)
     costs[v.id] =
       (c.copyPrices[i] ?? c.rc) +
+      (c.packageCosts ?? [])
+        .filter((p) => p.detachments.some((id) => m.detachments.includes(id)))
+        .reduce((n, p) => n + p.cost, 0) +
       (v.enhancement ? b.snapshot.enhancements.find((e) => e.id === v.enhancement)!.cost : 0) +
       surcharge(s, u, v, m.picks)
   }
