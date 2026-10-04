@@ -1,6 +1,16 @@
+import { reportRetreatPlan } from '../../shared/aftermath'
 import { BattlePacket } from './BattlePacket'
 import { TableExtras, MissionFacts } from './TableExtras'
 import { useState } from 'react'
+import { useBattleDraft } from '../lib/useBattleDraft'
+import { isMusterDraft, isReportDraft } from '../lib/drafts'
+import {
+  initialReport,
+  reportFields,
+  firstDestroyedCandidates,
+  storesCandidates,
+  cleanReport,
+} from '../../shared/report-form'
 import Markdown from 'react-markdown'
 import { EVENTS, MISSION_CARDS, CRISIS_CARDS } from '../../shared/rules.generated'
 import {
@@ -102,7 +112,7 @@ export function BattleView({ s, side, send }: Props) {
   const card = MISSION_CARDS[b.mission ?? '']
   return (
     <>
-      <section className="panel">
+      <section className="panel" id="battle-step">
         <p className="eyebrow">
           БОЙ {b.number} ·{' '}
           {b.sector === 'X' ? 'КРИЗИС / ОБЯЗАТЕЛЬНЫЙ КОНТАКТ' : `СЕКТОР ${b.sector}`} ·{' '}
@@ -147,7 +157,7 @@ export function BattleView({ s, side, send }: Props) {
         </section>
       )}
       {s.phase === 'mission' && (
-        <section className="panel">
+        <section className="panel" id="mission-panel">
           <h3>Миссия и единое окно переброса</h3>
           {b.options.length > 0 ? (
             <>
@@ -188,7 +198,7 @@ export function BattleView({ s, side, send }: Props) {
         </section>
       )}
       {s.phase === 'lock' && (
-        <section className="panel">
+        <section className="panel" id="recon-panel">
           <h3>Recon Lock</h3>
           <p>
             Без Lock или оба Lock — одновременное раскрытие. Единственный Lock раскрывается вторым.
@@ -218,7 +228,7 @@ export function BattleView({ s, side, send }: Props) {
       )}{' '}
       {s.phase === 'battle' && <TableView s={s} side={side} send={send} />}
       {s.phase === 'result' && (
-        <section className="panel">
+        <section className="panel" id="result-panel">
           <h3>Оба подтверждают результат</h3>
           <p>
             {labels.deathwatch}: {b.report?.vp.deathwatch} · {labels.necrons}:{' '}
@@ -342,14 +352,26 @@ function MusterView({ s, side, send }: Props) {
         (u.location === (b.forces?.[side] === 'stf' ? 'stf' : 'field') ||
           (u.location === 'garrison' && u.sector === b.sector)),
     ),
-    [picks, setPicks] = useState<Pick[]>([]),
-    [rest, setRest] = useState<string[]>([]),
-    [detachments, setDetachments] = useState(p.package.slice(0, 1)),
-    [commander, setCommander] = useState(''),
-    [dispositions, setDispositions] = useState<string[]>([])
+    draft = useBattleDraft<Muster>(
+      s.id,
+      b.id,
+      'muster',
+      s.version,
+      { picks: [], rest: [], detachments: p.package.slice(0, 1), commander: '', dispositions: [] },
+      isMusterDraft,
+    ),
+    m = draft.value,
+    { picks, rest, detachments, commander, dispositions } = m
+  const setPicks = (v: Pick[]) => draft.update((m) => ({ ...m, picks: v }))
+  const setRest = (v: string[]) => draft.update((m) => ({ ...m, rest: v }))
+  const setDetachments = (v: string[]) => draft.update((m) => ({ ...m, detachments: v }))
+  const setCommander = (v: string) => draft.update((m) => ({ ...m, commander: v }))
+  const setDispositions = (v: string[]) => draft.update((m) => ({ ...m, dispositions: v }))
   const edit = (id: string, value: Partial<Pick>) =>
-    setPicks(picks.map((p) => (p.id === id ? { ...p, ...value } : p)))
-  const m: Muster = { picks, rest, detachments, commander, dispositions }
+    draft.update((m) => ({
+      ...m,
+      picks: m.picks.map((p) => (p.id === id ? { ...p, ...value } : p)),
+    }))
   let error = '',
     costs: Record<string, number> = {}
   try {
@@ -359,14 +381,15 @@ function MusterView({ s, side, send }: Props) {
   }
   if (b.muster[side])
     return (
-      <section className="panel">
+      <section className="panel" id="muster-panel">
         <h3>Ваш legal commitment сохранён</h3>
         <p>Состав неизменяем. Ожидается второй командир.</p>
       </section>
     )
   return (
-    <section className="panel">
+    <section className="panel" id="muster-panel">
       <h3>Закрытый состав</h3>
+      {draft.status}
       <p>
         Initial {b.initial} · Pool {b.pool} · первое прибытие R{b.firstSlot}. В Field defence
         гарнизон Initial заполняет свободный AL.
@@ -649,7 +672,7 @@ function InterdictView({ s, side, send }: Props) {
   const [asset, setAsset] = useState(''),
     b = s.battle!
   return (
-    <section className="panel">
+    <section className="panel" id="interdict-panel">
       <h3>Одновременный Interdict</h3>
       <Options
         label="Запретить enemy Tactical / Breach"
@@ -674,7 +697,7 @@ function AssetView({ s, side, send }: Props) {
       breach: [] as string[],
     })
   return (
-    <section className="panel">
+    <section className="panel" id="assets-panel">
       <h3>Assets после reveal</h3>
       <p>
         Underdog {underdog(b, side)} · Defensive {side === b.defender && b.defAsset ? 1 : 0} ·
@@ -727,7 +750,7 @@ function TableView({ s, side, send }: Props) {
     options = o ? actionsFor(s, o) : []
   return (
     <>
-      <section className="panel">
+      <section className="panel" id="table-panel">
         <div className="section-head">
           <h2>
             R{t.round} · {t.step} · {labels[t.turn]}
@@ -961,33 +984,39 @@ export function ReportView({
   correction = false,
 }: Props & { correction?: boolean }) {
   const b = correction ? (s.battle?.aftermathApplied ? s.battle : s.history.at(-1))! : s.battle!,
-    [rows, setRows] = useState<UnitResult[]>(
-      b.report?.units ??
-        SIDES.flatMap((who) =>
-          b.muster[who]!.picks.map((p) => ({
-            id: p.id,
-            entered: (p.role !== 'pool' && !p.reserve) || !!b.table.records[`entered:${p.id}`],
-            destroyed: p.reserve && p.role !== 'pool' && !b.table.records[`entered:${p.id}`],
-            deed: null,
-            distinguished: false,
-            casualtySources: [],
-            withdrawn: false,
-            usedMedicae: false,
-          })),
-        ),
+    draft = useBattleDraft<Report>(
+      s.id,
+      b.id,
+      correction ? 'correction' : 'report',
+      s.version,
+      initialReport(b),
+      (v): v is Report =>
+        isReportDraft(v) &&
+        v.units.length === initialReport(b).units.length &&
+        new Set(v.units.map((u) => u.id)).size === v.units.length &&
+        v.units.every((u) => b.before.some((old) => old.id === u.id)),
     ),
-    [facts, setFacts] = useState<Record<string, unknown>>(b.report?.facts ?? {}),
-    [narrative, setNarrative] = useState(b.report?.narrative ?? ''),
-    [vp, setVP] = useState(b.report?.vp ?? b.table.vp),
-    [retreat, setRetreat] = useState<Report['retreat']>(b.report?.retreat ?? {}),
-    [garrisonRetreat, setGarrisonRetreat] = useState<Report['garrisonRetreat']>(
-      b.report?.garrisonRetreat ?? null,
-    )
+    report = draft.value,
+    { units: rows, facts, narrative, vp, retreat, garrisonRetreat } = report
+  const setFacts = (v: Record<string, unknown>) => draft.update((r) => ({ ...r, facts: v }))
+  const setNarrative = (v: string) => draft.update((r) => ({ ...r, narrative: v }))
+  const setVP = (v: Report['vp']) => draft.update((r) => ({ ...r, vp: v }))
+  const setRetreat = (v: Report['retreat']) => draft.update((r) => ({ ...r, retreat: v }))
+  const setGarrisonRetreat = (v: Report['garrisonRetreat']) =>
+    draft.update((r) => ({ ...r, garrisonRetreat: v }))
+  const plan = reportRetreatPlan(s, b, report)
+  const missingRetreat =
+    SIDES.some((who) => plan.force[who]?.length && !plan.force[who]!.includes(retreat[who]!)) ||
+    (plan.garrison && plan.garrison.length > 0 && !plan.garrison.includes(garrisonRetreat!))
   const edit = (id: string, value: Partial<UnitResult>) =>
-    setRows(rows.map((r) => (r.id === id ? { ...r, ...value } : r)))
+    draft.update((r) => ({
+      ...r,
+      units: r.units.map((row) => (row.id === id ? { ...row, ...value } : row)),
+    }))
   return (
-    <section className="panel">
+    <section className="panel" id="report-panel">
       <h3>{correction ? 'Новая ревизия результата' : 'Итог и потери по ID'}</h3>
+      {draft.status}
       {correction && (
         <>
           <p>
@@ -1009,81 +1038,106 @@ export function ReportView({
         </>
       )}
       <p>
-        VP {b.table.vp.deathwatch} : {b.table.vp.necrons}. Проверяйте участие Pool и груза, общий
-        Deed исходной формации и Distinguished.
+        VP {b.table.vp.deathwatch} : {b.table.vp.necrons}. Участие и прибытие перенесены из хода
+        боя. Отметьте потери, Deed и Distinguished; применимые бонусы появятся сами.
       </p>
-      {rows.map((r) => (
-        <div className="report-row" key={r.id}>
-          <strong>{s.units.find((u) => u.id === r.id)?.name ?? r.id}</strong>
-          <div className="buttons">
-            <Check
-              label="Участвовал"
-              value={r.entered}
-              change={(v) => edit(r.id, { entered: v })}
-            />
-            {b.table.records.withdrawalSide && (
+      {rows.map((r) => {
+        const fields = reportFields(s, b, r)
+        if (!r.entered)
+          return (
+            <details className="report-row" key={r.id}>
+              <summary>
+                {fields.u.name} · не прибыл{r.destroyed ? ' · Initial Reserve потерян' : ''}
+              </summary>
+              <p>Участие зафиксировано в ходе боя; награды за участие не применяются.</p>
+              {fields.medicae && (
+                <Check
+                  label="Medicae при новом Damage"
+                  value={r.usedMedicae ?? false}
+                  change={(v) => edit(r.id, { usedMedicae: v })}
+                />
+              )}
+            </details>
+          )
+        return (
+          <div className="report-row" key={r.id}>
+            <strong>{s.units.find((u) => u.id === r.id)?.name ?? r.id}</strong>
+            <div className="buttons">
+              <small>Участвовал · {labels[fields.u.side]}</small>
+              {fields.withdrawn && (
+                <Check
+                  label="Эвакуирован со стола"
+                  value={r.withdrawn}
+                  change={(v) => edit(r.id, { withdrawn: v })}
+                />
+              )}
               <Check
-                label="Эвакуирован со стола"
-                value={r.withdrawn}
-                change={(v) => edit(r.id, { withdrawn: v })}
+                label="Уничтожен"
+                value={r.destroyed}
+                change={(v) => edit(r.id, { destroyed: v })}
+              />
+              {fields.distinguished && (
+                <Check
+                  label="Distinguished"
+                  value={r.distinguished}
+                  change={(v) => edit(r.id, { distinguished: v })}
+                />
+              )}
+              {fields.medicae && (
+                <Check
+                  label="Medicae при новом Damage"
+                  value={r.usedMedicae ?? false}
+                  change={(v) => edit(r.id, { usedMedicae: v })}
+                />
+              )}
+            </div>
+            <Options
+              label="Deed, максимум один на исходную формацию"
+              value={r.deed ?? ''}
+              change={(v) => edit(r.id, { deed: (v || null) as UnitResult['deed'] })}
+              items={['HOLD', 'BREAK', 'HUNT', 'ENDURE', 'OPERATE', 'EXTRACT'].map((id) => ({
+                id,
+                name: id,
+              }))}
+            />
+            {fields.memory && (
+              <Check
+                label="Memory of Eternity использовано, bearer выжил"
+                value={r.signatureXP ?? false}
+                change={(v) => edit(r.id, { signatureXP: v })}
               />
             )}
-            <Check
-              label="Уничтожен"
-              value={r.destroyed}
-              change={(v) => edit(r.id, { destroyed: v })}
-            />
-            <Check
-              label="Distinguished"
-              value={r.distinguished}
-              change={(v) => edit(r.id, { distinguished: v })}
-            />
-            <Check
-              label="Medicae при новом Damage"
-              value={r.usedMedicae ?? false}
-              change={(v) => edit(r.id, { usedMedicae: v })}
-            />
+            {fields.hunt && (
+              <Check
+                label="Scar Driven to Hunt: objective XENOS target"
+                value={r.scarBonus ?? false}
+                change={(v) => edit(r.id, { scarBonus: v })}
+              />
+            )}
+            {fields.hazard && (
+              <Check
+                label="Погиб именно от mission hazard: Casualty −1"
+                value={r.casualtySources.includes(
+                  b.mission === 'C1' ? 'c1_debris' : b.mission === 'D1' ? 'd1_toxic' : 'j3_reactor',
+                )}
+                change={(v) =>
+                  edit(r.id, {
+                    casualtySources: v
+                      ? [
+                          b.mission === 'C1'
+                            ? 'c1_debris'
+                            : b.mission === 'D1'
+                              ? 'd1_toxic'
+                              : 'j3_reactor',
+                        ]
+                      : r.casualtySources.filter((source) => source === 'no_recovery'),
+                  })
+                }
+              />
+            )}
           </div>
-          <Options
-            label="Deed, максимум один на исходную формацию"
-            value={r.deed ?? ''}
-            change={(v) => edit(r.id, { deed: (v || null) as UnitResult['deed'] })}
-            items={['HOLD', 'BREAK', 'HUNT', 'ENDURE', 'OPERATE', 'EXTRACT'].map((id) => ({
-              id,
-              name: id,
-            }))}
-          />
-          <Check
-            label="Memory of Eternity использовано, bearer выжил"
-            value={r.signatureXP ?? false}
-            change={(v) => edit(r.id, { signatureXP: v })}
-          />
-          <Check
-            label="Scar Driven to Hunt: objective XENOS target"
-            value={r.scarBonus ?? false}
-            change={(v) => edit(r.id, { scarBonus: v })}
-          />
-          {['C1', 'D1', 'J3'].includes(b.mission!) && (
-            <Check
-              label="Погиб именно от mission hazard: Casualty −1"
-              value={r.casualtySources.length > 0}
-              change={(v) =>
-                edit(r.id, {
-                  casualtySources: v
-                    ? [
-                        b.mission === 'C1'
-                          ? 'c1_debris'
-                          : b.mission === 'D1'
-                            ? 'd1_toxic'
-                            : 'j3_reactor',
-                      ]
-                    : [],
-                })
-              }
-            />
-          )}
-        </div>
-      ))}
+        )
+      })}
       {b.type === 'PACT' &&
         SIDES.map((who) => (
           <Check
@@ -1109,79 +1163,103 @@ export function ReportView({
           change={(v) => setFacts({ ...facts, throne_control: v ? b.attacker : b.defender })}
         />
       )}
-      {SIDES.map((who) => (
-        <Options
-          key={who}
-          label={`Первый уничтоженный ID ${labels[who]} · Hard Evacuation / Extraction`}
-          value={String(facts[`first_destroyed:${who}`] ?? '')}
-          change={(v) => setFacts({ ...facts, [`first_destroyed:${who}`]: v })}
-          items={rows
-            .filter((r) => r.destroyed && s.units.find((u) => u.id === r.id)?.side === who)
-            .map((r) => ({ id: r.id, name: s.units.find((u) => u.id === r.id)!.name }))}
-        />
-      ))}
-      {b.assets[b.defender]?.defensive.includes('stores') && (
+      {SIDES.map(
+        (who) =>
+          firstDestroyedCandidates(s, b, report, who).length > 0 && (
+            <Options
+              key={who}
+              label={`Первый уничтоженный ID ${labels[who]} · Hard Evacuation / Extraction`}
+              value={String(facts[`first_destroyed:${who}`] ?? '')}
+              change={(v) => setFacts({ ...facts, [`first_destroyed:${who}`]: v })}
+              items={firstDestroyedCandidates(s, b, report, who).map((r) => ({
+                id: r.id,
+                name: s.units.find((u) => u.id === r.id)!.name,
+              }))}
+            />
+          ),
+      )}
+      {storesCandidates(b, report).length > 0 && (
         <Options
           label="Hardened Stores: один уничтоженный ID"
           value={String(facts.stores_id ?? '')}
           change={(v) => setFacts({ ...facts, stores_id: v })}
-          items={rows
-            .filter(
-              (r) =>
-                r.destroyed &&
-                r.entered &&
-                b.muster[b.defender]?.picks.some((p) => p.id === r.id && p.role !== 'field'),
-            )
-            .map((r) => ({ id: r.id, name: s.units.find((u) => u.id === r.id)!.name }))}
+          items={storesCandidates(b, report).map((r) => ({
+            id: r.id,
+            name: s.units.find((u) => u.id === r.id)!.name,
+          }))}
         />
       )}
-      <Options
-        label="Контроль Anchor в конце R5 (если есть overlay)"
-        value={String(facts.anchor_control ?? '')}
-        change={(v) => setFacts({ ...facts, anchor_control: v || null })}
-        items={SIDES.map((id) => ({ id, name: labels[id] }))}
-      />
-      {SIDES.map((who) => (
+      {b.table.objects.some((o) => o.id === 'overlay') && (
         <Options
-          key={who}
-          label={`Отход ${labels[who]} при необходимости`}
-          value={retreat[who] ?? ''}
-          change={(v) => setRetreat({ ...retreat, [who]: v || undefined })}
-          items={Object.values(s.sectors)
-            .filter((a) => a.owner === who)
-            .map((a) => ({ id: a.key, name: a.key }))}
+          label="Контроль Anchor в конце R5 (если есть overlay)"
+          value={String(facts.anchor_control ?? '')}
+          change={(v) => setFacts({ ...facts, anchor_control: v || null })}
+          items={SIDES.map((id) => ({ id, name: labels[id] }))}
         />
-      ))}
-      <Options
-        label="Единый отход захваченного гарнизона"
-        value={garrisonRetreat ?? ''}
-        change={(v) => setGarrisonRetreat((v as Report['garrisonRetreat']) || null)}
-        items={Object.values(s.sectors)
-          .filter((a) => a.owner === b.defender)
-          .map((a) => ({ id: a.key, name: a.key }))}
-      />
+      )}
+      {SIDES.map(
+        (who) =>
+          plan.force[who] &&
+          (plan.force[who]!.length > 0 ? (
+            <Options
+              key={who}
+              label={`Выберите отход ${labels[who]}`}
+              value={retreat[who] ?? ''}
+              change={(v) => setRetreat({ ...retreat, [who]: v || undefined })}
+              items={plan.force[who]!.map((id) => ({ id, name: id }))}
+            />
+          ) : (
+            <p key={who} className="notice">
+              {labels[who]}: нет доступного своего сектора. Движок рассчитает аварийную эвакуацию в
+              Home.
+            </p>
+          )),
+      )}
+      {plan.garrison &&
+        (plan.garrison.length > 0 ? (
+          <Options
+            label="Единый отход захваченного гарнизона"
+            value={garrisonRetreat ?? ''}
+            change={(v) => setGarrisonRetreat((v as Report['garrisonRetreat']) || null)}
+            items={plan.garrison.map((id) => ({ id, name: id }))}
+          />
+        ) : (
+          <p className="notice">Гарнизон эвакуируется в Home автоматически.</p>
+        ))}
+      {missingRetreat && (
+        <p className="notice">
+          Следующий шаг: выберите доступный отход выше, затем отправьте отчёт.
+        </p>
+      )}
       <label>
         История боя
-        <textarea rows={3} value={narrative} onChange={(e) => setNarrative(e.target.value)} />
+        <textarea
+          maxLength={5000}
+          rows={3}
+          value={narrative}
+          onChange={(e) => setNarrative(e.target.value)}
+        />
       </label>
       <button
-        onClick={() =>
-          send(correction ? 'request_correction' : 'submit_result', {
-            report: {
-              vp: correction ? vp : b.table.vp,
-              units: rows,
-              withdrawal: b.table.records.mutualWithdrawal
-                ? [...SIDES]
-                : b.table.records.withdrawalSide
-                  ? [b.table.records.withdrawalSide as Side]
-                  : [],
-              facts: { ...facts, withdrawal_timing_valid: !!b.table.records.withdrawalSide },
-              retreat,
-              garrisonRetreat,
-              narrative,
-            } satisfies Report,
+        disabled={!!missingRetreat}
+        onClick={async () => {
+          const updated = cleanReport(s, b, {
+            ...report,
+            vp: correction ? vp : b.table.vp,
+            withdrawal: b.table.records.mutualWithdrawal
+              ? [...SIDES]
+              : b.table.records.withdrawalSide
+                ? [b.table.records.withdrawalSide as Side]
+                : [],
+            facts: {
+              ...facts,
+              withdrawal_timing_valid:
+                !!b.table.records.withdrawalSide || !!b.table.records.mutualWithdrawal,
+            },
           })
-        }
+          if (await send(correction ? 'request_correction' : 'submit_result', { report: updated }))
+            draft.clear()
+        }}
       >
         Отправить результат на подтверждение обоими
       </button>
@@ -1223,7 +1301,7 @@ function AftermathView({ s, side, send }: Props) {
       s as State & { preview?: { players: State['players']; units: State['units']; phase: string } }
     ).preview
   return (
-    <section className="panel">
+    <section className="panel" id="aftermath-panel">
       <h3>Последствия: один сохранённый расчёт</h3>
       <p>Casualty пока предварительные. Recovery Crew меняет raw total до Critical.</p>
       {b.casualties.map((c) => (

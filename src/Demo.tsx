@@ -1,4 +1,8 @@
-import { Suspense, useState, useCallback } from 'react'
+import { clearFinishedDrafts } from './lib/drafts'
+import { DraftUser } from './lib/useBattleDraft'
+import { NextStep } from './views/NextStep'
+import { HistoryView } from './views/HistoryView'
+import { Suspense, useState, useCallback, useEffect } from 'react'
 import { fixture, context } from '../tests/fixture'
 import { command, project } from '../shared/engine'
 import { declareBattle } from '../shared/battle'
@@ -22,6 +26,13 @@ export default function Demo() {
     [side, setSide] = useState<Side>('deathwatch'),
     [tab, setTab] = useState('strategy'),
     [error, setError] = useState('')
+  useEffect(() => {
+    try {
+      clearFinishedDrafts(localStorage, `demo:${side}`, s, side)
+    } catch {
+      /* unavailable storage */
+    }
+  }, [s, side])
   const [imports, setImports] = useState<LibraryEntry[]>([])
   const api: LibraryAPI = useCallback(
     async (action, payload = {}) => {
@@ -58,14 +69,23 @@ export default function Demo() {
       next.phase = 'setup'
       next.setupApproved = []
     }
-    if (mode === 'battle') {
+    if (mode === 'battle' || mode === 'muster') {
       next.players.deathwatch.mf = 'D'
       next.players.necrons.mf = 'F'
       declareBattle(next, 'F', 'deathwatch', false, context())
+      if (mode === 'muster') {
+        next.battle!.mission = 'F1'
+        next.battle!.lock = { deathwatch: false, necrons: false }
+        next.phase = 'muster'
+      }
     }
     if (mode === 'logistics') {
       next.phase = 'logistics'
       next.activation!.logistics = ['deathwatch', 'necrons']
+      next.units.find((u) => u.side === 'deathwatch')!.damage = 2
+      next.units.find((u) => u.side === 'deathwatch')!.recovery = 5
+      next.players.deathwatch.recovery = 10
+      next.players.deathwatch.inventory = ['cache']
     }
     if (mode === 'result') {
       declareBattle(next, 'X', 'deathwatch', false, context(), 'encounter')
@@ -137,86 +157,93 @@ export default function Demo() {
     )
   }
   return (
-    <main className="content" style={{ margin: 0, width: '100%' }}>
-      <header>
-        <div>
-          <p className="eyebrow">ЛОКАЛЬНАЯ ПРОВЕРКА · БАЗА НЕ ИЗМЕНЯЕТСЯ</p>
-          <h1>The Black Sepulchre</h1>
+    <DraftUser.Provider key={side} value={`demo:${side}`}>
+      <main className="content" style={{ margin: 0, width: '100%' }}>
+        <header>
+          <div>
+            <p className="eyebrow">ЛОКАЛЬНАЯ ПРОВЕРКА · БАЗА НЕ ИЗМЕНЯЕТСЯ</p>
+            <h1>The Black Sepulchre</h1>
+          </div>
+          <select
+            aria-label="Сторона проверки"
+            value={side}
+            onChange={(e) => setSide(e.target.value as Side)}
+          >
+            <option value="deathwatch">Deathwatch</option>
+            <option value="necrons">Necrons</option>
+          </select>
+        </header>
+        <div className="buttons">
+          {['strategy', 'battle', 'logistics', 'roster', 'rules', 'map', 'catalog', 'history'].map(
+            (t) => (
+              <button className="quiet" key={t} onClick={() => setTab(t)}>
+                {t}
+              </button>
+            ),
+          )}
+          {['setup', 'battle', 'muster', 'logistics', 'result'].map((m) => (
+            <button className="quiet" key={m} onClick={() => load(m)}>
+              Сценарий {m}
+            </button>
+          ))}
         </div>
-        <select
-          aria-label="Сторона проверки"
-          value={side}
-          onChange={(e) => setSide(e.target.value as Side)}
-        >
-          <option value="deathwatch">Deathwatch</option>
-          <option value="necrons">Necrons</option>
-        </select>
-      </header>
-      <div className="buttons">
-        {['strategy', 'battle', 'logistics', 'roster', 'rules', 'map', 'catalog'].map((t) => (
-          <button className="quiet" key={t} onClick={() => setTab(t)}>
-            {t}
+        {tab === 'catalog' && (
+          <button
+            className="quiet"
+            onClick={async () => {
+              const examples =
+                side === 'necrons'
+                  ? [
+                      await import('../tests/fixtures/NecronsExample.json'),
+                      await import('../tests/fixtures/NecronTeamExample.json'),
+                    ]
+                  : [
+                      await import('../tests/fixtures/DeathwatchExample.json'),
+                      await import('../tests/fixtures/DeathwatchTeamExample.json'),
+                    ]
+              setImports(
+                examples.map((x, i) => ({
+                  hash: `demo-${side}-${i}`,
+                  data: parseNewRecruit(JSON.stringify(x.default), `Demo ${side} ${i + 1}.json`),
+                  createdAt: 'local',
+                })),
+              )
+            }}
+          >
+            Загрузить обезличенные примеры для проверки
           </button>
-        ))}
-        {['setup', 'battle', 'logistics', 'result'].map((m) => (
-          <button className="quiet" key={m} onClick={() => load(m)}>
-            Сценарий {m}
-          </button>
-        ))}
-      </div>
-      {tab === 'catalog' && (
-        <button
-          className="quiet"
-          onClick={async () => {
-            const examples =
-              side === 'necrons'
-                ? [
-                    await import('../tests/fixtures/NecronsExample.json'),
-                    await import('../tests/fixtures/NecronTeamExample.json'),
-                  ]
-                : [
-                    await import('../tests/fixtures/DeathwatchExample.json'),
-                    await import('../tests/fixtures/DeathwatchTeamExample.json'),
-                  ]
-            setImports(
-              examples.map((x, i) => ({
-                hash: `demo-${side}-${i}`,
-                data: parseNewRecruit(JSON.stringify(x.default), `Demo ${side} ${i + 1}.json`),
-                createdAt: 'local',
-              })),
-            )
-          }}
-        >
-          Загрузить обезличенные примеры для проверки
-        </button>
-      )}
-      {error && (
-        <div role="alert" className="notice">
-          {error}
-        </div>
-      )}
-      <p>
-        {s.phase} · State {s.version} · Supply {s.players[side].supply}
-      </p>
-      {tab === 'catalog' ? (
-        <CatalogView s={view} side={side} send={send} api={api} />
-      ) : s.phase === 'setup' ? (
-        <SetupView s={view} side={side} send={send} />
-      ) : tab === 'battle' ? (
-        <BattleView s={view} side={side} send={send} />
-      ) : tab === 'logistics' ? (
-        <LogisticsView s={view} side={side} send={send} />
-      ) : tab === 'roster' ? (
-        <RosterView s={view} side={side} send={send} />
-      ) : tab === 'rules' ? (
-        <Suspense fallback={<p>Загрузка…</p>}>
-          <ReferenceView s={view} />
-        </Suspense>
-      ) : tab === 'map' ? (
-        <CampaignMap s={view} side={side} />
-      ) : (
-        <StrategyView s={view} side={side} send={send} />
-      )}
-    </main>
+        )}
+        {error && (
+          <div role="alert" className="notice">
+            {error}
+          </div>
+        )}
+        <p>
+          {s.phase} · State {s.version} · Supply {s.players[side].supply}
+        </p>
+        <NextStep s={view} side={side} navigate={setTab} />
+        {tab === 'history' ? (
+          <HistoryView s={view} side={side} />
+        ) : tab === 'catalog' ? (
+          <CatalogView s={view} side={side} send={send} api={api} />
+        ) : s.phase === 'setup' ? (
+          <SetupView s={view} side={side} send={send} />
+        ) : tab === 'battle' ? (
+          <BattleView s={view} side={side} send={send} />
+        ) : tab === 'logistics' ? (
+          <LogisticsView s={view} side={side} send={send} />
+        ) : tab === 'roster' ? (
+          <RosterView s={view} side={side} send={send} />
+        ) : tab === 'rules' ? (
+          <Suspense fallback={<p>Загрузка…</p>}>
+            <ReferenceView s={view} />
+          </Suspense>
+        ) : tab === 'map' ? (
+          <CampaignMap s={view} side={side} />
+        ) : (
+          <StrategyView s={view} side={side} send={send} />
+        )}
+      </main>
+    </DraftUser.Provider>
   )
 }

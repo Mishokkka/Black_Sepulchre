@@ -343,7 +343,7 @@ export interface State {
   pendingReaction: { side: Side; target: SectorKey; automatic: boolean } | null
   finalModes: Partial<Record<Side, 'PACT' | 'WAR'>>
   winner: Side | 'both_win' | 'both_lose' | null
-  log: { version: number; actor: Side; command: string; summary: string; dice: number[] }[]
+  log: import('./history.ts').HistoryEntry[]
   flags: Bag
   pendingAftermath?: State | null
   snapshotProposal?: { snapshot: Snapshot; approved: Side[] } | null
