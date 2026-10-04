@@ -329,12 +329,18 @@ function validateSnapshot(s: Snapshot) {
     if (c.transportRule) validateTransportRule(c.transportRule, c.transport)
     if (c.packageCosts) {
       assert(
-        Array.isArray(c.packageCosts) && c.packageCosts.length <= 20,
+        Array.isArray(c.packageCosts) &&
+          c.packageCosts.length <= 20 &&
+          new Set(c.packageCosts.map((p) => p.name)).size === c.packageCosts.length,
         'Неверные платные опции Package',
       )
       for (const p of c.packageCosts) {
         str(p.name)
         integer(p.cost, 0, 300)
+        assert(
+          p.optional === undefined || typeof p.optional === 'boolean',
+          'Неверный тип платной опции',
+        )
         assert(
           Array.isArray(p.detachments) &&
             p.detachments.length > 0 &&

@@ -85,6 +85,17 @@ export function BattlePacket({ s, side, send }: Props) {
                       {b.snapshot.enhancements.find((e) => e.id === p.enhancement)?.name}
                     </p>
                   )}
+                  {(b.snapshot.catalog.find((c) => c.id === u.catalogId)?.packageCosts ?? [])
+                    .filter(
+                      (o) =>
+                        o.detachments.some((d) => b.muster[who]!.detachments.includes(d)) &&
+                        (!o.optional || (p.paidOptions ?? []).includes(o.name)),
+                    )
+                    .map((o) => (
+                      <p key={o.name}>
+                        {o.name} · +{o.cost} очков на бой
+                      </p>
+                    ))}
                 </details>
               )
             })

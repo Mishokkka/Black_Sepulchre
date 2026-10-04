@@ -132,20 +132,26 @@ export function maximumReady(source: State, side: Side): number {
               )
               .map((e) => e.id),
           ]
+          const paidCosts = new Set([0])
+          for (const o of cat.packageCosts ?? [])
+            if (o.optional && o.detachments.some((id) => detachments.includes(id)))
+              for (const n of [...paidCosts]) if (n + o.cost <= al) paidCosts.add(n + o.cost)
           const options = new Map<string, { cost: number; enh: string | null }>()
           for (const honours of variants)
             for (const armoury of u.armoury && !cat.epic ? [false, true] : [false])
               for (const relic of u.relic && !cat.epic ? [false, true] : [false])
-                for (const enhancement of enhancements) {
-                  const v = { ...p, honours, armoury, relic, enhancement }
-                  const cost =
-                    costs[p.id] +
-                    surcharge(s, u, v, picks) +
-                    (enhancement
-                      ? b.snapshot.enhancements.find((e) => e.id === enhancement)!.cost
-                      : 0)
-                  options.set(`${cost}:${enhancement}`, { cost, enh: enhancement })
-                }
+                for (const enhancement of enhancements)
+                  for (const paidCost of paidCosts) {
+                    const v = { ...p, honours, armoury, relic, enhancement }
+                    const cost =
+                      costs[p.id] +
+                      paidCost +
+                      surcharge(s, u, v, picks) +
+                      (enhancement
+                        ? b.snapshot.enhancements.find((e) => e.id === enhancement)!.cost
+                        : 0)
+                    options.set(`${cost}:${enhancement}`, { cost, enh: enhancement })
+                  }
           const next = new Map<string, { cost: number; enh: string[] }>()
           for (const a of dp.values())
             for (const o of options.values()) {

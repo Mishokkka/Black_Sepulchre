@@ -37,7 +37,7 @@ export interface CatalogUnit {
   supportFor?: string[]
   transportRule?: TransportRule
   card?: DatasheetCard
-  packageCosts?: { name: string; cost: number; detachments: string[] }[]
+  packageCosts?: { name: string; cost: number; detachments: string[]; optional?: boolean }[]
   transport: number
   cargoKeywords: string[]
   ranged: boolean
@@ -158,6 +158,7 @@ export interface Pick {
   transport: string | null
   reserve: boolean
   enhancement: string | null
+  paidOptions?: string[]
   honours: string[]
   armoury: boolean
   relic: boolean

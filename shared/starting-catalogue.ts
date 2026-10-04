@@ -54,7 +54,7 @@ export function starterUnavailable(s: State, side: Side, c: CatalogUnit): string
     ...[c, ...existing].map((v) => (v.battleline && !v.unique && !v.epic ? 2 : 1)),
   )
   if (existing.length >= limit)
-    return `Уже выбран максимум отдельных отрядов ${c.datasheet}; можно заменить размер или вооружение`
+    return `Уже выбран максимум отдельных отрядов ${c.datasheet}; можно заменить размер`
   return null
 }
 

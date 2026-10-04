@@ -18,6 +18,7 @@ import {
   type ReferenceLibrary,
   type ReferenceSheet,
 } from '../../shared/catalogue'
+import { campaignChoices, modelLabel } from '../../shared/unit-choices'
 import type { Props } from './CampaignViews'
 import { DatasheetView, ProfileTable } from './DatasheetView'
 import { CatalogManager } from './CampaignExtras'
@@ -124,11 +125,13 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
                 .map((e) => `${e.count} × ${e.name}`)
                 .join(' · ')}
             </small>
-            {u.issues.map((i, j) => (
-              <small className={i.blocking ? 'validation' : ''} key={j}>
-                {i.message}
-              </small>
-            ))}
+            {u.issues
+              .filter((i) => i.code !== 'reference_loadout')
+              .map((i, j) => (
+                <small className={i.blocking ? 'validation' : ''} key={j}>
+                  {i.message}
+                </small>
+              ))}
           </div>
           <button className="quiet" onClick={() => choose(source, u.id)}>
             Подготовить вариант
@@ -425,19 +428,15 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
       )}
       <CatalogManager s={s} side={side} send={send} />
       <details className="panel">
-        <summary>
-          Варианты в каталоге ({s.snapshot.catalog.filter((c) => c.side === side).length})
-        </summary>
-        {s.snapshot.catalog
-          .filter((c) => c.side === side)
-          .map((c) => (
-            <details key={c.id}>
-              <summary>
-                {c.datasheet} · {c.size} · {c.rc} RC
-              </summary>
-              <DatasheetView card={c.card} />
-            </details>
-          ))}
+        <summary>Отряды в каталоге ({campaignChoices(s.snapshot.catalog, side).length})</summary>
+        {campaignChoices(s.snapshot.catalog, side).map((c) => (
+          <details key={c.id}>
+            <summary>
+              {c.datasheet} · {modelLabel(c.models)} · {c.rc} RC
+            </summary>
+            <DatasheetView card={c.card} />
+          </details>
+        ))}
       </details>
     </>
   )
@@ -495,20 +494,21 @@ function TemplateEditor({
     stats = Object.entries(pool).filter(([, p]) => p.type === 'Unit'),
     weapons = Object.entries(pool).filter(([, p]) => /weapons/i.test(p.type)),
     groups = [...new Set(weapons.map(([, p]) => weaponBase(p.name)))]
-  const options = snapshot.catalog.filter(
+  const options = campaignChoices(snapshot.catalog, c.side).filter(
     (v) => v.side === c.side && sameDatasheet(v.datasheet, c.datasheet),
   )
   return (
     <section className="panel template-editor">
       <div className="section-head">
-        <h2>{u.datasheet} · состав и вооружение</h2>
+        <h2>{u.datasheet} · размер и цена</h2>
         <button className="quiet" onClick={onClose}>
           Закрыть
         </button>
       </div>
       <p>
-        RC — цена базового размера. Номер копии в экспорте и платные опции Package проверяются
-        отдельно. Количество оружия ниже — общее для группы моделей.
+        RC — цена отряда без Enhancement. Бесплатное вооружение выбирается в New Recruit. Для
+        комплектации с другой ценой сохраните отдельную запись с названием платной опции; она
+        появится после выбора отряда и размера.
       </p>
       {card.composition && (
         <p
@@ -529,24 +529,13 @@ function TemplateEditor({
           повтор. Укажите базовый RC и цены копий.
         </p>
       )}
-      {reference && (
-        <p className="notice">
-          Вооружение ещё не выбрано. Исходный состав:{' '}
-          {reference.composition.map((g) => `${g.min}–${g.max} ${g.model}`).join('; ')}. Базовое
-          снаряжение:{' '}
-          {reference.defaultEquipment
-            .map(
-              (g) => `${g.carrier}: ${g.items.map((i) => `${i.quantity} × ${i.name}`).join(', ')}`,
-            )
-            .join('; ')}
-          .
-        </p>
-      )}
-      {u.issues.map((i, j) => (
-        <p className="notice" key={j}>
-          {i.message}
-        </p>
-      ))}
+      {u.issues
+        .filter((i) => i.code !== 'reference_loadout')
+        .map((i, j) => (
+          <p className="notice" key={j}>
+            {i.message}
+          </p>
+        ))}
       <div className="form-grid">
         <label>
           Назначение
@@ -556,16 +545,16 @@ function TemplateEditor({
               setTarget(e.target.value)
             }}
           >
-            <option value="">Новый вариант для покупки / Refit</option>
+            <option value="">Новый размер или платная комплектация</option>
             {options.map((v) => (
               <option key={v.id} value={v.id}>
-                Обновить {v.datasheet} · {v.size} · {v.rc} RC
+                Обновить {v.datasheet} · {modelLabel(v.models)} · {v.rc} RC
               </option>
             ))}
           </select>
         </label>
         <label>
-          Название варианта
+          Название платной комплектации (если цена отличается)
           <input value={c.size} onChange={(e) => update({ size: e.target.value })} />
         </label>
         <label>
@@ -678,47 +667,51 @@ function TemplateEditor({
               }
             />
           </div>
-          {g.equipment.map((e, j) => (
-            <label className="equipment-count" key={j}>
-              {e.name} · {e.profiles.length} профилей
-              <input
-                aria-label={`Количество ${g.name}: ${e.name}`}
-                type="number"
-                min={0}
-                max={1000}
-                value={e.count}
-                onChange={(ev) =>
-                  editCard((v) => {
-                    v.models[i].equipment[j].count = Number(ev.target.value)
-                  })
-                }
-              />
-            </label>
-          ))}
-          <label>
-            Добавить физическое оружие
-            <select
-              value=""
-              onChange={(e) => {
-                const name = e.target.value
-                if (!name) return
-                editCard((v) => {
-                  const refs = weapons
-                    .filter(([, p]) => weaponBase(p.name) === name)
-                    .map(([id, p]) => {
-                      v.profiles[id] = p
-                      return id
+          <details>
+            <summary>Справочное вооружение из экспорта</summary>
+            <p>Эти сведения не определяют бесплатное снаряжение вашей армии в кампании.</p>
+            {g.equipment.map((e, j) => (
+              <label className="equipment-count" key={j}>
+                {e.name} · {e.profiles.length} профилей
+                <input
+                  aria-label={`Количество ${g.name}: ${e.name}`}
+                  type="number"
+                  min={0}
+                  max={1000}
+                  value={e.count}
+                  onChange={(ev) =>
+                    editCard((v) => {
+                      v.models[i].equipment[j].count = Number(ev.target.value)
                     })
-                  v.models[i].equipment.push({ entryId: name, name, count: 1, profiles: refs })
-                })
-              }}
-            >
-              <option value="">Выберите оружие (режимы будут объединены)</option>
-              {groups.map((n) => (
-                <option key={n}>{n}</option>
-              ))}
-            </select>
-          </label>
+                  }
+                />
+              </label>
+            ))}
+            <label>
+              Добавить физическое оружие
+              <select
+                value=""
+                onChange={(e) => {
+                  const name = e.target.value
+                  if (!name) return
+                  editCard((v) => {
+                    const refs = weapons
+                      .filter(([, p]) => weaponBase(p.name) === name)
+                      .map(([id, p]) => {
+                        v.profiles[id] = p
+                        return id
+                      })
+                    v.models[i].equipment.push({ entryId: name, name, count: 1, profiles: refs })
+                  })
+                }}
+              >
+                <option value="">Выберите оружие (режимы будут объединены)</option>
+                {groups.map((n) => (
+                  <option key={n}>{n}</option>
+                ))}
+              </select>
+            </label>
+          </details>
           <button
             className="quiet"
             disabled={card.models.length === 1}
@@ -752,22 +745,25 @@ function TemplateEditor({
       >
         Добавить группу моделей
       </button>
-      {card.equipment.map((e, i) => (
-        <label className="equipment-count" key={i}>
-          Снаряжение отряда: {e.name}
-          <input
-            type="number"
-            value={e.count}
-            min={0}
-            max={1000}
-            onChange={(ev) =>
-              editCard((v) => {
-                v.equipment[i].count = Number(ev.target.value)
-              })
-            }
-          />
-        </label>
-      ))}
+      <details>
+        <summary>Справочное снаряжение отряда из экспорта</summary>
+        {card.equipment.map((e, i) => (
+          <label className="equipment-count" key={i}>
+            Снаряжение отряда: {e.name}
+            <input
+              type="number"
+              value={e.count}
+              min={0}
+              max={1000}
+              onChange={(ev) =>
+                editCard((v) => {
+                  v.equipment[i].count = Number(ev.target.value)
+                })
+              }
+            />
+          </label>
+        ))}
+      </details>
       <details>
         <summary>Уточнить характеристики и профили</summary>
         <p>
@@ -822,31 +818,55 @@ function TemplateEditor({
         />
       </div>
       {card.paidOptions.map((p, i) => (
-        <label key={i}>
-          {p.name} · +{p.cost} OBC при выбранном Detachment
-          <select
-            value={c.packageCosts?.find((x) => x.name === p.name)?.detachments[0] ?? ''}
-            onChange={(e) =>
-              update({
-                packageCosts: [
-                  ...(c.packageCosts ?? []).filter((x) => x.name !== p.name),
-                  ...(e.target.value
-                    ? [{ name: p.name, cost: p.cost, detachments: [e.target.value] }]
-                    : []),
-                ],
-              })
-            }
-          >
-            <option value="">Укажите Package — не включать в базовый RC</option>
-            {snapshot.detachments
-              .filter((d) => !d.side || d.side === c.side)
-              .map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-          </select>
-        </label>
+        <div key={i}>
+          <label>
+            {p.name} · +{p.cost} очков на бой
+            <select
+              value={c.packageCosts?.find((x) => x.name === p.name)?.detachments[0] ?? ''}
+              onChange={(e) =>
+                update({
+                  packageCosts: [
+                    ...(c.packageCosts ?? []).filter((x) => x.name !== p.name),
+                    ...(e.target.value
+                      ? [
+                          {
+                            name: p.name,
+                            cost: p.cost,
+                            detachments: [e.target.value],
+                            optional: c.packageCosts?.find((x) => x.name === p.name)?.optional,
+                          },
+                        ]
+                      : []),
+                  ],
+                })
+              }
+            >
+              <option value="">Укажите Package — не включать в базовый RC</option>
+              {snapshot.detachments
+                .filter((d) => !d.side || d.side === c.side)
+                .map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={c.packageCosts?.find((x) => x.name === p.name)?.optional === true}
+              disabled={!c.packageCosts?.some((x) => x.name === p.name)}
+              onChange={(e) =>
+                update({
+                  packageCosts: c.packageCosts?.map((x) =>
+                    x.name === p.name ? { ...x, optional: e.target.checked } : x,
+                  ),
+                })
+              }
+            />
+            Необязательная опция — выбирать галочкой на бой
+          </label>
+        </div>
       ))}
       {c.transportRule && (
         <details>
@@ -911,14 +931,6 @@ function TemplateEditor({
               throw Error(
                 'Сопоставьте каждую платную опцию с Detachment; либо удалите неприменимую опцию в редакторе.',
               )
-            if (
-              reference &&
-              weapons.length &&
-              ![...card.equipment, ...card.models.flatMap((g) => g.equipment)].some(
-                (e) => e.count > 0,
-              )
-            )
-              throw Error('Сначала выберите вооружение')
             validateCard(card, c.models)
             onAdd(c, target || null)
             setError('')
