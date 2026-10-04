@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { SIDES } from '../../shared/model'
 import { entry, unit } from '../../shared/rules'
-import { Check, Options, type Props } from './CampaignViews'
-import { labels } from '../App'
+import { Check, Options, type Props } from './common'
+import { labels } from './common'
 
 export function TableExtras({ s, side, send }: Props) {
   const b = s.battle!,

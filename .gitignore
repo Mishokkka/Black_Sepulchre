@@ -7,3 +7,5 @@ review/db-baseline-schema.json
 tmp/
 *.tsbuildinfo
 supabase/.temp/
+test-results/
+playwright-report/

@@ -19,7 +19,7 @@ import {
   type ReferenceSheet,
 } from '../../shared/catalogue'
 import { campaignChoices, modelLabel } from '../../shared/unit-choices'
-import type { Props } from './CampaignViews'
+import type { Props } from './common'
 import { DatasheetView, ProfileTable } from './DatasheetView'
 import { CatalogManager } from './CampaignExtras'
 

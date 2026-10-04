@@ -5,3 +5,13 @@ pre{max-width:100%;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;fon
 
 .next-step{display:flex;align-items:center;justify-content:space-between;gap:1rem;border-left:3px solid var(--gold)}.next-step p{margin:0}.draft-status{margin:1rem 0}.logistics-action{max-width:420px;align-self:start}.logistics-action small{margin:.4rem 0;line-height:1.5}.history-entry{padding:1rem 0;border-bottom:1px solid var(--border)}.campaign-choice{width:100%;text-align:left;margin:.4rem 0}.campaign-choice small{color:inherit}.app>aside{overflow-y:auto}.aside-bottom{padding-top:1rem}.next-step button{flex-shrink:0}[id$="-panel"],#battle-step{scroll-margin-top:1rem}@media(max-width:760px){.next-step{align-items:start;flex-direction:column}.aside-bottom{position:static;margin-top:.5rem;display:flex;flex-wrap:wrap}.app>aside{overflow:visible}}
 .rule-text{max-width:1000px;overflow-wrap:anywhere}.rule-text li{margin:.45rem 0}.rule-text h3{margin-top:1.6rem}.rule-text table p{margin:0}.rule-text .table-wrap{margin:1rem 0}.reference-modes{margin:1rem 0}.guide-start{border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:5px;padding:1rem;background:#20271f}.exact-rule{background:#131a15;padding:1rem;border:1px solid var(--border);border-radius:5px;margin-top:1.2rem}.reference summary small{margin-top:.25rem}.mission-brief .eyebrow{margin-top:1rem}.mission-basics{margin-top:1rem}.mission-brief+.exact-rule{margin-bottom:1rem}
+
+.sync-status { display: flex; flex-wrap: wrap; gap: .45rem 1rem; align-items: center; padding: .65rem 0; font-size: .85rem; }
+.sync-status > span:first-child { display: inline-flex; align-items: center; gap: .45rem; }
+.sync-status i { width: .55rem; height: .55rem; border-radius: 50%; background: var(--muted, #999); flex-shrink: 0; }
+.sync-status.success i { background: #82bc91; }
+.sync-status.warning i { background: #efb56e; }
+.sync-status details { flex-basis: 100%; }
+.sync-status details p { margin: .5rem 0; max-width: 75ch; }
+.setup-readiness .readiness-player { padding: .5rem 1rem; border-left: 2px solid #626056; }
+.setup-readiness .notice { margin: .5rem 0; }

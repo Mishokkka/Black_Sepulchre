@@ -1,3 +1,4 @@
+export { revealAllowed } from './visibility.ts'
 import { HONOURS } from './rules.generated.ts'
 import { SIDES, type Battle, type Muster, type Side, type State } from './model.ts'
 import { sameDatasheet, datasheetName } from './datasheets.ts'
@@ -341,12 +342,6 @@ export function validateMuster(
     )
   }
   return costs
-}
-export function revealAllowed(b: Battle, viewer: Side, owner: Side): boolean {
-  if (viewer === owner) return true
-  if (!b.muster[owner]) return false
-  const locks = SIDES.filter((s) => b.lock[s])
-  return !!b.muster[viewer] || (locks.length === 1 && locks[0] === viewer)
 }
 export function underdog(b: Battle, side: Side): number {
   if (

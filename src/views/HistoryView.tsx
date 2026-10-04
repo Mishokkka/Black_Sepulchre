@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { historySummary, ownHistory } from '../../shared/history'
 import type { Side, State } from '../../shared/model'
-import { labels } from '../App'
+import { labels } from './common'
 
 export function HistoryView({ s, side }: { s: State; side: Side }) {
   const [battle, setBattle] = useState(''),

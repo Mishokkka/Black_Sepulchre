@@ -1,5 +1,5 @@
 import { logisticsPreview } from '../../shared/logistics-preview'
-import type { Props } from './CampaignViews'
+import type { Props } from './common'
 
 export function LogisticsAction({
   s,

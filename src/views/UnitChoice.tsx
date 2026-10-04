@@ -8,7 +8,7 @@ import {
   sizeLabel,
   paidVariantLabel,
 } from '../../shared/unit-choices'
-import { Options } from './CampaignViews'
+import { Options } from './common'
 
 /** One datasheet, then size, then only choices which change the price. */
 export function UnitChoice({

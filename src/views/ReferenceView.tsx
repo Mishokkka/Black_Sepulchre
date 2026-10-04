@@ -3,7 +3,7 @@ import { RULE_SECTIONS } from '../../shared/reference.generated'
 import { MISSION_CARDS } from '../../shared/rules.generated'
 import { EXTRA_MISSION_RULES, RULE_GUIDES } from '../content/rules-guide.generated'
 import type { State } from '../../shared/model'
-import { Check } from './CampaignViews'
+import { Check } from './common'
 import { RuleText } from './RuleText'
 
 const books = [
