@@ -437,11 +437,17 @@ export default function App() {
       expectedVersion: view.version,
       command: { type, payload } satisfies Command,
     }
+    const receiptKey = pendingKey(session!.user.id, id)
+    try {
+      sessionStorage.setItem(receiptKey, JSON.stringify(body))
+    } catch {
+      /* In-memory retry remains available if storage is blocked. */
+    }
     try {
       await call(body)
       setPending(null)
       try {
-        sessionStorage.removeItem(pendingKey(user.current!, id))
+        sessionStorage.removeItem(receiptKey)
       } catch {
         /* optional storage */
       }
@@ -453,9 +459,15 @@ export default function App() {
       setPending(uncertain ? body : null)
       if (uncertain) {
         try {
-          sessionStorage.setItem(pendingKey(user.current!, id), JSON.stringify(body))
+          sessionStorage.setItem(receiptKey, JSON.stringify(body))
         } catch {
           /* In-memory retry still uses the same UUID. */
+        }
+      } else {
+        try {
+          sessionStorage.removeItem(receiptKey)
+        } catch {
+          /* optional storage */
         }
       }
       await load()
