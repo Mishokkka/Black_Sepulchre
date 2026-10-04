@@ -25,6 +25,7 @@ try {
     try {
       const r = await fetch(`${env.E2E_SUPABASE_URL}/functions/v1/campaign-engine`, {
         method: 'OPTIONS',
+        signal: AbortSignal.timeout(4000),
       })
       if (r.status === 200) {
         ready = true
@@ -41,6 +42,9 @@ try {
     windowsHide: true,
   })
   exit = await new Promise((resolve) => playwright.on('exit', (code) => resolve(code ?? 1)))
+} catch (error) {
+  console.error(error)
+  console.error(readFileSync('tmp/e2e-functions.log', 'utf8').slice(-6000))
 } finally {
   functions.kill('SIGTERM')
   closeSync(log)

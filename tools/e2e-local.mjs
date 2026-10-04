@@ -32,7 +32,13 @@ await writeFile(
 )
 await cp('supabase/migrations', resolve(stack, 'supabase/migrations'), { recursive: true })
 await cp('supabase/functions', resolve(stack, 'supabase/functions'), { recursive: true })
-await cp('shared', resolve(stack, 'shared'), { recursive: true })
+// Local Edge runtime mounts functions/. Keep the same modules inside that mount.
+await cp('shared', resolve(stack, 'supabase/functions/_shared'), { recursive: true })
+const entryPath = resolve(stack, 'supabase/functions/campaign-engine/index.ts')
+await writeFile(
+  entryPath,
+  (await readFile(entryPath, 'utf8')).replaceAll('../../../shared/', '../_shared/'),
+)
 run('start', '--exclude', 'studio,postgres-meta,imgproxy,logflare,vector,supavisor')
 const status = JSON.parse(
   execFileSync(process.execPath, [cli, 'status', '--output', 'json', '--workdir', stack], {
