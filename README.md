@@ -93,3 +93,8 @@ npm run dev
 Не откатывать только клиент к 2.1 после инициализации: старые строки заморожены. Для восстановления использовать сохранённый checkpoint/legacy_backup и согласованную миграцию; произвольное повторное применение income недопустимо.
 
 После развёртывания Security Advisor сообщает о двух намеренно доступных RPC (`create_campaign`, `v221_join_campaign`) и трёх private-таблицах с RLS без клиентских policies: это deny-by-default, доступ даёт только сервер. Остаётся прежняя настройка Auth: [проверка паролей по базе утечек отключена](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). Настройка аккаунтов этим обновлением не менялась.
+# Проверка двух игроков в браузере
+
+Обычные проверки: `npm test` и `npm run build`. Изолированный браузерный тест: при работающем Docker выполните `npm run test:e2e:prepare`, `npx playwright install chromium`, затем `npm run test:e2e`. Он использует локальный Supabase и не подключается к рабочей кампании. Для остановки контейнеров: `npx supabase stop --workdir tmp/e2e-stack`.
+
+Выводы проверки внешнего аудита и соответствующие QoL: [AUDIT_QOL_IMPLEMENTATION_2026-10-04_RU.md](docs/AUDIT_QOL_IMPLEMENTATION_2026-10-04_RU.md).

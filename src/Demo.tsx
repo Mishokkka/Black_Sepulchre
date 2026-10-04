@@ -9,16 +9,12 @@ import { declareBattle } from '../shared/battle'
 import { createTable } from '../shared/table'
 import { SIDES } from '../shared/model'
 import type { Side, State } from '../shared/model'
-import {
-  CampaignMap,
-  LogisticsView,
-  RosterView,
-  SetupView,
-  StrategyView,
-  ReferenceView,
-} from './views/CampaignViews'
+import { LogisticsView, RosterView, StrategyView } from './views/CampaignViews'
 import { BattleView } from './views/BattleView'
-import type { Send } from './App'
+import type { Send } from './views/common'
+import { CampaignMap } from './views/CampaignMap'
+import { SetupView } from './views/SetupView'
+import ReferenceView from './views/ReferenceView'
 import { CatalogView, type LibraryAPI, type LibraryEntry } from './views/CatalogView'
 import { parseNewRecruit } from '../shared/datasheets'
 export default function Demo() {

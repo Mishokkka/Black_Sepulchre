@@ -3,8 +3,7 @@ import { DraftUser } from './lib/useBattleDraft'
 import { clearFinishedDrafts } from './lib/drafts'
 import { campaignKey, initialCampaign, type CampaignChoice } from './lib/campaign-selection'
 import { NextStep } from './views/NextStep'
-import { HistoryView } from './views/HistoryView'
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import {
   BookOpen,
@@ -18,38 +17,41 @@ import {
   Users,
 } from 'lucide-react'
 import { supabase } from './lib/supabase'
-import { CampaignRequestError, retryableStatus } from './lib/requests'
 import type { Command, Side, State, View } from '../shared/model'
 import { STAGES } from '../shared/rules'
+import { labels, phases, type Send } from './views/common'
+import type { LibraryAPI } from './views/CatalogView'
+import { SyncStatus } from './views/SyncStatus'
 import {
-  CampaignMap,
-  LogisticsView,
-  ReferenceView,
-  RosterView,
-  SetupView,
-  StrategyView,
-} from './views/CampaignViews'
-import { BattleView, ReportView } from './views/BattleView'
-import { CatalogView, type LibraryAPI } from './views/CatalogView'
-export type Send = (type: string, payload?: Record<string, unknown>) => Promise<void | boolean>
-export const labels: Record<Side, string> = { deathwatch: 'Deathwatch', necrons: 'Necrons' }
-export const phases: Record<string, string> = {
-  setup: 'Подготовка кампании',
-  strategy: 'Стратегический ход',
-  reaction: 'Ответ на саботаж',
-  mission: 'Выбор миссии',
-  lock: 'Разведка',
-  muster: 'Сбор армии',
-  interdict: 'Interdict',
-  assets: 'Боевые Assets',
-  battle: 'Бой за столом',
-  result: 'Подтверждение результата',
-  aftermath: 'Последствия боя',
-  logistics: 'Снабжение',
-  finale_mode: 'Решение о финале',
-  ending: 'Судьба планеты',
-  terminal: 'Кампания завершена',
-}
+  errorHelp,
+  CampaignRequestError,
+  retryableStatus,
+  pendingKey,
+  readPending,
+} from './lib/requests'
+import { initialSync, type SyncState } from './lib/sync'
+const CampaignMap = lazy(() =>
+  import('./views/CampaignMap').then((m) => ({ default: m.CampaignMap })),
+)
+const SetupView = lazy(() => import('./views/SetupView').then((m) => ({ default: m.SetupView })))
+const StrategyView = lazy(() =>
+  import('./views/CampaignViews').then((m) => ({ default: m.StrategyView })),
+)
+const LogisticsView = lazy(() =>
+  import('./views/CampaignViews').then((m) => ({ default: m.LogisticsView })),
+)
+const RosterView = lazy(() =>
+  import('./views/CampaignViews').then((m) => ({ default: m.RosterView })),
+)
+const BattleView = lazy(() => import('./views/BattleView').then((m) => ({ default: m.BattleView })))
+const ReportView = lazy(() => import('./views/BattleView').then((m) => ({ default: m.ReportView })))
+const CatalogView = lazy(() =>
+  import('./views/CatalogView').then((m) => ({ default: m.CatalogView })),
+)
+const HistoryView = lazy(() =>
+  import('./views/HistoryView').then((m) => ({ default: m.HistoryView })),
+)
+const ReferenceView = lazy(() => import('./views/ReferenceView'))
 function Gate({ ready, onError }: { ready: (id: string) => void; onError: (m: string) => void }) {
   const inFlight = useRef(false)
   const [name, setName] = useState('The Black Sepulchre'),
@@ -133,7 +135,7 @@ export default function App() {
     [view, setView] = useState<View | null>(null),
     [side, setSide] = useState<Side>('deathwatch'),
     [tab, setTab] = useState('overview'),
-    [error, setError] = useState(''),
+    [error, setError] = useState<Error | string>(''),
     [busy, setBusy] = useState(false),
     [invite, setInvite] = useState(''),
     [pending, setPending] = useState<unknown>(null),
@@ -141,10 +143,32 @@ export default function App() {
     [membershipReady, setMembershipReady] = useState(false),
     [membershipFailed, setMembershipFailed] = useState(false),
     [membershipAttempt, setMembershipAttempt] = useState(0)
+  const [sync, setSync] = useState<SyncState>(() => initialSync(navigator.onLine))
+  const viewVersion = useRef(0)
+  viewVersion.current = view?.version ?? 0
   const scope = useRef(''),
     user = useRef<string | null>(null),
     sending = useRef(false)
   scope.current = `${session?.user.id ?? ''}:${id ?? ''}`
+  useEffect(() => {
+    setSync(initialSync(navigator.onLine))
+    if (id && session) {
+      try {
+        setPending(readPending(sessionStorage, session.user.id, id))
+      } catch {
+        /* The in-memory receipt remains available if storage is blocked. */
+      }
+    }
+  }, [id, session?.user.id])
+  useEffect(() => {
+    const updateOnline = () => setSync((s) => ({ ...s, online: navigator.onLine }))
+    window.addEventListener('online', updateOnline)
+    window.addEventListener('offline', updateOnline)
+    return () => {
+      window.removeEventListener('online', updateOnline)
+      window.removeEventListener('offline', updateOnline)
+    }
+  }, [])
   useEffect(() => {
     const update = (s: Session | null) => {
       if (user.current !== (s?.user.id ?? null)) {
@@ -220,7 +244,7 @@ export default function App() {
         setMembershipReady(true)
       } catch (e) {
         if (cancelled || user.current !== session.user.id) return
-        setError((e as Error).message)
+        setError(e as Error)
         setMembershipFailed(true)
         setMembershipReady(true)
       }
@@ -271,16 +295,18 @@ export default function App() {
     if (error) {
       let m = error.message
       let status: number | undefined
+      let code: string | undefined
       if ('context' in error) {
         status = (error.context as Response)?.status
         try {
           const body = await (error.context as Response).json()
           m = body.error ?? m
+          code = body.code
         } catch {
           /* A network failure has no response body. */
         }
       }
-      throw new CampaignRequestError(m, retryableStatus(status))
+      throw new CampaignRequestError(m, retryableStatus(status), status, code)
     }
     if (data?.error) throw Error(data.error)
     if (data?.state) {
@@ -290,6 +316,14 @@ export default function App() {
         !old || old.id !== data.state.id || data.state.version >= old.version ? data.state : old,
       )
       setSide(data.side)
+      const now = Date.now()
+      setSync((s) => ({
+        ...s,
+        lastLoad: now,
+        lastCommit: body.command ? now : s.lastCommit,
+        unavailable: false,
+        refreshing: false,
+      }))
     }
     return data
   }, [])
@@ -299,10 +333,27 @@ export default function App() {
     if (started !== `${user.current ?? ''}:${id}`) return
     try {
       await call({ campaignId: id })
-      const { data } = await supabase.from('campaigns').select('invite_code').eq('id', id).single()
-      if (data && started === scope.current) setInvite(data.invite_code)
+      const [campaign, members] = await Promise.all([
+        supabase.from('campaigns').select('invite_code').eq('id', id).single(),
+        supabase.from('campaign_members').select('side').eq('campaign_id', id),
+      ])
+      if (started !== scope.current) return
+      if (campaign.data) setInvite(campaign.data.invite_code)
+      setSync((s) =>
+        members.error || !members.data
+          ? { ...s, metadataFailed: true }
+          : {
+              ...s,
+              members: members.data.map((m) => m.side as Side),
+              membersChecked: Date.now(),
+              metadataFailed: false,
+            },
+      )
     } catch (e) {
-      if (started === scope.current) setError((e as Error).message)
+      if (started === scope.current) {
+        setError(e as Error)
+        setSync((s) => ({ ...s, unavailable: true, refreshing: false }))
+      }
     }
   }, [id, call])
   const libraryApi: LibraryAPI = useCallback(
@@ -317,6 +368,8 @@ export default function App() {
   }, [load])
   useEffect(() => {
     if (!id) return
+    let disposed = false
+    setSync((s) => ({ ...s, realtime: 'connecting' }))
     const channel = supabase
       .channel(`v221:${id}`)
       .on(
@@ -327,9 +380,24 @@ export default function App() {
           table: 'campaign_versions',
           filter: `campaign_id=eq.${id}`,
         },
-        () => load(),
+        (payload) => {
+          if (disposed) return
+          if ('version' in payload.new && Number(payload.new.version) > viewVersion.current)
+            setSync((s) => ({ ...s, refreshing: true }))
+          void load()
+        },
       )
       .subscribe((status) => {
+        if (disposed) return
+        setSync((s) => ({
+          ...s,
+          realtime:
+            status === 'SUBSCRIBED'
+              ? 'connected'
+              : status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT'
+                ? 'fallback'
+                : 'connecting',
+        }))
         if (status === 'SUBSCRIBED') void load()
       })
     const onFocus = () => load()
@@ -341,6 +409,7 @@ export default function App() {
     window.addEventListener('online', onFocus)
     document.addEventListener('visibilitychange', onVisible)
     return () => {
+      disposed = true
       supabase.removeChannel(channel)
       window.removeEventListener('focus', onFocus)
       window.removeEventListener('online', onFocus)
@@ -350,6 +419,10 @@ export default function App() {
   }, [id, load])
   const send: Send = async (type, payload = {}) => {
     if (!id || !view || pending || sending.current) return false
+    if (!navigator.onLine) {
+      setError('Нет интернета')
+      return false
+    }
     sending.current = true
     const started = scope.current
     setBusy(true)
@@ -363,11 +436,24 @@ export default function App() {
     try {
       await call(body)
       setPending(null)
+      try {
+        sessionStorage.removeItem(pendingKey(user.current!, id))
+      } catch {
+        /* optional storage */
+      }
       return true
     } catch (e) {
       if (started !== scope.current) return false
-      setError((e as Error).message)
-      setPending(e instanceof CampaignRequestError && !e.retryable ? null : body)
+      setError(e as Error)
+      const uncertain = !(e instanceof CampaignRequestError) || e.retryable
+      setPending(uncertain ? body : null)
+      if (uncertain) {
+        try {
+          sessionStorage.setItem(pendingKey(user.current!, id), JSON.stringify(body))
+        } catch {
+          /* In-memory retry still uses the same UUID. */
+        }
+      }
       await load()
       return false
     } finally {
@@ -383,11 +469,23 @@ export default function App() {
     try {
       await call(pending as Record<string, unknown>)
       setPending(null)
+      try {
+        sessionStorage.removeItem(pendingKey(user.current!, id!))
+      } catch {
+        /* optional storage */
+      }
       setError('')
     } catch (e) {
       if (started === scope.current) {
-        setError((e as Error).message)
-        if (e instanceof CampaignRequestError && !e.retryable) setPending(null)
+        setError(e as Error)
+        if (e instanceof CampaignRequestError && !e.retryable && e.status !== 401) {
+          setPending(null)
+          try {
+            sessionStorage.removeItem(pendingKey(user.current!, id!))
+          } catch {
+            /* optional storage */
+          }
+        }
         await load()
       }
     } finally {
@@ -395,14 +493,39 @@ export default function App() {
       setBusy(false)
     }
   }
+  const help = errorHelp(error, !!pending, sync.online)
   const alert = (error || !!pending) && (
     <div role="alert" className="toast">
-      <span>
-        {error || 'Ответ не получен. Проверьте прежнюю отправку перед следующим действием.'}
-      </span>
+      <span>{help.text}</span>
       {!!pending && (
         <button className="quiet" disabled={busy} onClick={retry}>
-          Повторить отправку
+          Проверить прежнюю отправку
+        </button>
+      )}
+      {help.action === 'signin' && (
+        <button className="quiet" onClick={() => supabase.auth.signOut()}>
+          Войти снова
+        </button>
+      )}
+      {help.action === 'refresh' && !pending && (
+        <button className="quiet" onClick={load}>
+          Обновить состояние
+        </button>
+      )}
+      {(help.action === 'stage' || help.action === 'refresh') && view && (
+        <button
+          className="quiet"
+          onClick={() =>
+            setTab(
+              view.phase === 'strategy' || view.phase === 'reaction'
+                ? 'strategy'
+                : view.phase === 'logistics'
+                  ? 'logistics'
+                  : 'battle',
+            )
+          }
+        >
+          Открыть текущий этап
         </button>
       )}
       <button className="quiet" aria-label="Закрыть уведомление" onClick={() => setError('')}>
@@ -594,6 +717,7 @@ export default function App() {
               </button>
             </div>
           </header>
+          <SyncStatus sync={sync} pending={!!pending} side={side} />
           <div className="statusline">
             <span>Бой {Math.min(18, s.battles + 1)} / 18</span>
             <span>AL {stage.al}</span>
@@ -603,118 +727,138 @@ export default function App() {
             <span>Choir {s.choir}/8</span>
             {p.debt > 0 && <span>Аварийный долг {p.debt}</span>}
           </div>
-          <fieldset className="workspace" disabled={busy || !!pending}>
-            <NextStep s={s} side={side} navigate={setTab} />
-            {s.correctionProposal && (
-              <section className="panel" id="correction-panel">
-                <h2>Предложена коррекция последнего результата</h2>
-                <p>
-                  Зависимые действия приостановлены. После общего согласия они будут отменены и
-                  последствия боя пересчитаны из прежнего состояния.
-                </p>
-                <p>
-                  VP Deathwatch {s.correctionProposal.report.vp.deathwatch} : Necrons{' '}
-                  {s.correctionProposal.report.vp.necrons}
-                </p>
-                <p>{s.correctionProposal.report.narrative}</p>
-                {s.correctionProposal.report.units.map((r) => (
-                  <p key={r.id}>
-                    {s.units.find((u) => u.id === r.id)?.name}:{' '}
-                    {r.entered ? 'участвовал' : 'не вошёл'}
-                    {r.destroyed ? ' · уничтожен' : ''}
-                    {r.deed ? ` · ${r.deed}` : ''}
+          <Suspense
+            fallback={
+              <p className="panel" role="status">
+                Загрузка раздела…
+              </p>
+            }
+          >
+            <fieldset className="workspace" disabled={busy || !!pending}>
+              <NextStep s={s} side={side} navigate={setTab} />
+              {s.correctionProposal && (
+                <section className="panel" id="correction-panel">
+                  <h2>Предложена коррекция последнего результата</h2>
+                  <p>
+                    Зависимые действия приостановлены. После общего согласия они будут отменены и
+                    последствия боя пересчитаны из прежнего состояния.
                   </p>
-                ))}
-                <button
-                  disabled={s.correctionProposal.approved.includes(side)}
-                  onClick={() => {
-                    send('approve_correction')
-                    setCorrecting(false)
-                  }}
-                >
-                  Согласовать откат и новую ревизию
-                </button>
-                <button className="quiet" onClick={() => send('cancel_correction')}>
-                  Отклонить
-                </button>
-              </section>
-            )}
-            {s.flags.correctionAvailable && !s.correctionProposal && (
-              <details className="panel">
-                <summary>Исправить последний результат</summary>
-                <button className="quiet" onClick={() => setCorrecting(!correcting)}>
-                  {correcting ? 'Закрыть редактор' : 'Подготовить новую ревизию'}
-                </button>
-                {correcting && <ReportView s={s} side={side} send={send} correction />}
-              </details>
-            )}
-            <div id="stage-panel">
-              {tab === 'history' ? (
-                <HistoryView key={s.id} s={s} side={side} />
-              ) : tab === 'catalog' ? (
-                <CatalogView s={s} side={side} send={send} api={libraryApi} />
-              ) : s.phase === 'setup' ? (
-                <SetupView s={s} side={side} send={send} />
-              ) : (
-                <>
-                  {tab === 'overview' && (
-                    <>
-                      <div className="hero">
-                        <div>
-                          <p className="eyebrow">
-                            {s.phase === 'terminal' ? 'ЭПИЛОГ' : 'СЛЕДУЮЩИЙ ШАГ'}
-                          </p>
-                          <h2>{phases[s.phase]}</h2>
-                          <p>
-                            {s.phase === 'strategy'
-                              ? `Действует ${labels[s.active]}. ${s.activation?.actions} Actions · ${s.activation?.mp} MP.`
-                              : s.phase === 'terminal'
-                                ? `Исход: ${s.winner === 'both_win' ? 'CONCORDAT — общая победа' : s.winner === 'both_lose' ? 'Общее поражение' : labels[s.winner as Side]}`
-                                : 'Решения и расчёты сохраняются для обоих игроков.'}
-                          </p>
-                          <button
-                            onClick={() =>
-                              setTab(
-                                s.phase === 'strategy' || s.phase === 'reaction'
-                                  ? 'strategy'
-                                  : s.phase === 'logistics'
-                                    ? 'logistics'
-                                    : 'battle',
-                              )
-                            }
-                          >
-                            Перейти к текущему этапу
-                          </button>
-                        </div>
-                        <div className="hero-stats">
-                          <strong>{p.mf}</strong>
-                          <span>Main Force</span>
-                          <strong>{p.integrity}</strong>
-                          <span>Integrity Home</span>
-                          <strong>{p.fragments}/3</strong>
-                          <span>Fragments</span>
-                        </div>
-                      </div>
-                      <CampaignMap s={s} side={side} />
-                      <button className="quiet" onClick={() => setTab('history')}>
-                        История кампании · {s.log.length} записей
-                      </button>
-                    </>
-                  )}
-                  {tab === 'map' && <CampaignMap s={s} side={side} />}
-                  {tab === 'strategy' && <StrategyView s={s} side={side} send={send} />}
-                  {tab === 'roster' && <RosterView s={s} side={side} send={send} />}
-                  {tab === 'battle' && <BattleView s={s} side={side} send={send} />}
-                  {tab === 'logistics' && <LogisticsView s={s} side={side} send={send} />}
-                  {tab === 'rules' && (
-                    <Suspense fallback={<p>Загрузка свода…</p>}>
-                      <ReferenceView s={s} />
-                    </Suspense>
-                  )}
-                </>
+                  <p>
+                    VP Deathwatch {s.correctionProposal.report.vp.deathwatch} : Necrons{' '}
+                    {s.correctionProposal.report.vp.necrons}
+                  </p>
+                  <p>{s.correctionProposal.report.narrative}</p>
+                  {s.correctionProposal.report.units.map((r) => (
+                    <p key={r.id}>
+                      {s.units.find((u) => u.id === r.id)?.name}:{' '}
+                      {r.entered ? 'участвовал' : 'не вошёл'}
+                      {r.destroyed ? ' · уничтожен' : ''}
+                      {r.deed ? ` · ${r.deed}` : ''}
+                    </p>
+                  ))}
+                  <button
+                    disabled={s.correctionProposal.approved.includes(side)}
+                    onClick={() => {
+                      send('approve_correction')
+                      setCorrecting(false)
+                    }}
+                  >
+                    Согласовать откат и новую ревизию
+                  </button>
+                  <button className="quiet" onClick={() => send('cancel_correction')}>
+                    Отклонить
+                  </button>
+                </section>
               )}
-            </div>
-          </fieldset>
+              {s.flags.correctionAvailable && !s.correctionProposal && (
+                <details className="panel">
+                  <summary>Исправить последний результат</summary>
+                  <button className="quiet" onClick={() => setCorrecting(!correcting)}>
+                    {correcting ? 'Закрыть редактор' : 'Подготовить новую ревизию'}
+                  </button>
+                  {correcting && <ReportView s={s} side={side} send={send} correction />}
+                </details>
+              )}
+              <div id="stage-panel">
+                {tab === 'history' ? (
+                  <HistoryView key={s.id} s={s} side={side} />
+                ) : tab === 'catalog' ? (
+                  <CatalogView s={s} side={side} send={send} api={libraryApi} />
+                ) : s.phase === 'setup' ? (
+                  <SetupView
+                    s={s}
+                    side={side}
+                    send={send}
+                    members={
+                      sync.metadataFailed ||
+                      !sync.online ||
+                      !sync.membersChecked ||
+                      Date.now() - sync.membersChecked > 45000
+                        ? null
+                        : sync.members
+                    }
+                  />
+                ) : (
+                  <>
+                    {tab === 'overview' && (
+                      <>
+                        <div className="hero">
+                          <div>
+                            <p className="eyebrow">
+                              {s.phase === 'terminal' ? 'ЭПИЛОГ' : 'СЛЕДУЮЩИЙ ШАГ'}
+                            </p>
+                            <h2>{phases[s.phase]}</h2>
+                            <p>
+                              {s.phase === 'strategy'
+                                ? `Действует ${labels[s.active]}. ${s.activation?.actions} Actions · ${s.activation?.mp} MP.`
+                                : s.phase === 'terminal'
+                                  ? `Исход: ${s.winner === 'both_win' ? 'CONCORDAT — общая победа' : s.winner === 'both_lose' ? 'Общее поражение' : labels[s.winner as Side]}`
+                                  : 'Решения и расчёты сохраняются для обоих игроков.'}
+                            </p>
+                            <button
+                              onClick={() =>
+                                setTab(
+                                  s.phase === 'strategy' || s.phase === 'reaction'
+                                    ? 'strategy'
+                                    : s.phase === 'logistics'
+                                      ? 'logistics'
+                                      : 'battle',
+                                )
+                              }
+                            >
+                              Перейти к текущему этапу
+                            </button>
+                          </div>
+                          <div className="hero-stats">
+                            <strong>{p.mf}</strong>
+                            <span>Main Force</span>
+                            <strong>{p.integrity}</strong>
+                            <span>Integrity Home</span>
+                            <strong>{p.fragments}/3</strong>
+                            <span>Fragments</span>
+                          </div>
+                        </div>
+                        <CampaignMap s={s} side={side} />
+                        <button className="quiet" onClick={() => setTab('history')}>
+                          История кампании · {s.log.length} записей
+                        </button>
+                      </>
+                    )}
+                    {tab === 'map' && <CampaignMap s={s} side={side} />}
+                    {tab === 'strategy' && <StrategyView s={s} side={side} send={send} />}
+                    {tab === 'roster' && <RosterView s={s} side={side} send={send} />}
+                    {tab === 'battle' && <BattleView s={s} side={side} send={send} />}
+                    {tab === 'logistics' && <LogisticsView s={s} side={side} send={send} />}
+                    {tab === 'rules' && (
+                      <Suspense fallback={<p>Загрузка свода…</p>}>
+                        <ReferenceView s={s} />
+                      </Suspense>
+                    )}
+                  </>
+                )}
+              </div>
+            </fieldset>
+          </Suspense>
         </main>
       </div>
     </DraftUser.Provider>

@@ -37,8 +37,8 @@ import {
 } from '../../shared/rules'
 import { actionsFor } from '../../shared/table'
 import { underdog, validateMuster } from '../../shared/muster'
-import { labels, phases, type Send } from '../App'
-import { Check, Options, type Props } from './CampaignViews'
+import { labels, phases, type Send } from './common'
+import { Check, Options, type Props } from './common'
 const ASSET_LABELS: Record<string, string> = {
   barricades: 'Barricades',
   smoke: 'Smoke Screen',

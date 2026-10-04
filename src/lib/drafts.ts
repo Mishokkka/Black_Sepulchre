@@ -1,5 +1,5 @@
 import { other, type Muster, type Report, type Side, type State } from '../../shared/model'
-import { revealAllowed } from '../../shared/muster'
+import { revealAllowed } from '../../shared/visibility'
 
 export const DRAFT_PREFIX = 'black-sepulchre:draft:1:'
 export interface Draft<T> {

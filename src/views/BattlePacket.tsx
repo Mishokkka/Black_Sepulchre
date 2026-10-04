@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { HONOURS, SCARS, EQUIPMENT_EFFECTS, ASSET_EFFECTS } from '../../shared/rules.generated'
 import { SIDES } from '../../shared/model'
 import { ARMOURY, RELICS, STAGES } from '../../shared/rules'
-import { Options, type Props } from './CampaignViews'
-import { labels } from '../App'
+import { Options, type Props } from './common'
+import { labels } from './common'
 import { DatasheetView } from './DatasheetView'
 export function BattlePacket({ s, side, send }: Props) {
   const b = s.battle!,

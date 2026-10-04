@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import type { Snapshot } from '../../shared/model'
 import { home, STAGES } from '../../shared/rules'
-import { Check, type Props } from './CampaignViews'
-import { labels } from '../App'
+import { Check, type Props } from './common'
+import { labels } from './common'
 export function CatalogManager({ s, send }: Props) {
   const [text, setText] = useState(''),
     [error, setError] = useState('')
