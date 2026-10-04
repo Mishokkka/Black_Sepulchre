@@ -1,3 +1,9 @@
+import { Auth, PasswordRecovery, RECOVERY_KEY } from './views/AuthView'
+import { DraftUser } from './lib/useBattleDraft'
+import { clearFinishedDrafts } from './lib/drafts'
+import { campaignKey, initialCampaign, type CampaignChoice } from './lib/campaign-selection'
+import { NextStep } from './views/NextStep'
+import { HistoryView } from './views/HistoryView'
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import {
@@ -43,73 +49,6 @@ export const phases: Record<string, string> = {
   finale_mode: 'Решение о финале',
   ending: 'Судьба планеты',
   terminal: 'Кампания завершена',
-}
-function Auth({ onError }: { onError: (m: string) => void }) {
-  const inFlight = useRef(false)
-  const [signup, setSignup] = useState(false),
-    [email, setEmail] = useState(''),
-    [password, setPassword] = useState(''),
-    [busy, setBusy] = useState(false)
-  return (
-    <div className="center">
-      <section className="login">
-        <Skull size={38} />
-        <p className="eyebrow">THE BLACK SEPULCHRE · 2.2.1</p>
-        <h1>Война за Kharon Secundus</h1>
-        <p>Два командира. Одна карта. Каждый бой оставляет след.</p>
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault()
-            if (inFlight.current) return
-            inFlight.current = true
-            setBusy(true)
-            try {
-              const r = signup
-                ? await supabase.auth.signUp({ email: email.trim(), password })
-                : await supabase.auth.signInWithPassword({ email: email.trim(), password })
-              if (r.error) onError(r.error.message)
-              else if (signup && !r.data.session)
-                onError('Подтвердите адрес через письмо, затем войдите.')
-            } catch (error) {
-              onError((error as Error).message)
-            } finally {
-              inFlight.current = false
-              setBusy(false)
-            }
-          }}
-        >
-          <label>
-            Email
-            <input
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </label>
-          <label>
-            Пароль
-            <input
-              type="password"
-              autoComplete={signup ? 'new-password' : 'current-password'}
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </label>
-          <button disabled={busy}>{signup ? 'Создать аккаунт' : 'Войти'}</button>
-        </form>
-        <button className="quiet" onClick={() => setSignup(!signup)}>
-          {signup ? 'Уже есть аккаунт' : 'Регистрация'}
-        </button>
-        <a href={`${import.meta.env.BASE_URL}rules.pdf`} target="_blank" rel="noreferrer">
-          Открыть правила 2.2.1
-        </a>
-      </section>
-    </div>
-  )
 }
 function Gate({ ready, onError }: { ready: (id: string) => void; onError: (m: string) => void }) {
   const inFlight = useRef(false)
@@ -186,6 +125,10 @@ function Gate({ ready, onError }: { ready: (id: string) => void; onError: (m: st
 export default function App() {
   const [session, setSession] = useState<Session | null>(null),
     [authReady, setAuthReady] = useState(false),
+    [recovering, setRecovering] = useState(false),
+    [campaigns, setCampaigns] = useState<CampaignChoice[]>([]),
+    [choosing, setChoosing] = useState(false),
+    [creating, setCreating] = useState(false),
     [id, setId] = useState<string | null>(null),
     [view, setView] = useState<View | null>(null),
     [side, setSide] = useState<Side>('deathwatch'),
@@ -213,13 +156,26 @@ export default function App() {
         setInvite('')
         setError('')
         setCorrecting(false)
+        setCampaigns([])
+        setChoosing(false)
+        setCreating(false)
+        setRecovering(false)
         setMembershipReady(false)
         setMembershipFailed(false)
       }
       setSession(s)
       setAuthReady(true)
     }
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => update(s))
+    const { data } = supabase.auth.onAuthStateChange((event, s) => {
+      update(s)
+      try {
+        if (event === 'PASSWORD_RECOVERY' && s) sessionStorage.setItem(RECOVERY_KEY, s.user.id)
+        if (!s) sessionStorage.removeItem(RECOVERY_KEY)
+        setRecovering(!!s && sessionStorage.getItem(RECOVERY_KEY) === s.user.id)
+      } catch {
+        if (event === 'PASSWORD_RECOVERY') setRecovering(true)
+      }
+    })
     return () => data.subscription.unsubscribe()
   }, [])
   useEffect(() => {
@@ -227,34 +183,88 @@ export default function App() {
     let cancelled = false
     setMembershipReady(false)
     setMembershipFailed(false)
-    supabase
-      .from('campaign_members')
-      .select('campaign_id')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .then(
-        ({ data, error }) => {
-          if (cancelled) return
-          if (error) {
-            setError(error.message)
-            setMembershipFailed(true)
-          } else if (data?.length) setId(data[0].campaign_id)
-          setMembershipReady(true)
-        },
-        (error: Error) => {
-          if (cancelled) return
-          setError(error.message)
-          setMembershipFailed(true)
-          setMembershipReady(true)
-        },
-      )
+    const loadMemberships = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('campaign_members')
+          .select('campaign_id,side,campaigns(id,name)')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+        if (cancelled || user.current !== session.user.id) return
+        if (error) throw error
+        const choices: CampaignChoice[] = (data ?? []).map((m) => {
+          const c = m.campaigns as unknown as { id: string; name: string } | null
+          return { id: m.campaign_id as string, name: c?.name ?? 'Кампания', side: m.side as Side }
+        })
+        setCampaigns(choices)
+        let remembered: string | null = null
+        try {
+          remembered = localStorage.getItem(campaignKey(session.user.id))
+        } catch {
+          /* optional preference */
+        }
+        const activeId = scope.current.slice(scope.current.indexOf(':') + 1)
+        const selected = initialCampaign(choices, activeId || remembered)
+        if (selected && selected !== activeId) {
+          scope.current = `${session.user.id}:${selected}`
+          setId(selected)
+          setView(null)
+          setInvite('')
+        } else if (!selected) {
+          scope.current = `${session.user.id}:`
+          setId(null)
+          setView(null)
+          setInvite('')
+          setChoosing(choices.length > 0)
+        }
+        setMembershipReady(true)
+      } catch (e) {
+        if (cancelled || user.current !== session.user.id) return
+        setError((e as Error).message)
+        setMembershipFailed(true)
+        setMembershipReady(true)
+      }
+    }
+    void loadMemberships()
     return () => {
       cancelled = true
     }
   }, [session?.user.id, membershipAttempt])
+  const selectCampaign = (next: string) => {
+    if (!session || user.current !== session.user.id || sending.current || pending) return
+    if (next === id && view?.id === next) {
+      setChoosing(false)
+      setCreating(false)
+      setTab('overview')
+      return
+    }
+    scope.current = `${session.user.id}:${next}`
+    setId(next)
+    setView(null)
+    setInvite('')
+    setError('')
+    setCorrecting(false)
+    setTab('overview')
+    setChoosing(false)
+    setCreating(false)
+    try {
+      localStorage.setItem(campaignKey(session.user.id), next)
+    } catch {
+      /* optional preference */
+    }
+  }
+  useEffect(() => {
+    if (!session || !view) return
+    try {
+      clearFinishedDrafts(localStorage, session.user.id, view as unknown as State, side)
+    } catch {
+      /* storage may be unavailable */
+    }
+  }, [session?.user.id, view, side])
   const call = useCallback(async (body: Record<string, unknown>) => {
     const started = scope.current
+    if (started !== `${user.current ?? ''}:${String(body.campaignId)}`)
+      throw new CampaignRequestError('Кампания изменена', false)
     const { data, error } = await supabase.functions.invoke('campaign-engine', { body })
     if (started !== scope.current)
       throw new CampaignRequestError('Сессия или кампания изменена', false)
@@ -274,6 +284,8 @@ export default function App() {
     }
     if (data?.error) throw Error(data.error)
     if (data?.state) {
+      if (data.state.id !== body.campaignId)
+        throw new CampaignRequestError('Получено состояние другой кампании', false)
       setView((old) =>
         !old || old.id !== data.state.id || data.state.version >= old.version ? data.state : old,
       )
@@ -284,6 +296,7 @@ export default function App() {
   const load = useCallback(async () => {
     if (!id) return
     const started = scope.current
+    if (started !== `${user.current ?? ''}:${id}`) return
     try {
       await call({ campaignId: id })
       const { data } = await supabase.from('campaigns').select('invite_code').eq('id', id).single()
@@ -405,6 +418,23 @@ export default function App() {
         <Auth onError={setError} />
       </>
     )
+  if (recovering)
+    return (
+      <>
+        {alert}
+        <PasswordRecovery
+          onError={setError}
+          done={() => {
+            try {
+              sessionStorage.removeItem(RECOVERY_KEY)
+            } catch {
+              /* optional marker */
+            }
+            setRecovering(false)
+          }}
+        />
+      </>
+    )
   if (!membershipReady) return <div className="center">Загрузка списка кампаний…</div>
   if (membershipFailed)
     return (
@@ -417,11 +447,54 @@ export default function App() {
         </div>
       </>
     )
-  if (!id)
+  if (!id || choosing || creating)
     return (
       <>
         {alert}
-        <Gate ready={setId} onError={setError} />
+        {campaigns.length > 0 && !creating ? (
+          <div className="center">
+            <section className="login">
+              <h1>Выберите кампанию</h1>
+              {campaigns.map((c) => (
+                <button
+                  key={c.id}
+                  className="quiet campaign-choice"
+                  onClick={() => selectCampaign(c.id)}
+                >
+                  {c.name}
+                  <small>
+                    {labels[c.side]}
+                    {id === c.id ? ' · текущая' : ''}
+                  </small>
+                </button>
+              ))}
+              <button onClick={() => setCreating(true)}>Создать или присоединиться</button>
+              <button className="quiet" onClick={() => supabase.auth.signOut()}>
+                Выйти
+              </button>
+            </section>
+          </div>
+        ) : (
+          <>
+            {campaigns.length > 0 && (
+              <button className="quiet" onClick={() => setCreating(false)}>
+                ← К списку кампаний
+              </button>
+            )}
+            <Gate
+              ready={(next) => {
+                selectCampaign(next)
+                setMembershipAttempt((n) => n + 1)
+              }}
+              onError={setError}
+            />
+            {campaigns.length === 0 && (
+              <button className="quiet" onClick={() => supabase.auth.signOut()}>
+                Выйти
+              </button>
+            )}
+          </>
+        )}
       </>
     )
   if (!view)
@@ -447,189 +520,203 @@ export default function App() {
       ['catalog', BookOpen, 'Каталог'],
       ['battle', Swords, 'Текущий бой'],
       ['logistics', Shield, 'Logistics'],
+      ['history', BookOpen, 'История'],
       ['rules', BookOpen, 'Правила'],
     ] as const
   return (
-    <div className="app">
-      <aside>
-        <div className="brand">
-          <Skull />
-          <div>
-            BLACK
-            <br />
-            SEPULCHRE
+    <DraftUser.Provider value={session.user.id}>
+      <div className="app">
+        <aside>
+          <div className="brand">
+            <Skull />
+            <div>
+              BLACK
+              <br />
+              SEPULCHRE
+            </div>
           </div>
-        </div>
-        <span className={`faction ${side}`}>{labels[side]}</span>
-        <nav>
-          {nav.map(([key, Icon, label]) => (
-            <button
-              key={key}
-              className={tab === key ? 'selected' : 'quiet'}
-              onClick={() => setTab(key)}
-            >
-              <Icon size={18} />
-              {label}
-            </button>
-          ))}
-        </nav>
-        <div className="aside-bottom">
-          <small>Правила 2.2.1 · состояние {s.version}</small>
-          <button className="quiet" onClick={() => supabase.auth.signOut()}>
-            <LogOut size={16} /> Выйти
-          </button>
-        </div>
-      </aside>
-      <main className="content">
-        {alert}
-        <header>
-          <div>
-            <p className="eyebrow">KHARON SECUNDUS · {phases[s.phase]}</p>
-            <h1>{s.name}</h1>
-          </div>
-          <div className="toolbar">
+          <span className={`faction ${side}`}>{labels[side]}</span>
+          <nav>
+            {nav.map(([key, Icon, label]) => (
+              <button
+                key={key}
+                className={tab === key ? 'selected' : 'quiet'}
+                onClick={() => setTab(key)}
+              >
+                <Icon size={18} />
+                {label}
+              </button>
+            ))}
+          </nav>
+          <div className="aside-bottom">
+            <small>Правила 2.2.1 · состояние {s.version}</small>
             <button
               className="quiet"
-              onClick={() => navigator.clipboard.writeText(invite)}
-              title="Скопировать код приглашения"
+              disabled={busy || !!pending}
+              onClick={() => {
+                setChoosing(true)
+                setMembershipAttempt((n) => n + 1)
+              }}
+              title={
+                pending
+                  ? 'Сначала восстановите ответ на последнюю отправку'
+                  : 'Выбрать другую кампанию'
+              }
             >
-              Код: {invite}
+              Сменить кампанию
             </button>
-            <button className="quiet" aria-label="Обновить состояние" onClick={load}>
-              <RefreshCw size={18} className={busy ? 'spin' : ''} />
+            <button
+              className="quiet"
+              disabled={busy || !!pending}
+              onClick={() => supabase.auth.signOut()}
+            >
+              <LogOut size={16} /> Выйти
             </button>
           </div>
-        </header>
-        <div className="statusline">
-          <span>Бой {Math.min(18, s.battles + 1)} / 18</span>
-          <span>AL {stage.al}</span>
-          <span>Supply {p.supply}</span>
-          <span>Intel {p.intel}</span>
-          <span>Recovery {p.recovery}</span>
-          <span>Choir {s.choir}/8</span>
-          {p.debt > 0 && <span>Аварийный долг {p.debt}</span>}
-        </div>
-        <fieldset className="workspace" disabled={busy || !!pending}>
-          {s.correctionProposal && (
-            <section className="panel">
-              <h2>Предложена коррекция последнего результата</h2>
-              <p>
-                Зависимые действия приостановлены. После общего согласия они будут отменены и
-                последствия боя пересчитаны из прежнего состояния.
-              </p>
-              <p>
-                VP Deathwatch {s.correctionProposal.report.vp.deathwatch} : Necrons{' '}
-                {s.correctionProposal.report.vp.necrons}
-              </p>
-              <p>{s.correctionProposal.report.narrative}</p>
-              {s.correctionProposal.report.units.map((r) => (
-                <p key={r.id}>
-                  {s.units.find((u) => u.id === r.id)?.name}:{' '}
-                  {r.entered ? 'участвовал' : 'не вошёл'}
-                  {r.destroyed ? ' · уничтожен' : ''}
-                  {r.deed ? ` · ${r.deed}` : ''}
-                </p>
-              ))}
+        </aside>
+        <main className="content">
+          {alert}
+          <header>
+            <div>
+              <p className="eyebrow">KHARON SECUNDUS · {phases[s.phase]}</p>
+              <h1>{s.name}</h1>
+            </div>
+            <div className="toolbar">
               <button
-                disabled={s.correctionProposal.approved.includes(side)}
-                onClick={() => {
-                  send('approve_correction')
-                  setCorrecting(false)
-                }}
+                className="quiet"
+                onClick={() => navigator.clipboard.writeText(invite)}
+                title="Скопировать код приглашения"
               >
-                Согласовать откат и новую ревизию
+                Код: {invite}
               </button>
-              <button className="quiet" onClick={() => send('cancel_correction')}>
-                Отклонить
+              <button className="quiet" aria-label="Обновить состояние" onClick={load}>
+                <RefreshCw size={18} className={busy ? 'spin' : ''} />
               </button>
-            </section>
-          )}
-          {s.flags.correctionAvailable && !s.correctionProposal && (
-            <details className="panel">
-              <summary>Исправить последний результат</summary>
-              <button className="quiet" onClick={() => setCorrecting(!correcting)}>
-                {correcting ? 'Закрыть редактор' : 'Подготовить новую ревизию'}
-              </button>
-              {correcting && <ReportView s={s} side={side} send={send} correction />}
-            </details>
-          )}
-          {tab === 'catalog' ? (
-            <CatalogView s={s} side={side} send={send} api={libraryApi} />
-          ) : s.phase === 'setup' ? (
-            <SetupView s={s} side={side} send={send} />
-          ) : (
-            <>
-              {tab === 'overview' && (
+            </div>
+          </header>
+          <div className="statusline">
+            <span>Бой {Math.min(18, s.battles + 1)} / 18</span>
+            <span>AL {stage.al}</span>
+            <span>Supply {p.supply}</span>
+            <span>Intel {p.intel}</span>
+            <span>Recovery {p.recovery}</span>
+            <span>Choir {s.choir}/8</span>
+            {p.debt > 0 && <span>Аварийный долг {p.debt}</span>}
+          </div>
+          <fieldset className="workspace" disabled={busy || !!pending}>
+            <NextStep s={s} side={side} navigate={setTab} />
+            {s.correctionProposal && (
+              <section className="panel" id="correction-panel">
+                <h2>Предложена коррекция последнего результата</h2>
+                <p>
+                  Зависимые действия приостановлены. После общего согласия они будут отменены и
+                  последствия боя пересчитаны из прежнего состояния.
+                </p>
+                <p>
+                  VP Deathwatch {s.correctionProposal.report.vp.deathwatch} : Necrons{' '}
+                  {s.correctionProposal.report.vp.necrons}
+                </p>
+                <p>{s.correctionProposal.report.narrative}</p>
+                {s.correctionProposal.report.units.map((r) => (
+                  <p key={r.id}>
+                    {s.units.find((u) => u.id === r.id)?.name}:{' '}
+                    {r.entered ? 'участвовал' : 'не вошёл'}
+                    {r.destroyed ? ' · уничтожен' : ''}
+                    {r.deed ? ` · ${r.deed}` : ''}
+                  </p>
+                ))}
+                <button
+                  disabled={s.correctionProposal.approved.includes(side)}
+                  onClick={() => {
+                    send('approve_correction')
+                    setCorrecting(false)
+                  }}
+                >
+                  Согласовать откат и новую ревизию
+                </button>
+                <button className="quiet" onClick={() => send('cancel_correction')}>
+                  Отклонить
+                </button>
+              </section>
+            )}
+            {s.flags.correctionAvailable && !s.correctionProposal && (
+              <details className="panel">
+                <summary>Исправить последний результат</summary>
+                <button className="quiet" onClick={() => setCorrecting(!correcting)}>
+                  {correcting ? 'Закрыть редактор' : 'Подготовить новую ревизию'}
+                </button>
+                {correcting && <ReportView s={s} side={side} send={send} correction />}
+              </details>
+            )}
+            <div id="stage-panel">
+              {tab === 'history' ? (
+                <HistoryView key={s.id} s={s} side={side} />
+              ) : tab === 'catalog' ? (
+                <CatalogView s={s} side={side} send={send} api={libraryApi} />
+              ) : s.phase === 'setup' ? (
+                <SetupView s={s} side={side} send={send} />
+              ) : (
                 <>
-                  <div className="hero">
-                    <div>
-                      <p className="eyebrow">
-                        {s.phase === 'terminal' ? 'ЭПИЛОГ' : 'СЛЕДУЮЩИЙ ШАГ'}
-                      </p>
-                      <h2>{phases[s.phase]}</h2>
-                      <p>
-                        {s.phase === 'strategy'
-                          ? `Действует ${labels[s.active]}. ${s.activation?.actions} Actions · ${s.activation?.mp} MP.`
-                          : s.phase === 'terminal'
-                            ? `Исход: ${s.winner === 'both_win' ? 'CONCORDAT — общая победа' : s.winner === 'both_lose' ? 'Общее поражение' : labels[s.winner as Side]}`
-                            : 'Решения и расчёты сохраняются для обоих игроков.'}
-                      </p>
-                      <button
-                        onClick={() =>
-                          setTab(
-                            s.phase === 'strategy' || s.phase === 'reaction'
-                              ? 'strategy'
-                              : s.phase === 'logistics'
-                                ? 'logistics'
-                                : 'battle',
-                          )
-                        }
-                      >
-                        Перейти к текущему этапу
-                      </button>
-                    </div>
-                    <div className="hero-stats">
-                      <strong>{p.mf}</strong>
-                      <span>Main Force</span>
-                      <strong>{p.integrity}</strong>
-                      <span>Integrity Home</span>
-                      <strong>{p.fragments}/3</strong>
-                      <span>Fragments</span>
-                    </div>
-                  </div>
-                  <CampaignMap s={s} side={side} />
-                  <details className="panel">
-                    <summary>История решений ({s.log.length})</summary>
-                    {s.log
-                      .slice(-30)
-                      .reverse()
-                      .map((l) => (
-                        <div className="log-row" key={l.version}>
-                          <span>#{l.version}</span>
-                          <span>{labels[l.actor]}</span>
-                          <span>{l.command}</span>
-                          <small>
-                            {l.dice.length ? `Кампанийные броски: ${l.dice.join(', ')}` : ''}
-                          </small>
+                  {tab === 'overview' && (
+                    <>
+                      <div className="hero">
+                        <div>
+                          <p className="eyebrow">
+                            {s.phase === 'terminal' ? 'ЭПИЛОГ' : 'СЛЕДУЮЩИЙ ШАГ'}
+                          </p>
+                          <h2>{phases[s.phase]}</h2>
+                          <p>
+                            {s.phase === 'strategy'
+                              ? `Действует ${labels[s.active]}. ${s.activation?.actions} Actions · ${s.activation?.mp} MP.`
+                              : s.phase === 'terminal'
+                                ? `Исход: ${s.winner === 'both_win' ? 'CONCORDAT — общая победа' : s.winner === 'both_lose' ? 'Общее поражение' : labels[s.winner as Side]}`
+                                : 'Решения и расчёты сохраняются для обоих игроков.'}
+                          </p>
+                          <button
+                            onClick={() =>
+                              setTab(
+                                s.phase === 'strategy' || s.phase === 'reaction'
+                                  ? 'strategy'
+                                  : s.phase === 'logistics'
+                                    ? 'logistics'
+                                    : 'battle',
+                              )
+                            }
+                          >
+                            Перейти к текущему этапу
+                          </button>
                         </div>
-                      ))}
-                  </details>
+                        <div className="hero-stats">
+                          <strong>{p.mf}</strong>
+                          <span>Main Force</span>
+                          <strong>{p.integrity}</strong>
+                          <span>Integrity Home</span>
+                          <strong>{p.fragments}/3</strong>
+                          <span>Fragments</span>
+                        </div>
+                      </div>
+                      <CampaignMap s={s} side={side} />
+                      <button className="quiet" onClick={() => setTab('history')}>
+                        История кампании · {s.log.length} записей
+                      </button>
+                    </>
+                  )}
+                  {tab === 'map' && <CampaignMap s={s} side={side} />}
+                  {tab === 'strategy' && <StrategyView s={s} side={side} send={send} />}
+                  {tab === 'roster' && <RosterView s={s} side={side} send={send} />}
+                  {tab === 'battle' && <BattleView s={s} side={side} send={send} />}
+                  {tab === 'logistics' && <LogisticsView s={s} side={side} send={send} />}
+                  {tab === 'rules' && (
+                    <Suspense fallback={<p>Загрузка свода…</p>}>
+                      <ReferenceView s={s} />
+                    </Suspense>
+                  )}
                 </>
               )}
-              {tab === 'map' && <CampaignMap s={s} side={side} />}
-              {tab === 'strategy' && <StrategyView s={s} side={side} send={send} />}
-              {tab === 'roster' && <RosterView s={s} side={side} send={send} />}
-              {tab === 'battle' && <BattleView s={s} side={side} send={send} />}
-              {tab === 'logistics' && <LogisticsView s={s} side={side} send={send} />}
-              {tab === 'rules' && (
-                <Suspense fallback={<p>Загрузка свода…</p>}>
-                  <ReferenceView s={s} />
-                </Suspense>
-              )}
-            </>
-          )}
-        </fieldset>
-      </main>
-    </div>
+            </div>
+          </fieldset>
+        </main>
+      </div>
+    </DraftUser.Provider>
   )
 }

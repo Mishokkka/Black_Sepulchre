@@ -1,3 +1,4 @@
+import { LogisticsAction } from './LogisticsAction'
 import { CatalogManager, STFManager } from './CampaignExtras'
 import { DatasheetView } from './DatasheetView'
 import { lazy, useState } from 'react'
@@ -421,7 +422,11 @@ export function StrategyView({ s, side, send }: Props) {
             <button
               disabled={!ours || !!moveError}
               onClick={() =>
-                send(s.sectors[target]?.owner === side ? 'move' : 'attack', { target, method, raid })
+                send(s.sectors[target]?.owner === side ? 'move' : 'attack', {
+                  target,
+                  method,
+                  raid,
+                })
               }
             >
               {s.sectors[target]?.owner === side ? 'Переместиться' : 'Объявить контакт'}
@@ -637,25 +642,34 @@ function UnitService({ s, side, send, u }: Props & { u: Unit }) {
           : 'Для обслуживания своя Force должна быть в секторе ID.'}
       </p>
       <div className="buttons">
-        <button
-          disabled={!u.damage || !!u.flags.paidWindow}
-          onClick={() => send('recover', { id: u.id })}
-        >
-          Recovery
-        </button>
-        <button
-          disabled={!u.damage || !u.flags.paidWindow || !!u.flags.overhaulWindow}
-          onClick={() => send('recover', { id: u.id, overhaul: true })}
-        >
-          Overhaul
-        </button>
-        <button
-          className="quiet"
-          disabled={!u.damage || (!p.inventory.includes('cache') && u.armoury !== 'cache')}
-          onClick={() => send('recover', { id: u.id, cache: true })}
-        >
-          Recovery с Cache
-        </button>
+        {u.damage > 0 && (
+          <>
+            <LogisticsAction
+              s={s}
+              side={side}
+              send={send}
+              type="recover"
+              payload={{ id: u.id }}
+              label="Recovery"
+            />
+            <LogisticsAction
+              s={s}
+              side={side}
+              send={send}
+              type="recover"
+              payload={{ id: u.id, overhaul: true }}
+              label="Overhaul"
+            />
+            <LogisticsAction
+              s={s}
+              side={side}
+              send={send}
+              type="recover"
+              payload={{ id: u.id, cache: true }}
+              label="Recovery с Cache"
+            />
+          </>
+        )}
         {u.flags.commission && (
           <button onClick={() => send('commission_buyout', { id: u.id })}>Выкупить · {u.rc}</button>
         )}
@@ -957,20 +971,24 @@ export function LogisticsView({ s, side, send }: Props) {
                 Любая доля Local создаёт Commission. Удалённо — один Core в Window, полностью за
                 Local.
               </p>
-              <button
-                disabled={!catalog}
-                onClick={() =>
-                  send('buy_unit', {
+              {cat ? (
+                <LogisticsAction
+                  s={s}
+                  side={side}
+                  send={send}
+                  type="buy_unit"
+                  payload={{
                     catalogId: catalog,
-                    name: name || cat!.datasheet,
+                    name: name || cat.datasheet,
                     location,
                     sector,
                     local,
-                  })
-                }
-              >
-                Купить ID
-              </button>
+                  }}
+                  label="Купить ID"
+                />
+              ) : (
+                <p className="muted">Выберите отряд, чтобы увидеть цену и доступный лимит.</p>
+              )}
             </div>
             <div>
               <h3>Stage Package</h3>

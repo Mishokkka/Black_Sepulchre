@@ -1156,6 +1156,53 @@ function applyAftermath(s: State, ctx: Context) {
   }
   s.history.push(structuredClone(b))
 }
+export function attackerRetreatOptions(s: State, b: Battle): SectorKey[] {
+  const queue: SectorKey[] = [b.origin],
+    seen = new Set<SectorKey>()
+  let nearest: SectorKey[] = []
+  while (queue.length && !nearest.length) {
+    const layer = queue.splice(0)
+    for (const at of layer) {
+      if (seen.has(at)) continue
+      seen.add(at)
+      if (at !== b.origin && s.sectors[at].owner === b.attacker) nearest.push(at)
+      else
+        for (const next of ADJACENCY[at])
+          if (!seen.has(next) && s.sectors[next].owner === b.attacker) queue.push(next)
+    }
+  }
+  return nearest
+}
+export function reportRetreatPlan(s: State, b: Battle, r: Report) {
+  const force: Partial<Record<Side, SectorKey[]>> = {}
+  let garrison: SectorKey[] | undefined
+  if (['WAR', 'PACT', 'encounter'].includes(b.type)) return { force, garrison }
+  const win = outcome({ ...s, battle: { ...b, report: r } }, r)
+  const capture = win === b.attacker && !b.raid && b.type !== 'assault'
+  if (!capture && s.sectors[b.origin].owner !== b.attacker)
+    force[b.attacker] = attackerRetreatOptions(s, b)
+  const at = b.forces?.[b.defender] === 'stf' ? s.players[b.defender].stf : s.players[b.defender].mf
+  const adjacent = () =>
+    ADJACENCY[b.sector as SectorKey].filter((k) => s.sectors[k].owner === b.defender)
+  if (
+    (capture || r.withdrawal.length === 2) &&
+    b.type !== 'assault' &&
+    (at === b.sector || !!b.report?.retreat[b.defender])
+  )
+    force[b.defender] = adjacent()
+  if (
+    capture &&
+    b.before.some(
+      (u) =>
+        u.side === b.defender &&
+        u.location === 'garrison' &&
+        u.sector === b.sector &&
+        !['lost', 'archived', 'sealed'].includes(u.status),
+    )
+  )
+    garrison = adjacent()
+  return { force, garrison }
+}
 function retreat(s: State, ctx: Context) {
   const b = s.battle!,
     r = b.report!,
@@ -1191,23 +1238,7 @@ function retreat(s: State, ctx: Context) {
   if (b.type === 'assault' || b.outcome !== b.attacker || b.raid) {
     if (s.sectors[b.origin].owner === b.attacker) move(b.attacker, b.origin)
     else {
-      const connected: SectorKey[] = [],
-        queue: SectorKey[] = [b.origin],
-        seen = new Set<SectorKey>()
-      let nearest: SectorKey[] = []
-      while (queue.length && !nearest.length) {
-        const layer = queue.splice(0)
-        for (const at of layer) {
-          if (seen.has(at)) continue
-          seen.add(at)
-          if (at !== b.origin && s.sectors[at].owner === b.attacker) nearest.push(at)
-          else
-            for (const next of ADJACENCY[at])
-              if (!seen.has(next) && s.sectors[next].owner === b.attacker) queue.push(next)
-        }
-      }
-      connected.push(...nearest)
-      const adjacent = connected
+      const adjacent = attackerRetreatOptions(s, b)
       if (adjacent.length) {
         const chosen = r.retreat[b.attacker]
         assert(chosen && adjacent.includes(chosen), 'Выберите доступный отход Attacker')

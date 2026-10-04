@@ -1,3 +1,4 @@
+import { describeCommand } from './history.ts'
 import { HONOURS } from './rules.generated.ts'
 import {
   SIDES,
@@ -235,7 +236,7 @@ export function command(state: State, c: Command, context: Context): State {
   else if (c.type.startsWith('table_') || c.type === 'echo_wounds') tableCommand(s, c, ctx)
   else logistics(s, c, ctx)
   s.version = state.version + 1
-  s.log.push({ version: s.version, actor: ctx.actor, command: c.type, summary: c.type, dice })
+  s.log.push(describeCommand(state, s, c, ctx.actor, dice))
   assertInvariants(s)
   return s
 }
