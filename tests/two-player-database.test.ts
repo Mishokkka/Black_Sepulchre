@@ -17,6 +17,7 @@ test('Real create/join entrypoints support two accounts, reject a third, preserv
       create table campaign_members(campaign_id uuid references campaigns, user_id uuid, side text not null
         check(side in ('necrons','deathwatch')), role text, display_name text, primary key(campaign_id,user_id));
       grant select on campaign_members to authenticated;
+      create unique index campaign_members_one_side_per_campaign on campaign_members(campaign_id,side);
       create table players(id uuid default gen_random_uuid(),campaign_id uuid,side text,user_id uuid,main_force_sector text);
       create table sectors(id uuid default gen_random_uuid(),campaign_id uuid,sector_key text,name text,sector_class text,owner_side text);
       create table units(id uuid default gen_random_uuid(),campaign_id uuid,side text,name text,datasheet text,
@@ -45,11 +46,19 @@ test('Real create/join entrypoints support two accounts, reject a third, preserv
     for (const file of [
       '20261003182938_rules_221_state_engine.sql',
       '20261004070247_audit_two_player_integrity.sql',
+      '20261004070942_deduplicate_campaign_side_index.sql',
     ])
       await db.exec(
         readFileSync(new URL('../supabase/migrations/' + file, import.meta.url), 'utf8'),
       )
     const first = '00000000-0000-4000-8000-000000000001'
+    const sideIndexes = await db.query<{ indexname: string }>(
+      "select indexname from pg_indexes where schemaname='public' and tablename='campaign_members' and indexdef like '%(campaign_id, side)%'",
+    )
+    assert.deepEqual(
+      sideIndexes.rows.map((r) => r.indexname),
+      ['campaign_members_one_side_per_campaign'],
+    )
     const second = '00000000-0000-4000-8000-000000000002'
     const third = '00000000-0000-4000-8000-000000000003'
     await db.query("select set_config('request.jwt.claim.sub',$1,false)", [first])
