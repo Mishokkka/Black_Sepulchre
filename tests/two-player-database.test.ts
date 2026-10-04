@@ -48,6 +48,7 @@ test('Real create/join entrypoints support two accounts, reject a third, preserv
       '20261004070247_audit_two_player_integrity.sql',
       '20261004070942_deduplicate_campaign_side_index.sql',
       '20261004175200_minimize_client_grants.sql',
+      '20261004180000_align_rules_version_default.sql',
     ])
       await db.exec(
         readFileSync(new URL('../supabase/migrations/' + file, import.meta.url), 'utf8'),
@@ -70,6 +71,11 @@ test('Real create/join entrypoints support two accounts, reject a third, preserv
     assert.equal(
       (await db.query<{ id: string }>('select id from campaigns where id=$1', [cid])).rows[0].id,
       cid,
+    )
+    assert.equal(
+      (await db.query<{ rules_version: string }>('select rules_version from campaigns where id=$1', [cid]))
+        .rows[0].rules_version,
+      '2.2.1',
     )
     await assert.rejects(
       db.query("update campaigns set status='finished' where id=$1", [cid]),
