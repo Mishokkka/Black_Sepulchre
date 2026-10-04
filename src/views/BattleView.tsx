@@ -12,6 +12,7 @@ import {
   cleanReport,
 } from '../../shared/report-form'
 import Markdown from 'react-markdown'
+import { MissionBrief } from './MissionBrief'
 import { EVENTS, MISSION_CARDS, CRISIS_CARDS } from '../../shared/rules.generated'
 import {
   SIDES,
@@ -162,13 +163,21 @@ export function BattleView({ s, side, send }: Props) {
           {b.options.length > 0 ? (
             <>
               {b.options.map((code, i) => (
-                <button
-                  key={`${code}:${i}`}
-                  disabled={b.missionChooser !== side}
-                  onClick={() => send('choose_mission', { code })}
-                >
-                  {MISSION_CARDS[code]?.title ?? code}
-                </button>
+                <div className="mission-option" key={`${code}:${i}`}>
+                  <button
+                    disabled={b.missionChooser !== side}
+                    onClick={() => send('choose_mission', { code })}
+                  >
+                    {MISSION_CARDS[code]?.title ?? code}
+                  </button>
+                  <details>
+                    <summary>Суть и задачи {code}</summary>
+                    <MissionBrief
+                      code={code}
+                      exact={MISSION_CARDS[code]?.body ?? CRISIS_CARDS[code] ?? crisisText(s)}
+                    />
+                  </details>
+                </div>
               ))}
               <p>Выбирает {labels[b.missionChooser]}.</p>
             </>
@@ -298,7 +307,10 @@ export function BattleView({ s, side, send }: Props) {
       {b.mission && (
         <details className="panel mission-card" open={s.phase === 'battle'}>
           <summary>Карточка миссии и напоминания</summary>
-          <Markdown>{card?.body ?? CRISIS_CARDS[b.type] ?? crisisText(s)}</Markdown>
+          <MissionBrief
+            code={b.mission ?? b.type}
+            exact={card?.body ?? CRISIS_CARDS[b.type] ?? crisisText(s)}
+          />
           {b.effects.length > 0 && (
             <>
               <h3>Эффекты этого боя</h3>
