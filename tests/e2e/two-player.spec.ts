@@ -48,7 +48,7 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
       const login = await api.auth.signInWithPassword({ email, password })
       if (login.error) throw login.error
       accounts.push({ id: user.data.user.id, email, password, api })
-      await pages[i].goto('/')
+      await pages[i].goto('/Black_Sepulchre/')
       await pages[i].getByLabel('Email', { exact: true }).fill(email)
       await pages[i].getByLabel('Пароль', { exact: true }).fill(password)
       await pages[i].getByRole('button', { name: 'Войти', exact: true }).click()
