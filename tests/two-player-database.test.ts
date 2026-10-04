@@ -47,6 +47,8 @@ test('Real create/join entrypoints support two accounts, reject a third, preserv
       '20261003182938_rules_221_state_engine.sql',
       '20261004070247_audit_two_player_integrity.sql',
       '20261004070942_deduplicate_campaign_side_index.sql',
+      '20261004175200_minimize_client_grants.sql',
+      '20261004180000_align_rules_version_default.sql',
     ])
       await db.exec(
         readFileSync(new URL('../supabase/migrations/' + file, import.meta.url), 'utf8'),
@@ -66,6 +68,20 @@ test('Real create/join entrypoints support two accounts, reject a third, preserv
     const cid = (
       await db.query<{ id: string }>("select create_campaign('Integration','necrons','One') id")
     ).rows[0].id
+    assert.equal(
+      (await db.query<{ id: string }>('select id from campaigns where id=$1', [cid])).rows[0].id,
+      cid,
+    )
+    assert.equal(
+      (await db.query<{ rules_version: string }>('select rules_version from campaigns where id=$1', [cid]))
+        .rows[0].rules_version,
+      '2.2.1',
+    )
+    await assert.rejects(
+      db.query("update campaigns set status='finished' where id=$1", [cid]),
+      /permission denied/,
+    )
+    await assert.rejects(db.query('select * from units'), /permission denied/)
     await db.exec('reset role')
     const invite = (
       await db.query<{ invite_code: string }>('select invite_code from campaigns where id=$1', [
@@ -125,6 +141,7 @@ test('Real create/join entrypoints support two accounts, reject a third, preserv
     )
     await assert.rejects(db.exec('update units set reference_cost=1'), /frozen/)
     await db.exec('set role anon')
+    await assert.rejects(db.query('select * from campaigns'), /permission denied/)
     await assert.rejects(
       db.query('select v221_join_campaign($1,$2)', [invite, 'Anonymous']),
       /permission denied/,
