@@ -67,13 +67,16 @@ function Ability({ p }: { p: DataProfile }) {
     </details>
   )
 }
-export function DatasheetView({ card }: { card?: DatasheetCard }) {
+export function DatasheetView({
+  card,
+  showEquipment = false,
+}: {
+  card?: DatasheetCard
+  showEquipment?: boolean
+}) {
   if (!card)
     return (
-      <small>
-        Профили ещё не добавлены. Выберите экспорт во вкладке «Каталог» и обновите этот вариант
-        каталога.
-      </small>
+      <small>Характеристики и бесплатное снаряжение смотрите в вашей армии в New Recruit.</small>
     )
   const seen = new Set<string>(),
     abilities = [
@@ -89,6 +92,9 @@ export function DatasheetView({ card }: { card?: DatasheetCard }) {
     )
   return (
     <div className="datasheet">
+      {!showEquipment && (
+        <p className="muted">Вооружение отряда определяется вашей армией в New Recruit.</p>
+      )}
       {card.models.map((g) => (
         <section className="model-group" key={g.id}>
           <h4>
@@ -100,10 +106,10 @@ export function DatasheetView({ card }: { card?: DatasheetCard }) {
           ) : (
             <p className="validation">Нет statline — нужно сопоставление</p>
           )}
-          <Gear gear={g.equipment} card={card} />
+          {showEquipment && <Gear gear={g.equipment} card={card} />}
         </section>
       ))}
-      <Gear gear={card.equipment} card={card} />
+      {showEquipment && <Gear gear={card.equipment} card={card} />}
       {abilities.length > 0 && (
         <details>
           <summary>Способности и правила ({abilities.length})</summary>

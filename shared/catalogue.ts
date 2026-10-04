@@ -45,7 +45,7 @@ export interface ReferenceLibrary {
   datasheets: ReferenceSheet[]
 }
 
-/** A reference supplies possible profiles. Equipment is selected explicitly in the editor. */
+/** A reference supplies profiles; free equipment is managed in external New Recruit. */
 export function referenceImport(d: ReferenceSheet): SourceImport {
   const profiles: Record<string, DataProfile> = {}
   d.modelProfiles.forEach(
@@ -135,9 +135,9 @@ export function referenceImport(d: ReferenceSheet): SourceImport {
         issues: [
           {
             code: 'reference_loadout',
-            blocking: true,
+            blocking: false,
             message:
-              'Выберите физическое вооружение для каждой группы моделей и проверьте ограничения wargear на странице источника.',
+              'Бесплатное вооружение выбирается в New Recruit; здесь нужны размер, цена и характеристики моделей.',
           },
         ],
       },

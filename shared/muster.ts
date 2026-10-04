@@ -2,6 +2,7 @@ import { HONOURS } from './rules.generated.ts'
 import { SIDES, type Battle, type Muster, type Side, type State } from './model.ts'
 import { sameDatasheet, datasheetName } from './datasheets.ts'
 import { validateCargo } from './transport.ts'
+import { optionalPackageCost } from './unit-choices.ts'
 import {
   assert,
   available,
@@ -271,9 +272,7 @@ export function validateMuster(
       i = ordered.findIndex((x) => x.id === v.id)
     costs[v.id] =
       (c.copyPrices[i] ?? c.rc) +
-      (c.packageCosts ?? [])
-        .filter((p) => p.detachments.some((id) => m.detachments.includes(id)))
-        .reduce((n, p) => n + p.cost, 0) +
+      optionalPackageCost(c, v.paidOptions ?? [], m.detachments) +
       (v.enhancement ? b.snapshot.enhancements.find((e) => e.id === v.enhancement)!.cost : 0) +
       surcharge(s, u, v, m.picks)
   }

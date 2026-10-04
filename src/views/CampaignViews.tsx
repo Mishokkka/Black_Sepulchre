@@ -1,6 +1,5 @@
 import { CatalogManager, STFManager } from './CampaignExtras'
 import { DatasheetView } from './DatasheetView'
-import { sameDatasheet } from '../../shared/datasheets'
 import { lazy, useState } from 'react'
 import { HONOURS, SCARS } from '../../shared/rules.generated'
 import {
@@ -17,6 +16,8 @@ import {
   supplied,
 } from '../../shared/rules'
 import { command, startingArmy } from '../../shared/engine'
+import { UnitChoice } from './UnitChoice'
+import { modelLabel, sizeKey, priceKey } from '../../shared/unit-choices'
 import { starterChoices } from '../../shared/starting-catalogue'
 import type { SectorKey, Side, State, Unit } from '../../shared/model'
 import { labels, phases, type Send } from '../App'
@@ -186,17 +187,11 @@ export function CampaignMap({ s, side }: { s: State; side: Side }) {
   )
 }
 export function SetupView({ s, side, send }: Props) {
-  const [catalog, setCatalog] = useState(''),
-    [search, setSearch] = useState('')
+  const [catalog, setCatalog] = useState('')
   const rows = s.units.filter(
     (u) => u.side === side && u.location === 'field' && u.status === 'active',
   )
   const choices = starterChoices(s, side)
-  const visible = choices.filter((c) =>
-    `${c.datasheet} ${c.size} ${c.card?.models.flatMap((g) => g.equipment.map((e) => e.name)).join(' ') ?? ''}`
-      .toLowerCase()
-      .includes(search.toLowerCase()),
-  )
   const selected = choices.find((c) => c.id === catalog)
   let armyProblem = '',
     effective = rows.reduce((n, u) => n + u.rc, 0)
@@ -250,24 +245,19 @@ export function SetupView({ s, side, send }: Props) {
             <div>
               <strong>{u.name}</strong>
               <small>
-                {entry(s, u).datasheet} · {entry(s, u).size} · {u.rc} RC
+                {entry(s, u).datasheet} · {modelLabel(entry(s, u).models)} · {u.rc} RC
               </small>
-              <Options
-                label={`Заменить вариант: ${u.name}`}
+              <UnitChoice
+                label={`Отряд: ${u.name}`}
+                fixedDatasheet={entry(s, u).datasheet}
+                side={side}
                 value={u.catalogId}
                 change={(id) => {
                   if (id) void send('setup_unit', { id: u.id, catalogId: id })
                 }}
-                items={s.snapshot.catalog
-                  .filter(
-                    (c) =>
-                      c.side === side &&
-                      sameDatasheet(c.datasheet, entry(s, u).datasheet) &&
-                      !c.epic &&
-                      !c.keywords.includes('TITANIC') &&
-                      c.rc <= 200,
-                  )
-                  .map((c) => ({ id: c.id, name: `${c.size} · ${c.rc} RC` }))}
+                catalog={s.snapshot.catalog.filter(
+                  (c) => !c.epic && !c.keywords.includes('TITANIC') && c.rc <= 200,
+                )}
               />
             </div>
             <button
@@ -287,31 +277,20 @@ export function SetupView({ s, side, send }: Props) {
           <p className="success">Стартовая армия подходит по правилам кампании.</p>
         )}
         <h3>Добавить другой отряд</h3>
-        <label>
-          Поиск юнита или оружия
-          <input
-            aria-label="Поиск юнита или оружия"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Например: Lychguard, Captain, plasma…"
-          />
-        </label>
-        <small>
-          {visible.length} вариантов для добавления. Большие отряды и Epic Heroes доступны позже во
-          вкладке «Каталог».
-        </small>
-        <Options
-          label="Добавить вариант из каталога"
-          value={visible.some((c) => c.id === catalog) ? catalog : ''}
+        <p className="muted">
+          Выберите тип отряда и размер. Бесплатное снаряжение собирается в New Recruit.
+        </p>
+        <UnitChoice
+          label="Добавить отряд"
+          side={side}
+          catalog={choices}
+          value={catalog}
           change={setCatalog}
-          items={visible.map((c) => ({
-            id: c.id,
-            name: `${c.datasheet} · ${c.size} · ${c.rc} RC`,
-          }))}
+          search
         />
         <button
           className="quiet"
-          disabled={!selected || !visible.some((c) => c.id === catalog)}
+          disabled={!selected}
           onClick={() =>
             send('setup_add', {
               catalogId: catalog,
@@ -323,7 +302,7 @@ export function SetupView({ s, side, send }: Props) {
         </button>
         {selected && (
           <details className="choice">
-            <summary>Состав и вооружение выбранного варианта</summary>
+            <summary>Характеристики отряда</summary>
             <DatasheetView card={selected.card} />
           </details>
         )}
@@ -599,7 +578,8 @@ function UnitService({ s, side, send, u }: Props & { u: Unit }) {
     [relic, setRelic] = useState(''),
     [scar, setScar] = useState(String(u.scars[0]?.id ?? '')),
     [recipient, setRecipient] = useState(''),
-    [refitKind, setRefitKind] = useState('size'),
+    [refitCatalog, setRefitCatalog] = useState(u.catalogId),
+    [successor, setSuccessor] = useState(''),
     [deed, setDeed] = useState('HOLD')
   const p = s.players[side],
     serviceAt = u.location === 'stf' ? p.stf : p.mf,
@@ -607,6 +587,29 @@ function UnitService({ s, side, send, u }: Props & { u: Unit }) {
     legal =
       s.phase === 'logistics' &&
       (s.activation?.logistics.includes(side) || s.battle?.logistics.includes(side))
+  const refit = s.snapshot.catalog.find((c) => c.id === refitCatalog)
+  const changed =
+    !!refit &&
+    (sizeKey(refit) !== sizeKey(entry(s, u)) || priceKey(refit) !== priceKey(entry(s, u)))
+  const refitPayload = {
+    id: u.id,
+    catalogId: refitCatalog,
+    kind: refit?.models !== entry(s, u).models ? 'size' : 'loadout',
+  }
+  let refitCost = 0,
+    refitProblem = ''
+  if (changed) {
+    try {
+      const next = command(
+        s,
+        { type: 'refit', payload: refitPayload },
+        { actor: side, dice: () => 1, id: () => 'preview' },
+      )
+      refitCost = p.supply - next.players[side].supply
+    } catch (e) {
+      refitProblem = (e as Error).message
+    }
+  }
   return (
     <fieldset disabled={!here || !legal}>
       <p className="muted">
@@ -752,19 +755,26 @@ function UnitService({ s, side, send, u }: Props & { u: Unit }) {
       {u.retiredCatalog && (
         <div className="notice">
           <p>Datasheet убран из каталога. ID и XP сохранены.</p>
-          <Options
+          <UnitChoice
             label="Successor той же роли"
-            value=""
-            change={(catalogId) => send('resolve_retired', { id: u.id, catalogId })}
-            items={s.snapshot.catalog
-              .filter(
-                (c) =>
-                  c.side === side &&
-                  c.character === u.retiredCatalog!.character &&
-                  c.garrison === u.retiredCatalog!.garrison,
-              )
-              .map((c) => ({ id: c.id, name: `${c.datasheet} · ${c.rc} RC` }))}
+            value={successor}
+            change={setSuccessor}
+            side={side}
+            search
+            catalog={s.snapshot.catalog.filter(
+              (c) =>
+                c.side === side &&
+                c.character === u.retiredCatalog!.character &&
+                c.garrison === u.retiredCatalog!.garrison,
+            )}
           />
+          <button
+            className="quiet"
+            disabled={!successor}
+            onClick={() => send('resolve_retired', { id: u.id, catalogId: successor })}
+          >
+            Выбрать Successor
+          </button>
           <button
             className="quiet"
             onClick={() => send('resolve_retired', { id: u.id, archive: true })}
@@ -775,31 +785,26 @@ function UnitService({ s, side, send, u }: Props & { u: Unit }) {
       )}
       <details>
         <summary>Размер, Refit и архивирование</summary>
-        <Options
-          label="Изменение состава"
-          value={refitKind}
-          change={setRefitKind}
-          items={[
-            { id: 'size', name: 'Изменить размер' },
-            { id: 'loadout', name: 'Refit loadout' },
-          ]}
+        <p className="muted">
+          Бесплатное вооружение меняйте в New Recruit. Здесь меняется размер или платная
+          комплектация.
+        </p>
+        <UnitChoice
+          label={`Refit: ${u.name}`}
+          fixedDatasheet={entry(s, u).datasheet}
+          side={side}
+          catalog={s.snapshot.catalog}
+          value={refitCatalog}
+          change={setRefitCatalog}
         />
-        <Options
-          label="Вариант того же datasheet"
-          value=""
-          change={(catalogId) => send('refit', { id: u.id, catalogId, kind: refitKind })}
-          items={s.snapshot.catalog
-            .filter(
-              (c) =>
-                c.side === side &&
-                sameDatasheet(c.datasheet, entry(s, u).datasheet) &&
-                c.id !== u.catalogId &&
-                (refitKind === 'size'
-                  ? c.models !== entry(s, u).models
-                  : c.models === entry(s, u).models),
-            )
-            .map((c) => ({ id: c.id, name: `${c.size} · ${c.rc} RC` }))}
-        />
+        <button
+          className="quiet"
+          disabled={!changed || !!refitProblem}
+          onClick={() => send('refit', refitPayload)}
+        >
+          Применить Refit{changed && !refitProblem ? ` · ${refitCost} Supply` : ''}
+        </button>
+        {changed && refitProblem && <p className="validation">{refitProblem}</p>}
         <Options
           label="Deed of the Stage до первого боя"
           value={deed}
@@ -881,13 +886,17 @@ export function LogisticsView({ s, side, send }: Props) {
           <div className="columns">
             <div>
               <h3>Новая запись</h3>
-              <Options
-                label="Каталог юнитов"
+              <p className="muted">
+                Бесплатное снаряжение выбирается в New Recruit. Здесь указываются отряд, размер и
+                платная комплектация.
+              </p>
+              <UnitChoice
+                label="Купить отряд"
+                side={side}
+                catalog={s.snapshot.catalog}
                 value={catalog}
                 change={setCatalog}
-                items={s.snapshot.catalog
-                  .filter((c) => c.side === side)
-                  .map((c) => ({ id: c.id, name: `${c.datasheet} · ${c.size} · ${c.rc} RC` }))}
+                search
               />
               <label>
                 Имя ID

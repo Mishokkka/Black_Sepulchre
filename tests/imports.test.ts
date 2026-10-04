@@ -26,7 +26,7 @@ const raw = (file: string) =>
 const nr = () => parseNewRecruit(raw('NecronTeamExample'), 'NecronTeamExample.json')
 const dw = () => parseNewRecruit(raw('DeathwatchTeamExample'), 'DeathwatchTeamExample.json')
 
-test('reference candidates require equipment choice; enrichment preserves existing catalogue ID and starter references', () => {
+test('reference candidates allow external equipment; enrichment preserves existing catalogue ID and starter references', () => {
   const reference = JSON.parse(
     readFileSync(new URL('../public/data/wahapedia.reference.json', import.meta.url), 'utf8'),
   ) as ReferenceLibrary
@@ -36,6 +36,8 @@ test('reference candidates require equipment choice; enrichment preserves existi
       c = draftCatalog(source, source.units[0], 'draft')
     assert.ok(Object.keys(c.card!.profiles).length > 0)
     assert.equal(c.card!.models.flatMap((g) => g.equipment).length, 0)
+    assert(!source.units[0].issues.some((i) => i.code === 'reference_loadout' && i.blocking))
+    if (d.name === 'Immortals') assert.doesNotThrow(() => validateCard(c.card!, c.models))
   }
   const source = dw(),
     u = source.units.find((v) => v.datasheet === 'Intercessor Squad')!,

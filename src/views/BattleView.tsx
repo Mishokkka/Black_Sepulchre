@@ -304,9 +304,10 @@ function MusterView({ s, side, send }: Props) {
   const edit = (id: string, value: Partial<Pick>) =>
     setPicks(picks.map((p) => (p.id === id ? { ...p, ...value } : p)))
   const m: Muster = { picks, rest, detachments, commander, dispositions }
-  let error = ''
+  let error = '',
+    costs: Record<string, number> = {}
   try {
-    validateMuster(s, side, m)
+    costs = validateMuster(s, side, m)
   } catch (e) {
     error = (e as Error).message
   }
@@ -355,6 +356,7 @@ function MusterView({ s, side, send }: Props) {
                               transport: null,
                               reserve: false,
                               enhancement: null,
+                              paidOptions: [],
                               honours: [...u.honours],
                               armoury: !!u.armoury,
                               relic: !!u.relic,
@@ -371,6 +373,7 @@ function MusterView({ s, side, send }: Props) {
                     />
                     <small>
                       Damage {u.damage} · XP {u.xp}
+                      {costs[u.id] !== undefined && ` · ${costs[u.id]} Effective`}
                     </small>
                     {!pick && (
                       <Check
@@ -466,6 +469,31 @@ function MusterView({ s, side, send }: Props) {
                             }))}
                           />
                         )}{' '}
+                        {(cat.packageCosts ?? [])
+                          .filter(
+                            (o) =>
+                              o.cost > 0 && o.detachments.some((id) => detachments.includes(id)),
+                          )
+                          .map((o) =>
+                            o.optional ? (
+                              <Check
+                                key={o.name}
+                                label={`${o.name} · +${o.cost} очков на бой`}
+                                value={(pick.paidOptions ?? []).includes(o.name)}
+                                change={(v) =>
+                                  edit(u.id, {
+                                    paidOptions: v
+                                      ? [...(pick.paidOptions ?? []), o.name]
+                                      : (pick.paidOptions ?? []).filter((n) => n !== o.name),
+                                  })
+                                }
+                              />
+                            ) : (
+                              <small key={o.name}>
+                                {o.name} · обязательные +{o.cost} очков в этом detachment
+                              </small>
+                            ),
+                          )}
                         {u.scars.length > 0 && (
                           <Options
                             label="Redemption Scar"
@@ -512,9 +540,23 @@ function MusterView({ s, side, send }: Props) {
               key={id}
               label={s.snapshot.detachments.find((d) => d.id === id)!.name}
               value={detachments.includes(id)}
-              change={(v) =>
-                setDetachments(v ? [...detachments, id] : detachments.filter((d) => d !== id))
-              }
+              change={(v) => {
+                const next = v ? [...detachments, id] : detachments.filter((d) => d !== id)
+                setDetachments(next)
+                setPicks(
+                  picks.map((pick) => ({
+                    ...pick,
+                    paidOptions: (pick.paidOptions ?? []).filter((name) =>
+                      entry(s, unit(s, pick.id), b.snapshot).packageCosts?.some(
+                        (o) =>
+                          o.optional &&
+                          o.name === name &&
+                          o.detachments.some((d) => next.includes(d)),
+                      ),
+                    ),
+                  })),
+                )
+              }}
             />
           ))}
         </div>
