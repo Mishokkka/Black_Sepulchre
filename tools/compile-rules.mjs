@@ -140,6 +140,44 @@ writeFileSync(
   new URL('shared/reference.generated.ts', root),
   `// Generated rulebook, loaded only by the searchable reference.\nexport const RULE_SECTIONS = ${JSON.stringify(sections)} as const\n`,
 )
+// Website explanations are separate from the authoritative rules and engine data.
+const guideText = readFileSync(
+  new URL('docs/Black_Sepulchre_v2.2.1_guide_RU.md', root),
+  'utf8',
+).replace(/\r\n/g, '\n')
+const guides = {}
+for (const section of guideText.split(/^# /m).filter(Boolean)) {
+  const heading = section.split('\n')[0].trim()
+  const match = heading.match(/^(overview|core|reference|crisis|mission):(.+?) \| (.+)$/)
+  if (!match) throw Error(`Invalid website guide heading: ${heading}`)
+  const [, book, target, title] = match
+  const body = section.slice(section.indexOf('\n') + 1).trim()
+  if (!body) throw Error(`Empty website guide: ${heading}`)
+  for (const name of book === 'mission' ? target.split(',') : [target]) {
+    const key = `${book}:${name}`
+    if (guides[key]) throw Error(`Duplicate website guide: ${key}`)
+    guides[key] = { title, body }
+  }
+}
+for (const section of sections.filter((s) => s.book !== 'missions')) {
+  const key = `${section.book}:${section.title}`
+  if (!guides[key]) throw Error(`Missing website explanation: ${key}`)
+}
+for (const code of Object.keys(missions)) {
+  if (!guides[`mission:${code}`]) throw Error(`Missing mission explanation: ${code}`)
+}
+guides['mission:WAR'] = guides['crisis:Финал WAR · Один исходный шаблон']
+guides['mission:PACT'] = {
+  title: guides['crisis:Финал PACT · Две подписи'].title,
+  body: `${guides['crisis:Финал PACT · Две подписи'].body}\n\n### Игра с Echo\n\n${guides['crisis:Финал PACT · Бой с проекциями'].body}`,
+}
+mkdirSync(new URL('src/content/', root), { recursive: true })
+const encounterBody = texts.crisis.match(/^\*\*Forced Encounter:\*\* .+$/m)?.[0]
+if (!encounterBody) throw Error('Missing authoritative Forced Encounter rules')
+writeFileSync(
+  new URL('src/content/rules-guide.generated.ts', root),
+  `// Website explanations only; generated from docs/Black_Sepulchre_v2.2.1_guide_RU.md.\nexport const RULE_GUIDES: Record<string, {title:string;body:string}> = ${JSON.stringify(guides)}\nexport const EXTRA_MISSION_RULES = ${JSON.stringify({ encounter: { title: 'Forced Encounter · Вынужденный контакт', body: encounterBody } })} as const\n`,
+)
 if (
   Object.keys(missions).length !== 33 ||
   honours.length !== 30 ||
