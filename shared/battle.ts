@@ -103,7 +103,11 @@ export function declareBattle(
     beforeSupply: { deathwatch: s.players.deathwatch.supply, necrons: s.players.necrons.supply },
     effects: structuredClone(
       s.effects.filter(
-        (e) => e.scope === 'battle' || e.scope === 'side_battle' || e.code === 'breach_plan',
+        (e) =>
+          e.scope === 'battle' ||
+          e.scope === 'side_battle' ||
+          e.code === '64' ||
+          e.code === 'breach_plan',
       ),
     ),
     logistics: [],

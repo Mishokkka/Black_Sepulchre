@@ -57,7 +57,7 @@ export function str(value: unknown, max = 120): string {
   return value
 }
 export function key(value: unknown): SectorKey {
-  assert(typeof value === 'string' && value in ADJACENCY, 'Неизвестный сектор')
+  assert(typeof value === 'string' && Object.hasOwn(ADJACENCY, value), 'Неизвестный сектор')
   return value as SectorKey
 }
 export function distance(from: SectorKey, to: SectorKey): number {
@@ -270,6 +270,6 @@ export function tier(s: State, sector: SectorKey) {
     pool: down5((al * Math.max(0, pool - (bad ? 10 : 0))) / 100),
     firstSlot: (m.home || a.fortified ? 2 : 3) + (bad ? 1 : 0),
     breaches: m.home ? 3 : a.fortified ? 2 : m.node ? 1 : 0,
-    defAsset: (m.home || a.fortified) && !a.sabotaged && !(sector === 'E' && a.exhausted > 0),
+    defAsset: a.fortified && !a.sabotaged && !(sector === 'E' && a.exhausted > 0),
   }
 }

@@ -30,6 +30,9 @@ export function capture(s: State, sector: SectorKey, side: Context['actor'], rea
   const a = s.sectors[sector],
     previous = a.owner
   a.owner = side
+  s.effects = s.effects.filter(
+    (e) => !(e.code === '64' && e.data.origin === sector && e.side !== side),
+  )
   a.contested = false
   if (a.fortified) {
     a.fortified = false
@@ -129,12 +132,6 @@ export function strategic(s: State, c: Command, ctx: Context) {
       )
       s.effects = s.effects.filter((v) => v !== e)
     } else assert(false, 'Неизвестный маршрут')
-    if (
-      ['deep', 'hidden', 'airlift', 'glass'].includes(method) &&
-      !friendly &&
-      s.effects.some((e) => e.code === '42')
-    )
-      cost++
     if (SECTORS[target].home && !friendly) {
       assert(
         act.force === 'mf' &&
@@ -217,6 +214,11 @@ export function strategic(s: State, c: Command, ctx: Context) {
   const action = String(c.payload.action),
     own = s.sectors[from].owner === side
   if (s.effects.some((e) => e.code === '23' && e.side === side)) {
+    // Validate the declared action before spending the one-off random check.
+    // A failed validation must never expose a roll that can be retried for free.
+    const probe = structuredClone(s)
+    probe.effects = probe.effects.filter((e) => !(e.code === '23' && e.side === side))
+    strategic(probe, c, { ...ctx, dice: () => 1, id: () => 'validation' })
     s.effects = s.effects.filter((e) => !(e.code === '23' && e.side === side))
     act.actions--
     if (ctx.dice(6) < 4) return
@@ -274,6 +276,7 @@ export function strategic(s: State, c: Command, ctx: Context) {
       act.mp++
       break
     case 'sabotage': {
+      assert(act.force === 'mf', 'Sabotage требует Main Force')
       const target = key(c.payload.target)
       assert(
         ADJACENCY[from].includes(target) && s.sectors[target].owner === other(side),
@@ -291,6 +294,7 @@ export function strategic(s: State, c: Command, ctx: Context) {
       break
     }
     case 'siege_recon': {
+      assert(act.force === 'mf', 'Siege Recon требует Main Force')
       const target = home(other(side))
       assert(
         ADJACENCY[from].includes(target) && supplied(s, side, from) && !p.flags.siegeWindow,
@@ -302,6 +306,7 @@ export function strategic(s: State, c: Command, ctx: Context) {
       break
     }
     case 'investigate':
+      assert(act.force === 'mf', 'Investigate требует Main Force')
       assert(
         s.choir >= 4 &&
           ['G', 'D', 'E', 'F', 'H'].includes(from) &&
@@ -335,6 +340,7 @@ export function strategic(s: State, c: Command, ctx: Context) {
       break
     case 'reorganise': {
       assert(own, 'Reorganise в своём секторе')
+      assert(p.mf === from, 'Reorganise требует присутствия Main Force')
       const u = unit(s, c.payload.id, side)
       assert(
         (u.location === 'field' && p.mf === from) ||

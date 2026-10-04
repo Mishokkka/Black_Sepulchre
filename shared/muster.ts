@@ -65,7 +65,10 @@ export function validateMuster(
         'ID отсутствует в выбранной Force',
       )
       assert(
-        !(b.type === 'garrison' && side === b.defender),
+        !(
+          side === b.defender &&
+          (b.type === 'garrison' || (b.type === 'assault' && present(s, u) !== b.sector))
+        ),
         'Defender Field Force не находится в секторе',
       )
     } else {
@@ -312,7 +315,9 @@ export function validateMuster(
   assert(commander, 'Нужен Warlord / Garrison Commander')
   assert(
     entry(s, unit(s, commander.id), b.snapshot).character ||
-      (b.type === 'garrison' && side === b.defender && commander.role === 'initial'),
+      ((b.type === 'garrison' || (b.type === 'assault' && !b.defenderForces?.length)) &&
+        side === b.defender &&
+        commander.role === 'initial'),
     'Нелегальный Warlord',
   )
   for (const d of dp)
@@ -327,7 +332,10 @@ export function validateMuster(
     assert(
       available(s, u) &&
         ((u.location === (b.forces?.[side] === 'stf' ? 'stf' : 'field') &&
-          !(b.type === 'garrison' && side === b.defender)) ||
+          !(
+            side === b.defender &&
+            (b.type === 'garrison' || (b.type === 'assault' && present(s, u) !== b.sector))
+          )) ||
           (u.location === 'garrison' && u.sector === b.sector && garrisonLegal(s, u, u.sector!))),
       'Нелегальный RESTING',
     )

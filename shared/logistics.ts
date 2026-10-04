@@ -31,13 +31,13 @@ export function inLogistics(s: State, side: Context['actor']) {
     'Сейчас не ваша Logistics',
   )
 }
+export function logisticsForce(s: State, side: Context['actor']) {
+  return (s.activation?.side === side ? s.activation.force : s.battle?.forces?.[side]) ?? 'mf'
+}
 export function logistics(s: State, c: Command, ctx: Context) {
   const side = ctx.actor,
     p = s.players[side],
-    from =
-      (s.activation?.side === side ? s.activation.force : s.battle?.forces?.[side]) === 'stf'
-        ? p.stf!
-        : p.mf,
+    from = logisticsForce(s, side) === 'stf' ? p.stf! : p.mf,
     act = s.activation,
     al = STAGES[s.stage].al
   inLogistics(s, side)
@@ -51,13 +51,22 @@ export function logistics(s: State, c: Command, ctx: Context) {
         'transfer_relic',
         'transfer_enhancement',
       ].includes(c.type),
-      at = mainOnly ? p.mf : u.location === 'stf' ? p.stf! : u.location === 'field' ? p.mf : from
+      at = from
+    assert(
+      u.location === 'garrison'
+        ? at === p.mf
+        : u.location === (logisticsForce(s, side) === 'stf' ? 'stf' : 'field'),
+      'Обслуживание только выбранной Force; гарнизон требует Main Force',
+    )
     assert(
       present(s, u) === at && s.sectors[at].owner === side,
       'ID должен быть при своей Force в своём секторе',
     )
     if (mainOnly)
-      assert(u.location !== 'stf', 'Armoury / Relics только Main Force или местному гарнизону')
+      assert(
+        logisticsForce(s, side) === 'mf',
+        'Armoury / Relics только Main Force или местному гарнизону',
+      )
     if (needSupply) assert(supplied(s, side, at), 'Требуется Supplied')
   }
   switch (c.type) {
@@ -275,6 +284,7 @@ export function logistics(s: State, c: Command, ctx: Context) {
       local(u)
       const cat = entry(s, u),
         h = HONOURS.find((h) => h.id === c.payload.honour)
+      assert(!u.retiredCatalog, 'Сначала выберите Successor исчезнувшего datasheet')
       assert(
         h &&
           !cat.epic &&
@@ -283,6 +293,18 @@ export function logistics(s: State, c: Command, ctx: Context) {
           (!h.character || cat.character),
         'Honour неприменимо',
       )
+      const pending = String(u.flags.pendingHonours ?? '')
+        .split(',')
+        .filter(Boolean)
+      const replacement = u.honours.find(
+        (id) =>
+          pending.includes(id) &&
+          (HONOURS.find((v) => v.id === id)?.tier === 'Signature') === (h.tier === 'Signature'),
+      )
+      if (replacement) {
+        u.honours = u.honours.filter((id) => id !== replacement)
+        u.flags.pendingHonours = pending.filter((id) => id !== replacement).join(',')
+      }
       if (h.tier === 'Signature')
         assert(
           u.xp >= 18 &&
@@ -315,7 +337,10 @@ export function logistics(s: State, c: Command, ctx: Context) {
         u.armoury = item
       } else {
         assert(
-          a.consumable && s.sectors[from].owner === side && supplied(s, side, from),
+          a.consumable &&
+            logisticsForce(s, side) === 'mf' &&
+            s.sectors[from].owner === side &&
+            supplied(s, side, from),
           'В inventory только Consumables при MF Supplied',
         )
         spend(s, side, a.cost)
@@ -384,6 +409,10 @@ export function logistics(s: State, c: Command, ctx: Context) {
         'Размер меняется через изменение размера; вооружение того же размера — через Refit loadout',
       )
       let cost = diff
+      assert(
+        !(diff > 0 && u.location === 'garrison' && act?.side === side && act.forcedMarch),
+        'Forced March запрещает гарнизонные покупки и расширения',
+      )
       if (
         kind === 'size' &&
         u.location === 'garrison' &&
@@ -397,22 +426,24 @@ export function logistics(s: State, c: Command, ctx: Context) {
         cost -= Math.min(25, down5(diff * 0.1))
         p.flags.foundryActivation = s.activationCount
       }
-      if (diff > 0 && u.location === 'garrison' && u.sector && s.sectors[u.sector].disrupted) {
-        const k = `disruptedBuy:${u.sector}:${s.activationCount}`,
+      if (diff > 0 && s.sectors[present(s, u)].disrupted) {
+        const k = `disruptedBuy:${present(s, u)}:${s.activationCount}`,
           used = Number(p.flags[k] ?? 0)
         assert(used + diff <= al * 0.25, 'Disrupted: новые покупки/расширения ≤25% AL')
         p.flags[k] = used + diff
       }
       if (kind === 'size') {
-        assert(u.flags.sizeStage !== s.stage, 'Размер уже менялся на Stage')
-        u.flags.sizeStage = s.stage
+        if (next.models > old.models) {
+          assert(u.flags.sizeStage !== s.stage, 'Размер уже увеличивался на Stage')
+          u.flags.sizeStage = s.stage
+        }
         spend(s, side, cost)
       } else {
         assert(kind === 'loadout', 'Неверный Refit')
         spend(s, side, (u.flags.loadoutStage === s.stage ? 5 : 0) + diff)
         u.flags.loadoutStage = s.stage
       }
-      if (u.location === 'field')
+      if (u.location === 'field' && diff > 0)
         assert(
           s.units
             .filter((v) => v.side === side && v.location === 'field' && v.status === 'active')
@@ -424,7 +455,7 @@ export function logistics(s: State, c: Command, ctx: Context) {
         )
       u.catalogId = next.id
       u.rc = next.rc
-      if (u.location === 'stf')
+      if (u.location === 'stf' && diff > 0)
         assert(
           s.units
             .filter(

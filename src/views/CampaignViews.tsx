@@ -19,6 +19,7 @@ import { command, startingArmy } from '../../shared/engine'
 import { UnitChoice } from './UnitChoice'
 import { modelLabel, sizeKey, priceKey } from '../../shared/unit-choices'
 import { starterChoices } from '../../shared/starting-catalogue'
+import { logisticsForce } from '../../shared/logistics'
 import type { SectorKey, Side, State, Unit } from '../../shared/model'
 import { labels, phases, type Send } from '../App'
 export interface Props {
@@ -330,7 +331,7 @@ export function StrategyView({ s, side, send }: Props) {
         return (e as Error).message
       }
     }
-  const moveError = simulate(s.sectors[target].owner === side ? 'move' : 'attack', {
+  const moveError = simulate(s.sectors[target]?.owner === side ? 'move' : 'attack', {
       target,
       method,
       raid,
@@ -340,7 +341,11 @@ export function StrategyView({ s, side, send }: Props) {
       target,
       id,
       location,
-      condition: s.sectors[s.players[side].mf].sabotaged ? 'sabotaged' : 'exhausted',
+      condition: s.sectors[
+        s.activation?.force === 'stf' ? s.players[side].stf! : s.players[side].mf
+      ].sabotaged
+        ? 'sabotaged'
+        : 'exhausted',
       automatic: false,
       package: packageDraft,
     },
@@ -416,10 +421,10 @@ export function StrategyView({ s, side, send }: Props) {
             <button
               disabled={!ours || !!moveError}
               onClick={() =>
-                send(s.sectors[target].owner === side ? 'move' : 'attack', { target, method, raid })
+                send(s.sectors[target]?.owner === side ? 'move' : 'attack', { target, method, raid })
               }
             >
-              {s.sectors[target].owner === side ? 'Переместиться' : 'Объявить контакт'}
+              {s.sectors[target]?.owner === side ? 'Переместиться' : 'Объявить контакт'}
             </button>
           </div>
           <div>
@@ -546,6 +551,11 @@ export function RosterView({ s, side, send }: Props) {
               <p key={id}>
                 <strong>
                   {h.name} · {h.tier} {h.formation ? '· формация' : ''}
+                  {String(u.flags.pendingHonours ?? '')
+                    .split(',')
+                    .includes(id)
+                    ? ' · pending: выберите замену в Logistics'
+                    : ''}
                 </strong>{' '}
                 — {h.effect}
               </p>
@@ -582,8 +592,15 @@ function UnitService({ s, side, send, u }: Props & { u: Unit }) {
     [successor, setSuccessor] = useState(''),
     [deed, setDeed] = useState('HOLD')
   const p = s.players[side],
-    serviceAt = u.location === 'stf' ? p.stf : p.mf,
-    here = !!serviceAt && present(s, u) === serviceAt && s.sectors[serviceAt].owner === side,
+    selected = logisticsForce(s, side),
+    serviceAt = selected === 'stf' ? p.stf : p.mf,
+    here =
+      !!serviceAt &&
+      present(s, u) === serviceAt &&
+      s.sectors[serviceAt].owner === side &&
+      (u.location === 'garrison'
+        ? serviceAt === p.mf
+        : u.location === (selected === 'stf' ? 'stf' : 'field')),
     legal =
       s.phase === 'logistics' &&
       (s.activation?.logistics.includes(side) || s.battle?.logistics.includes(side))
@@ -864,8 +881,10 @@ function UnitService({ s, side, send, u }: Props & { u: Unit }) {
 export function LogisticsView({ s, side, send }: Props) {
   const [catalog, setCatalog] = useState(''),
     [name, setName] = useState(''),
-    [sector, setSector] = useState(s.players[side].mf),
-    [location, setLocation] = useState('field'),
+    [sector, setSector] = useState(
+      logisticsForce(s, side) === 'stf' ? s.players[side].stf! : s.players[side].mf,
+    ),
+    [location, setLocation] = useState(logisticsForce(s, side) === 'stf' ? 'stf' : 'field'),
     [local, setLocal] = useState(0),
     [drill, setDrill] = useState<string[]>([])
   const ours =
@@ -928,7 +947,7 @@ export function LogisticsView({ s, side, send }: Props) {
                 <input
                   type="number"
                   min="0"
-                  max={s.sectors[sector].local}
+                  max={s.sectors[sector]?.local ?? 0}
                   step="5"
                   value={local}
                   onChange={(e) => setLocal(Number(e.target.value))}
