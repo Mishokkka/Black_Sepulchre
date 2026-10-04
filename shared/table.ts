@@ -8,7 +8,7 @@ import {
   type State,
   type TableState,
 } from './model.ts'
-import { assert, entry, integer, STAGES, unit } from './rules.ts'
+import { ARMOURY, assert, entry, integer, STAGES, unit } from './rules.ts'
 export function createTable(s: State, mission: string, ctx: Context): TableState {
   const stage = STAGES[s.stage],
     l = ['WAR', 'PACT'].includes(mission) ? 60 : stage.l,
@@ -429,6 +429,12 @@ export function tableCommand(s: State, c: Command, ctx: Context) {
         id = String(p.item)
       assert(pick, 'Нет committed actor')
       const u = unit(s, pick.id)
+      if (pick.armoury && u.armoury === id)
+        assert(
+          !u.scars.some((v) => side === 'deathwatch' && v.id === 4) &&
+            !b.effects.some((e) => e.code === '41' && e.side === side && e.data.unit === u.id),
+          'Armoury заблокировано на этот бой',
+        )
       assert(
         pick.honours.includes(id) ||
           (pick.armoury && u.armoury === id) ||
@@ -436,6 +442,15 @@ export function tableCommand(s: State, c: Command, ctx: Context) {
         'Улучшение не активно',
       )
       assert(once(t, `use:${side}:${pick.id}:${id}`), 'Использование уже потрачено')
+      if (pick.armoury && u.armoury === id && u.flags.damagedArmoury && !ARMOURY[id].consumable) {
+        const die = ctx.dice(6)
+        t.records[`damagedArmoury:${u.id}`] = die
+        u.flags.damagedArmoury = false
+        if (die === 1) u.armoury = null
+        t.notes.push(
+          `${u.name}: Damaged Relic D6 = ${die}; ${die === 1 ? 'предмет исчез после использования' : 'предмет сохранился'}.`,
+        )
+      }
       return
     }
     case 'table_hazard_ack':
@@ -617,7 +632,9 @@ function startAction(s: State, p: Record<string, unknown>, ctx: Context) {
   )
   if (['HACK', 'CONTROL', 'SEAL CONDUIT', 'LOCK ANCHOR'].includes(kind))
     assert(o.tag !== side, 'Own-tag Action закрыт')
-  if (['CLAIM', 'OVERRIDE ENGINE', 'SEAL CONDUIT', 'LOCK ANCHOR', 'COMMUNE'].includes(kind))
+  if (kind === 'HACK' && ['A2', 'F3'].includes(code))
+    assert(!o.data[`hack:${side}`], 'Этот узел уже взломан вашей стороной')
+  if (['CLAIM', 'OVERRIDE ENGINE', 'SEAL CONDUIT', 'LOCK ANCHOR'].includes(kind))
     assert(o.control === side, 'Нужен физический контроль при старте')
   if (kind === 'CLAIM')
     assert(t.round >= 3 && mainObjects(t).filter((o) => o.disabled).length >= 2, 'CLAIM ещё закрыт')
@@ -1015,7 +1032,7 @@ function completeAction(s: State, p: Record<string, unknown>, ctx: Context) {
   assert(a && o && a.side === side && a.pending, 'Action закрыт')
   assert(a.round === t.round, 'Action истёк')
   assert(
-    t.step === 'end_turn' || (a.kind === 'COMMUNE' && t.step === 'end_round'),
+    a.kind === 'COMMUNE' ? t.step === 'end_round' : t.step === 'end_turn' && t.turn === side,
     'Ещё не completion timing',
   )
   a.pending = false
@@ -1075,8 +1092,8 @@ function completeAction(s: State, p: Record<string, unknown>, ctx: Context) {
   if (
     unit(s, a.actor).relic === 'key' &&
     relicPick.relic &&
-    !['CLAIM', 'OVERRIDE ENGINE', 'PRIME ENGINE'].includes(a.kind) &&
-    once(t, `relicKey:${a.actor}`)
+    code !== 'PACT' &&
+    !['CLAIM', 'OVERRIDE ENGINE', 'PRIME ENGINE'].includes(a.kind)
   )
     addVP(t, side, 1)
   if (['BREACH', 'OVERLOAD', 'DEMOLISH', 'DISABLE', 'SHUTDOWN', 'DESTROY'].includes(a.kind)) {

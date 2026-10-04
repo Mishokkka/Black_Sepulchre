@@ -13,7 +13,7 @@ test('source library: service-only RPCs, side isolation, immutable replay and qu
     grant usage on schema public to service_role,anon,authenticated;`)
   await db.exec(
     readFileSync(
-      new URL('../supabase/migrations/20261003204258_new_recruit_library.sql', import.meta.url),
+      new URL('../supabase/migrations/20261003212557_new_recruit_library.sql', import.meta.url),
       'utf8',
     ),
   )

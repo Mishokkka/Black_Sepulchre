@@ -2,6 +2,7 @@ import { HONOURS } from './rules.generated.ts'
 import { SIDES, type Command, type Context, type Snapshot, type State } from './model.ts'
 import { assert, credit, entry, present, spend, str, supplied } from './rules.ts'
 import { loadoutSignature, sameDatasheet } from './datasheets.ts'
+import { inLogistics, logisticsForce } from './logistics.ts'
 
 export const SITE_RULES_SOURCE =
   'Правила и цены сайта Black Sepulchre · 2.2.1 · приняты для дружеской кампании'
@@ -27,7 +28,8 @@ export function snapshotCommand(
   validate: (v: Snapshot) => void,
 ) {
   assert(
-    !s.battle && ['strategy', 'logistics', 'setup'].includes(s.phase),
+    c.type === 'resolve_retired' ||
+      (!s.battle && ['strategy', 'logistics', 'setup'].includes(s.phase)),
     'Каталог меняется между боями, до объявления атаки',
   )
   if (['save_catalog', 'edit_snapshot', 'propose_snapshot', 'approve_snapshot'].includes(c.type)) {
@@ -92,14 +94,12 @@ export function snapshotCommand(
           s.snapshot.enhancements.some((e) => e.id === id),
         ),
       )
-      p.starter = s.units
-        .filter((u) => u.side === side && u.location === 'field' && u.status === 'active')
-        .map((u) => u.catalogId)
     }
     return
   }
   if (c.type === 'resolve_retired') {
-    assert(s.phase === 'logistics', 'Successor выбирается в Logistics')
+    inLogistics(s, ctx.actor)
+    assert(logisticsForce(s, ctx.actor) === 'mf', 'Successor при Main Force')
     const u = s.units.find(
       (u) =>
         u.id === c.payload.id && u.side === ctx.actor && u.retiredCatalog && u.status === 'active',
@@ -127,6 +127,7 @@ export function snapshotCommand(
       'Successor должен сохранять роль',
     )
     spend(s, ctx.actor, Math.max(0, next.rc - u.rc))
+    p.starter = p.starter.map((id) => (id === u.catalogId ? next.id : id))
     u.catalogId = next.id
     u.rc = next.rc
     delete u.retiredCatalog
@@ -136,9 +137,6 @@ export function snapshotCommand(
         return (h?.character && !next.character) || next.epic
       })
       .join(',')
-    p.starter = s.units
-      .filter((u) => u.side === ctx.actor && u.location === 'field' && u.status === 'active')
-      .map((u) => u.catalogId)
     return
   }
   if (c.type === 'cancel_snapshot') {

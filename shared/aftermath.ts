@@ -139,7 +139,11 @@ function validateReport(s: State, r: Report) {
       assert(u.entered === arrived, 'Участие резервов должно совпадать с прибытием')
       if (committed.role === 'pool') assert(!u.destroyed || u.entered, 'Не вошедший Pool не погиб')
       else if (!arrived) assert(u.destroyed, 'Initial Reserves не вошли до конца R3 и уничтожены')
-    }
+    } else assert(u.entered, 'Initial deployment участвует в бою')
+    assert(
+      !u.withdrawn || (u.entered && !u.destroyed && r.withdrawal.includes(unit(s, u.id).side)),
+      'Эвакуирован только участвовавший и не уничтоженный ID уходящей стороны',
+    )
     if (committed.transport) {
       const parent = r.units.find((v) => v.id === committed.transport)!
       assert(u.entered === parent.entered, 'Груз участвует, если вошёл его транспорт')
@@ -196,8 +200,27 @@ function validateReport(s: State, r: Report) {
     }
   }
   for (const v of Object.values(r.retreat))
-    assert(v === undefined || v in SECTORS, 'Неизвестный отход')
-  if (r.garrisonRetreat) assert(r.garrisonRetreat in SECTORS, 'Неизвестный гарнизонный отход')
+    assert(v === undefined || Object.hasOwn(SECTORS, v), 'Неизвестный отход')
+  if (r.garrisonRetreat)
+    assert(Object.hasOwn(SECTORS, r.garrisonRetreat), 'Неизвестный гарнизонный отход')
+  if (r.facts.stores_id) {
+    const pick = picks.find((p) => p.id === r.facts.stores_id)
+    assert(
+      pick &&
+        pick.role !== 'field' &&
+        unit(s, pick.id).side === b.defender &&
+        b.assets[b.defender]?.defensive.includes('stores') &&
+        r.units.some((u) => u.id === pick.id && u.entered && u.destroyed),
+      'Hardened Stores требует участвовавший уничтоженный гарнизонный ID',
+    )
+  }
+  // Reject missing/illegal destinations before either player locks the result.
+  const test = structuredClone(s)
+  test.battle!.report = r
+  test.battle!.outcome = outcome(test, r)
+  if (test.battle!.outcome === b.attacker && !b.raid && b.sector !== 'X' && b.type !== 'assault')
+    test.sectors[b.sector].owner = b.attacker
+  retreat(test, { actor: b.attacker, dice: () => 1, id: () => '' })
 }
 export function aftermathCommand(s: State, c: Command, ctx: Context) {
   const side = ctx.actor
@@ -372,6 +395,8 @@ export function aftermathCommand(s: State, c: Command, ctx: Context) {
       assert(
         s.phase === 'aftermath' &&
           b.event &&
+          b.eventPass.length < 2 &&
+          !b.eventOptions.length &&
           !b.eventRerolled &&
           side === (b.eventPass.length ? other(b.eventChooser) : b.eventChooser),
         'Не ваша очередь D66 reroll',
@@ -454,8 +479,10 @@ export function aftermathCommand(s: State, c: Command, ctx: Context) {
       b.confirm.push(side)
       if (b.confirm.length === 2) {
         const ready = s.pendingAftermath,
-          base = s.resultBase
+          base = s.resultBase,
+          log = s.log
         Object.assign(s, ready)
+        s.log = log
         s.pendingAftermath = null
         s.resultBase = null
         if (base) {
@@ -599,13 +626,6 @@ function buildChoices(original: State, ctx: Context) {
     const sectors = Object.values(s.sectors)
       .filter((a) => a.owner === side && !SECTORS[a.key].home && supplied(s, side, a.key))
       .map((a) => a.key)
-    if (
-      b.outcome === b.attacker &&
-      !b.raid &&
-      !SECTORS[b.sector as SectorKey]?.home &&
-      b.sector !== 'X'
-    )
-      sectors.push(b.sector)
     if (sectors.length)
       add('deposit', side, '25 Local Supply', ['deposit'], [], [...new Set(sectors)])
     if (b.outcome === side && side === b.defender) {
@@ -1406,8 +1426,9 @@ function applyEvent(s: State, ctx: Context) {
   }
   if (e === '65') choir(s, 1)
   if (e === '66') {
+    choir(s, 2)
     const next = s.choir < 2 ? 2 : s.choir < 4 ? 4 : s.choir < 6 ? 6 : 8
-    choir(s, 2, next)
+    choir(s, 0, next)
     for (const side of SIDES) intel(s, side, 1)
   }
 }

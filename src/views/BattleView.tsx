@@ -44,6 +44,7 @@ const ASSET_LABELS: Record<string, string> = {
   extraction: 'Extraction Beacon',
 }
 export function BattleView({ s, side, send }: Props) {
+  const [editingResult, setEditingResult] = useState(false)
   const b = s.battle
   if (s.phase === 'finale_mode')
     return (
@@ -228,6 +229,9 @@ export function BattleView({ s, side, send }: Props) {
             <p key={r.id}>
               {unit(s, r.id).name}: {r.entered ? 'участвовал' : 'не вошёл'}
               {r.destroyed ? ' · погиб' : ''}
+              {r.withdrawn ? ' · эвакуирован' : ''}
+              {r.usedMedicae ? ' · Medicae' : ''}
+              {r.casualtySources.length ? ` · причина потерь: ${r.casualtySources.join(', ')}` : ''}
               {r.deed ? ` · ${r.deed}` : ''}
               {r.distinguished ? ' · Distinguished' : ''}
             </p>
@@ -235,6 +239,48 @@ export function BattleView({ s, side, send }: Props) {
           <button disabled={b.confirm.includes(side)} onClick={() => send('confirm_result')}>
             Подтвердить результат и потери
           </button>
+          <button className="quiet" onClick={() => setEditingResult(!editingResult)}>
+            {editingResult ? 'Закрыть исправление' : 'Исправить отчёт'}
+          </button>
+          <p className="muted">Новая отправка снимает прежнее подтверждение второго игрока.</p>
+          <details>
+            <summary>Условия победы, спасение и направления отхода</summary>
+            {SIDES.map((who) => (
+              <p key={who}>
+                {labels[who]}: отход в {b.report?.retreat[who] ?? '—'}
+                {b.type === 'PACT' &&
+                  ` · Channeler после Final Pulse: ${b.report?.facts[`prime_valid:${who}`] ? 'условия выполнены' : 'условия не выполнены'}`}
+                {b.type === 'WAR' &&
+                  ` · живая модель с OC у Engine: ${b.report?.facts[`engine_alive_oc:${who}`] ? 'да' : 'нет'}`}
+                {b.report?.facts[`first_destroyed:${who}`]
+                  ? ` · первый уничтоженный: ${s.units.find((u) => u.id === b.report?.facts[`first_destroyed:${who}`])?.name ?? '—'}`
+                  : ''}
+              </p>
+            ))}
+            <p>Отход гарнизона: {b.report?.garrisonRetreat ?? '—'}</p>
+            {/[AK]3/.test(b.mission ?? '') && (
+              <p>
+                Throne после hazards:{' '}
+                {labels[b.report?.facts.throne_control as Side] ?? 'без контроля'}
+              </p>
+            )}
+            {!!b.report?.facts.anchor_control && (
+              <p>Anchor: {labels[b.report!.facts.anchor_control as Side]}</p>
+            )}
+            {!!b.report?.facts.stores_id && (
+              <p>
+                Hardened Stores: {s.units.find((u) => u.id === b.report?.facts.stores_id)?.name}
+              </p>
+            )}
+          </details>
+          {editingResult && (
+            <ReportView
+              key={`${b.id}:${side}:${b.confirm.join(',')}`}
+              s={s}
+              side={side}
+              send={send}
+            />
+          )}
         </section>
       )}
       {s.phase === 'ending' && <Endings s={s} side={side} send={send} />}
@@ -1074,14 +1120,21 @@ export function ReportView({
             .map((r) => ({ id: r.id, name: s.units.find((u) => u.id === r.id)!.name }))}
         />
       ))}
-      <Options
-        label="Hardened Stores: один уничтоженный ID"
-        value={String(facts.stores_id ?? '')}
-        change={(v) => setFacts({ ...facts, stores_id: v })}
-        items={rows
-          .filter((r) => r.destroyed)
-          .map((r) => ({ id: r.id, name: s.units.find((u) => u.id === r.id)!.name }))}
-      />
+      {b.assets[b.defender]?.defensive.includes('stores') && (
+        <Options
+          label="Hardened Stores: один уничтоженный ID"
+          value={String(facts.stores_id ?? '')}
+          change={(v) => setFacts({ ...facts, stores_id: v })}
+          items={rows
+            .filter(
+              (r) =>
+                r.destroyed &&
+                r.entered &&
+                b.muster[b.defender]?.picks.some((p) => p.id === r.id && p.role !== 'field'),
+            )
+            .map((r) => ({ id: r.id, name: s.units.find((u) => u.id === r.id)!.name }))}
+        />
+      )}
       <Options
         label="Контроль Anchor в конце R5 (если есть overlay)"
         value={String(facts.anchor_control ?? '')}

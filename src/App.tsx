@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import {
   BookOpen,
@@ -12,6 +12,7 @@ import {
   Users,
 } from 'lucide-react'
 import { supabase } from './lib/supabase'
+import { CampaignRequestError, retryableStatus } from './lib/requests'
 import type { Command, Side, State, View } from '../shared/model'
 import { STAGES } from '../shared/rules'
 import {
@@ -44,6 +45,7 @@ export const phases: Record<string, string> = {
   terminal: 'Кампания завершена',
 }
 function Auth({ onError }: { onError: (m: string) => void }) {
+  const inFlight = useRef(false)
   const [signup, setSignup] = useState(false),
     [email, setEmail] = useState(''),
     [password, setPassword] = useState(''),
@@ -58,14 +60,22 @@ function Auth({ onError }: { onError: (m: string) => void }) {
         <form
           onSubmit={async (e) => {
             e.preventDefault()
+            if (inFlight.current) return
+            inFlight.current = true
             setBusy(true)
-            const r = signup
-              ? await supabase.auth.signUp({ email, password })
-              : await supabase.auth.signInWithPassword({ email, password })
-            setBusy(false)
-            if (r.error) onError(r.error.message)
-            else if (signup && !r.data.session)
-              onError('Подтвердите адрес через письмо, затем войдите.')
+            try {
+              const r = signup
+                ? await supabase.auth.signUp({ email: email.trim(), password })
+                : await supabase.auth.signInWithPassword({ email: email.trim(), password })
+              if (r.error) onError(r.error.message)
+              else if (signup && !r.data.session)
+                onError('Подтвердите адрес через письмо, затем войдите.')
+            } catch (error) {
+              onError((error as Error).message)
+            } finally {
+              inFlight.current = false
+              setBusy(false)
+            }
           }}
         >
           <label>
@@ -102,26 +112,35 @@ function Auth({ onError }: { onError: (m: string) => void }) {
   )
 }
 function Gate({ ready, onError }: { ready: (id: string) => void; onError: (m: string) => void }) {
+  const inFlight = useRef(false)
   const [name, setName] = useState('The Black Sepulchre'),
     [display, setDisplay] = useState('Commander'),
     [side, setSide] = useState<Side>('deathwatch'),
     [code, setCode] = useState(''),
     [busy, setBusy] = useState(false)
   const run = async (join: boolean) => {
+    if (inFlight.current) return
+    inFlight.current = true
     setBusy(true)
-    const r = join
-      ? await supabase.rpc('v221_join_campaign', {
-          p_invite_code: code.toUpperCase(),
-          p_display_name: display,
-        })
-      : await supabase.rpc('create_campaign', {
-          p_name: name,
-          p_side: side,
-          p_display_name: display,
-        })
-    setBusy(false)
-    if (r.error) onError(r.error.message)
-    else ready(r.data)
+    try {
+      const r = join
+        ? await supabase.rpc('v221_join_campaign', {
+            p_invite_code: code.trim().toUpperCase(),
+            p_display_name: display,
+          })
+        : await supabase.rpc('create_campaign', {
+            p_name: name,
+            p_side: side,
+            p_display_name: display,
+          })
+      if (r.error) onError(r.error.message)
+      else ready(r.data)
+    } catch (error) {
+      onError((error as Error).message)
+    } finally {
+      inFlight.current = false
+      setBusy(false)
+    }
   }
   return (
     <div className="center">
@@ -175,39 +194,75 @@ export default function App() {
     [busy, setBusy] = useState(false),
     [invite, setInvite] = useState(''),
     [pending, setPending] = useState<unknown>(null),
-    [correcting, setCorrecting] = useState(false)
+    [correcting, setCorrecting] = useState(false),
+    [membershipReady, setMembershipReady] = useState(false),
+    [membershipFailed, setMembershipFailed] = useState(false),
+    [membershipAttempt, setMembershipAttempt] = useState(0)
+  const scope = useRef(''),
+    user = useRef<string | null>(null),
+    sending = useRef(false)
+  scope.current = `${session?.user.id ?? ''}:${id ?? ''}`
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      setAuthReady(true)
-    })
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s)
-      if (!s) {
+    const update = (s: Session | null) => {
+      if (user.current !== (s?.user.id ?? null)) {
+        user.current = s?.user.id ?? null
+        scope.current = ''
         setId(null)
         setView(null)
+        setPending(null)
+        setInvite('')
+        setError('')
+        setCorrecting(false)
+        setMembershipReady(false)
+        setMembershipFailed(false)
       }
-    })
+      setSession(s)
+      setAuthReady(true)
+    }
+    const { data } = supabase.auth.onAuthStateChange((_e, s) => update(s))
     return () => data.subscription.unsubscribe()
   }, [])
   useEffect(() => {
     if (!session) return
+    let cancelled = false
+    setMembershipReady(false)
+    setMembershipFailed(false)
     supabase
       .from('campaign_members')
       .select('campaign_id')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false })
       .limit(1)
-      .then(({ data, error }) => {
-        if (error) setError(error.message)
-        else if (data?.length) setId(data[0].campaign_id)
-      })
-  }, [session])
+      .then(
+        ({ data, error }) => {
+          if (cancelled) return
+          if (error) {
+            setError(error.message)
+            setMembershipFailed(true)
+          } else if (data?.length) setId(data[0].campaign_id)
+          setMembershipReady(true)
+        },
+        (error: Error) => {
+          if (cancelled) return
+          setError(error.message)
+          setMembershipFailed(true)
+          setMembershipReady(true)
+        },
+      )
+    return () => {
+      cancelled = true
+    }
+  }, [session?.user.id, membershipAttempt])
   const call = useCallback(async (body: Record<string, unknown>) => {
+    const started = scope.current
     const { data, error } = await supabase.functions.invoke('campaign-engine', { body })
+    if (started !== scope.current)
+      throw new CampaignRequestError('Сессия или кампания изменена', false)
     if (error) {
       let m = error.message
+      let status: number | undefined
       if ('context' in error) {
+        status = (error.context as Response)?.status
         try {
           const body = await (error.context as Response).json()
           m = body.error ?? m
@@ -215,23 +270,26 @@ export default function App() {
           /* A network failure has no response body. */
         }
       }
-      throw Error(m)
+      throw new CampaignRequestError(m, retryableStatus(status))
     }
     if (data?.error) throw Error(data.error)
     if (data?.state) {
-      setView((old) => (!old || data.state.version >= old.version ? data.state : old))
+      setView((old) =>
+        !old || old.id !== data.state.id || data.state.version >= old.version ? data.state : old,
+      )
       setSide(data.side)
     }
     return data
   }, [])
   const load = useCallback(async () => {
     if (!id) return
+    const started = scope.current
     try {
       await call({ campaignId: id })
       const { data } = await supabase.from('campaigns').select('invite_code').eq('id', id).single()
-      if (data) setInvite(data.invite_code)
+      if (data && started === scope.current) setInvite(data.invite_code)
     } catch (e) {
-      setError((e as Error).message)
+      if (started === scope.current) setError((e as Error).message)
     }
   }, [id, call])
   const libraryApi: LibraryAPI = useCallback(
@@ -258,16 +316,29 @@ export default function App() {
         },
         () => load(),
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') void load()
+      })
     const onFocus = () => load()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void load()
+    }
+    const poll = window.setInterval(onVisible, 30000)
     window.addEventListener('focus', onFocus)
+    window.addEventListener('online', onFocus)
+    document.addEventListener('visibilitychange', onVisible)
     return () => {
       supabase.removeChannel(channel)
       window.removeEventListener('focus', onFocus)
+      window.removeEventListener('online', onFocus)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.clearInterval(poll)
     }
   }, [id, load])
   const send: Send = async (type, payload = {}) => {
-    if (!id || !view || busy) return
+    if (!id || !view || pending || sending.current) return false
+    sending.current = true
+    const started = scope.current
     setBusy(true)
     setError('')
     const body = {
@@ -281,30 +352,41 @@ export default function App() {
       setPending(null)
       return true
     } catch (e) {
+      if (started !== scope.current) return false
       setError((e as Error).message)
-      setPending(body)
+      setPending(e instanceof CampaignRequestError && !e.retryable ? null : body)
       await load()
       return false
     } finally {
+      sending.current = false
       setBusy(false)
     }
   }
   const retry = async () => {
-    if (!pending) return
+    if (!pending || sending.current) return
+    sending.current = true
+    const started = scope.current
     setBusy(true)
     try {
       await call(pending as Record<string, unknown>)
       setPending(null)
       setError('')
     } catch (e) {
-      setError((e as Error).message)
+      if (started === scope.current) {
+        setError((e as Error).message)
+        if (e instanceof CampaignRequestError && !e.retryable) setPending(null)
+        await load()
+      }
     } finally {
+      sending.current = false
       setBusy(false)
     }
   }
-  const alert = error && (
+  const alert = (error || !!pending) && (
     <div role="alert" className="toast">
-      <span>{error}</span>
+      <span>
+        {error || 'Ответ не получен. Проверьте прежнюю отправку перед следующим действием.'}
+      </span>
       {!!pending && (
         <button className="quiet" disabled={busy} onClick={retry}>
           Повторить отправку
@@ -321,6 +403,18 @@ export default function App() {
       <>
         {alert}
         <Auth onError={setError} />
+      </>
+    )
+  if (!membershipReady) return <div className="center">Загрузка списка кампаний…</div>
+  if (membershipFailed)
+    return (
+      <>
+        {alert}
+        <div className="center">
+          <button onClick={() => setMembershipAttempt((n) => n + 1)}>
+            Повторить загрузку кампаний
+          </button>
+        </div>
       </>
     )
   if (!id)
@@ -415,7 +509,7 @@ export default function App() {
           <span>Choir {s.choir}/8</span>
           {p.debt > 0 && <span>Аварийный долг {p.debt}</span>}
         </div>
-        <fieldset className="workspace" disabled={busy}>
+        <fieldset className="workspace" disabled={busy || !!pending}>
           {s.correctionProposal && (
             <section className="panel">
               <h2>Предложена коррекция последнего результата</h2>

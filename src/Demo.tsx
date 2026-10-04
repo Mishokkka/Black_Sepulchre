@@ -2,6 +2,8 @@ import { Suspense, useState, useCallback } from 'react'
 import { fixture, context } from '../tests/fixture'
 import { command, project } from '../shared/engine'
 import { declareBattle } from '../shared/battle'
+import { createTable } from '../shared/table'
+import { SIDES } from '../shared/model'
 import type { Side, State } from '../shared/model'
 import {
   CampaignMap,
@@ -51,7 +53,7 @@ export default function Demo() {
     }
   }
   const load = (mode: string) => {
-    const next = fixture(true)
+    let next = fixture(true)
     if (mode === 'setup') {
       next.phase = 'setup'
       next.setupApproved = []
@@ -65,8 +67,74 @@ export default function Demo() {
       next.phase = 'logistics'
       next.activation!.logistics = ['deathwatch', 'necrons']
     }
+    if (mode === 'result') {
+      declareBattle(next, 'X', 'deathwatch', false, context(), 'encounter')
+      const b = next.battle!
+      b.mission = 'encounter'
+      b.table = createTable(next, 'encounter', context())
+      b.table.round = 5
+      b.table.step = 'finished'
+      b.table.vp = { deathwatch: 10, necrons: 5 }
+      for (const who of SIDES) {
+        const units = next.units.filter((u) => u.side === who)
+        b.muster[who] = {
+          picks: units.map((u) => ({
+            id: u.id,
+            role: 'field',
+            formation: u.id,
+            transport: null,
+            reserve: false,
+            enhancement: null,
+            honours: [],
+            armoury: false,
+            relic: false,
+            redemption: null,
+            protocol: null,
+          })),
+          rest: [],
+          detachments: next.players[who].package,
+          dispositions: [],
+          commander: units.find(
+            (u) => next.snapshot.catalog.find((c) => c.id === u.catalogId)!.character,
+          )!.id,
+        }
+      }
+      next.phase = 'battle'
+      next = command(
+        next,
+        {
+          type: 'submit_result',
+          payload: {
+            report: {
+              vp: b.table.vp,
+              units: next.units.map((u) => ({
+                id: u.id,
+                entered: true,
+                destroyed: false,
+                distinguished: false,
+                withdrawn: false,
+                deed: null,
+                casualtySources: [],
+              })),
+              facts: {},
+              retreat: {},
+              garrisonRetreat: null,
+              withdrawal: [],
+              narrative: 'Проверка результата в демо',
+            },
+          },
+        },
+        context(),
+      )
+    }
     setS(next)
-    setTab(mode === 'battle' ? 'battle' : mode === 'logistics' ? 'logistics' : 'strategy')
+    setTab(
+      ['battle', 'result'].includes(mode)
+        ? 'battle'
+        : mode === 'logistics'
+          ? 'logistics'
+          : 'strategy',
+    )
   }
   return (
     <main className="content" style={{ margin: 0, width: '100%' }}>
@@ -90,7 +158,7 @@ export default function Demo() {
             {t}
           </button>
         ))}
-        {['setup', 'battle', 'logistics'].map((m) => (
+        {['setup', 'battle', 'logistics', 'result'].map((m) => (
           <button className="quiet" key={m} onClick={() => load(m)}>
             Сценарий {m}
           </button>
