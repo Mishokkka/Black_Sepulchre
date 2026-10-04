@@ -15,7 +15,12 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   expect: { timeout: 15000 },
-  use: { baseURL: 'http://127.0.0.1:4173/Black_Sepulchre/', trace: 'retain-on-failure' },
+  use: {
+    baseURL: 'http://127.0.0.1:4173/Black_Sepulchre/',
+    trace: 'retain-on-failure',
+    actionTimeout: 15000,
+    navigationTimeout: 20000,
+  },
   webServer: {
     command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4173',
     url: 'http://127.0.0.1:4173/Black_Sepulchre/',

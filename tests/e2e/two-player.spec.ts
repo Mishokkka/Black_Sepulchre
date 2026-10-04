@@ -182,7 +182,7 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
     await expect(a.getByLabel('Связь и синхронизация')).toContainText('Состояние проверено')
     expect(errors).toEqual([])
   } finally {
-    await Promise.all(contexts.map((c) => c.close()))
+    await Promise.allSettled(contexts.map((c) => c.close()))
     // The local stack is disposable. Keep campaign records for debugging; each run uses unique accounts.
     await Promise.all(accounts.map((a) => admin.auth.admin.deleteUser(a.id)))
   }

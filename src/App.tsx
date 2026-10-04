@@ -97,7 +97,11 @@ function Gate({ ready, onError }: { ready: (id: string) => void; onError: (m: st
         </label>
         <label>
           Сторона
-          <select value={side} onChange={(e) => setSide(e.target.value as Side)}>
+          <select
+            aria-label="Сторона"
+            value={side}
+            onChange={(e) => setSide(e.target.value as Side)}
+          >
             {Object.entries(labels).map(([k, v]) => (
               <option key={k} value={k}>
                 {v}
