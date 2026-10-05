@@ -3,6 +3,7 @@ import { SIDES, type Command, type Context, type Snapshot, type State } from './
 import { assert, credit, entry, present, spend, str, supplied } from './rules.ts'
 import { loadoutSignature, sameDatasheet } from './datasheets.ts'
 import { inLogistics, logisticsForce } from './logistics.ts'
+import { pruneStartingEnhancements } from './enhancements.ts'
 
 export const SITE_RULES_SOURCE =
   'Правила и цены сайта Black Sepulchre · 2.2.1 · приняты для дружеской кампании'
@@ -94,6 +95,10 @@ export function snapshotCommand(
           s.snapshot.enhancements.some((e) => e.id === id),
         ),
       )
+      p.enhancementExtras = Object.fromEntries(
+        Object.entries(p.enhancementExtras ?? {}).filter(([id]) => !!p.enhancements[id]),
+      )
+      pruneStartingEnhancements(s, side)
     }
     return
   }

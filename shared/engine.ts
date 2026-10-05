@@ -1,4 +1,4 @@
-import { startingArmy } from './setup.ts'
+import { startingArmy, startingArmyPreview } from './setup.ts'
 export { startingArmy } from './setup.ts'
 import { describeCommand } from './history.ts'
 import { HONOURS } from './rules.generated.ts'
@@ -24,6 +24,11 @@ import { inLogistics, logistics } from './logistics.ts'
 import { acceptSiteRules, snapshotCommand } from './snapshot.ts'
 import { validateCard, validateTransportRule } from './datasheets.ts'
 import { expandStartingCatalogue, starterUnavailable } from './starting-catalogue.ts'
+import {
+  enhancementEligible,
+  pruneStartingEnhancements,
+  validateEnhancements,
+} from './enhancements.ts'
 const STRATEGY = ['move', 'attack', 'action', 'end_strategy', 'select_force']
 const PREP = [
   'defender_force',
@@ -118,6 +123,31 @@ export function command(state: State, c: Command, context: Context): State {
   else if (c.type === 'setup_package') {
     assert(s.phase === 'setup', 'Setup закрыт')
     setPackage(s, ctx.actor, c.payload.package)
+    pruneStartingEnhancements(s, ctx.actor)
+    s.setupApproved = s.setupApproved.filter((side) => side !== ctx.actor)
+  } else if (c.type === 'setup_enhancement') {
+    assert(s.phase === 'setup' && s.battles === 0, 'Бесплатный старт закрыт')
+    const u = s.units.find(
+      (u) =>
+        u.id === c.payload.id &&
+        u.side === ctx.actor &&
+        u.status === 'active' &&
+        u.location === 'field',
+    )
+    assert(u, 'Не ваш активный starter ID')
+    const p = s.players[ctx.actor]
+    p.startingEnhancements ??= {}
+    if (c.payload.enhancement === null) delete p.startingEnhancements[u.id]
+    else {
+      const e = s.snapshot.enhancements.find((e) => e.id === c.payload.enhancement)
+      assert(
+        e && p.package.includes(e.detachment) && enhancementEligible(e, entry(s, u)),
+        'Enhancement нелегален для этого отряда или detachment',
+      )
+      p.startingEnhancements[u.id] = e.id
+    }
+    const preview = startingArmyPreview(s, ctx.actor)
+    validateEnhancements(p, s.snapshot, preview.muster.picks, p.package, 0, 1)
     s.setupApproved = s.setupApproved.filter((side) => side !== ctx.actor)
   } else if (c.type === 'ready_army' || c.type === 'approve_setup') {
     assert(
@@ -147,6 +177,7 @@ export function command(state: State, c: Command, context: Context): State {
       u.rc = cat.rc
       u.status = 'active'
     }
+    pruneStartingEnhancements(s, ctx.actor)
     s.setupApproved = s.setupApproved.filter((side) => side !== ctx.actor)
   } else if (c.type === 'setup_add') {
     assert(s.phase === 'setup', 'Setup закрыт')
@@ -312,7 +343,7 @@ function validateSnapshot(s: Snapshot) {
   }
   assert(
     Array.isArray(s.enhancements) &&
-      s.enhancements.length <= 100 &&
+      s.enhancements.length <= 300 &&
       new Set(s.enhancements.map((e) => e.id)).size === s.enhancements.length,
     'Неверные Enhancements',
   )
@@ -344,6 +375,27 @@ function validateSnapshot(s: Snapshot) {
     assert(
       Array.isArray(e.eligible) && s.detachments.some((d) => d.id === e.detachment),
       'Enhancement вне Detachment',
+    )
+    const strings = (value: unknown) =>
+      Array.isArray(value) &&
+      value.length <= 100 &&
+      value.every((v) => typeof v === 'string' && v.length > 0 && v.length <= 250)
+    assert(
+      strings(e.eligible) &&
+        (!e.eligibleAny ||
+          (Array.isArray(e.eligibleAny) &&
+            e.eligibleAny.length > 0 &&
+            e.eligibleAny.length <= 10 &&
+            e.eligibleAny.every(strings))) &&
+        (!e.excluded || strings(e.excluded)) &&
+        (!e.datasheets || (strings(e.datasheets) && e.datasheets.length > 0)) &&
+        (e.upgrade === undefined || typeof e.upgrade === 'boolean') &&
+        (e.unitEligible === undefined || typeof e.unitEligible === 'boolean') &&
+        (e.source === undefined ||
+          (typeof e.source === 'string' &&
+            e.source.length <= 500 &&
+            e.source.startsWith('https://'))),
+      'Неверные ограничения Enhancement',
     )
   }
 }
@@ -490,6 +542,8 @@ export function project(state: State, side: Side): View {
     if (!b.muster[other(side)]) {
       for (const u of b.before.filter((u) => u.side !== side)) delete b.costs[u.id]
       s.players[other(side)].enhancements = {}
+      s.players[other(side)].enhancementExtras = {}
+      s.players[other(side)].startingEnhancements = {}
     }
     if (s.phase === 'lock') delete b.lock[other(side)]
     if (s.phase === 'interdict') delete b.interdict[other(side)]

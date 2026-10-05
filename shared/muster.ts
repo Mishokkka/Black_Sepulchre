@@ -4,6 +4,7 @@ import { SIDES, type Battle, type Muster, type Side, type State } from './model.
 import { sameDatasheet, datasheetName } from './datasheets.ts'
 import { validateCargo } from './transport.ts'
 import { optionalPackageCost } from './unit-choices.ts'
+import { enhancementEligible, validateEnhancements } from './enhancements.ts'
 import {
   assert,
   available,
@@ -89,8 +90,14 @@ export function validateMuster(
   }
   const counts: Record<string, number> = {},
     forms = new Map<string, typeof m.picks>()
-  let enhancementCount = 0
-  const enhIds = new Set<string>()
+  validateEnhancements(
+    p,
+    b.snapshot,
+    m.picks,
+    m.detachments,
+    b.stage,
+    b.type === 'PACT' ? 2 : stage.enhancements,
+  )
   for (const v of m.picks) {
     assert(
       ['field', 'initial', 'pool'].includes(v.role) &&
@@ -140,19 +147,8 @@ export function validateMuster(
     if (v.enhancement) {
       const e = b.snapshot.enhancements.find((e) => e.id === v.enhancement)
       assert(
-        e &&
-          c.character &&
-          !c.epic &&
-          m.detachments.includes(e.detachment) &&
-          e.eligible.every((k) => c.keywords.includes(k)),
+        e && m.detachments.includes(e.detachment) && enhancementEligible(e, c),
         'Enhancement нелегален',
-      )
-      assert(!enhIds.has(e.id), 'Дубликат Enhancement')
-      enhIds.add(e.id)
-      enhancementCount++
-      assert(
-        !p.enhancements[e.id] || p.enhancements[e.id] === u.id || p.enhancementStage !== b.stage,
-        'Enhancement закреплён за другим ID',
       )
     }
     assert(
@@ -179,10 +175,6 @@ export function validateMuster(
     if (v.role === 'pool' && side === 'necrons' && u.scars.some((c) => c.id === 9))
       assert(b.firstSlot + 1 <= 5, 'Scar задерживает Pool за R5')
   }
-  assert(
-    enhancementCount <= (b.type === 'PACT' ? 2 : stage.enhancements),
-    'Слишком много Enhancements',
-  )
   for (const [name, n] of Object.entries(counts)) {
     const variants = m.picks
       .map((v) => entry(s, unit(s, v.id), b.snapshot))
@@ -343,7 +335,9 @@ export function musterCosts(s: State, m: Muster, b: Battle = s.battle!): Record<
     costs[v.id] =
       (c.copyPrices[i] ?? c.rc) +
       optionalPackageCost(c, v.paidOptions ?? [], m.detachments) +
-      (v.enhancement ? b.snapshot.enhancements.find((e) => e.id === v.enhancement)!.cost : 0) +
+      (v.enhancement
+        ? (b.snapshot.enhancements.find((e) => e.id === v.enhancement)?.cost ?? 0)
+        : 0) +
       surcharge(s, u, v, m.picks)
   }
   return costs

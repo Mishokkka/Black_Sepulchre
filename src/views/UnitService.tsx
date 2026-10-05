@@ -3,6 +3,7 @@ import { HONOURS, SCARS } from '../../shared/rules.generated'
 import { ARMOURY, entry, present, RELICS } from '../../shared/rules'
 import { command } from '../../shared/engine'
 import { logisticsForce } from '../../shared/logistics'
+import { enhancementBearers, enhancementEligible } from '../../shared/enhancements'
 import type { Unit } from '../../shared/model'
 import { sizeKey, priceKey } from '../../shared/unit-choices'
 import { LogisticsAction } from './LogisticsAction'
@@ -333,20 +334,24 @@ export function UnitService({ s, side, send, u }: Props & { u: Unit }) {
           </>
         )}
         {Object.entries(p.enhancements)
-          .filter(([, id]) => id === u.id)
+          .filter(([id]) => enhancementBearers(p, id).includes(u.id))
           .map(([id]) => (
             <Options
               key={id}
               label={`Передать Enhancement ${s.snapshot.enhancements.find((e) => e.id === id)?.name}`}
               value=""
-              change={(to) => send('transfer_enhancement', { enhancement: id, to })}
+              change={(to) => send('transfer_enhancement', { enhancement: id, from: u.id, to })}
               items={s.units
                 .filter(
                   (v) =>
                     v.side === side &&
                     v.id !== u.id &&
                     v.status === 'active' &&
-                    entry(s, v).character,
+                    !enhancementBearers(p, id).includes(v.id) &&
+                    enhancementEligible(
+                      s.snapshot.enhancements.find((e) => e.id === id)!,
+                      entry(s, v),
+                    ),
                 )
                 .map((v) => ({ id: v.id, name: v.name }))}
             />

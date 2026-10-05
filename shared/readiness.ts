@@ -3,6 +3,11 @@ import type { Battle, Muster, Pick, Side, State, Unit } from './model.ts'
 import { available, entry, STAGES, surcharge, effectPrice, ARMOURY, RELICS } from './rules.ts'
 import { validateMuster } from './muster.ts'
 import { sameDatasheet } from './datasheets.ts'
+import {
+  enhancementEligible,
+  enhancementBindingAllowed,
+  enhancementBearers,
+} from './enhancements.ts'
 
 // Search legal Field subsets, leader layouts and optional campaign loadouts. Caps
 // prune the search and an exact AL deployment is an immediate optimum.
@@ -95,7 +100,10 @@ export function maximumReady(source: State, side: Side): number {
         } catch {
           continue
         }
-        let dp = new Map<string, { cost: number; enh: string[] }>([['0', { cost: 0, enh: [] }]])
+        type EnhancementAssignments = { id: string; unit: string }[]
+        let dp = new Map<string, { cost: number; enh: EnhancementAssignments }>([
+          ['0', { cost: 0, enh: [] }],
+        ])
         for (const p of picks) {
           const u = selected.find((u) => u.id === p.id)!,
             cat = entry(s, u)
@@ -122,13 +130,9 @@ export function maximumReady(source: State, side: Side): number {
             ...b.snapshot.enhancements
               .filter(
                 (e) =>
-                  cat.character &&
-                  !cat.epic &&
                   detachments.includes(e.detachment) &&
-                  e.eligible.every((k) => cat.keywords.includes(k)) &&
-                  (!s.players[side].enhancements[e.id] ||
-                    s.players[side].enhancements[e.id] === u.id ||
-                    s.players[side].enhancementStage !== s.stage),
+                  enhancementEligible(e, cat) &&
+                  enhancementBindingAllowed(s.players[side], e, u.id, s.stage),
               )
               .map((e) => e.id),
           ]
@@ -152,18 +156,37 @@ export function maximumReady(source: State, side: Side): number {
                         : 0)
                     options.set(`${cost}:${enhancement}`, { cost, enh: enhancement })
                   }
-          const next = new Map<string, { cost: number; enh: string[] }>()
+          const next = new Map<string, { cost: number; enh: EnhancementAssignments }>()
           for (const a of dp.values())
             for (const o of options.values()) {
               const cost = a.cost + o.cost
+              const selectedEnh = o.enh
+                ? b.snapshot.enhancements.find((e) => e.id === o.enh)!
+                : null
+              const bound =
+                selectedEnh && s.players[side].enhancementStage === s.stage
+                  ? enhancementBearers(s.players[side], selectedEnh.id)
+                  : []
               if (
                 cost > al ||
-                (o.enh && a.enh.includes(o.enh)) ||
-                a.enh.length + (o.enh ? 1 : 0) > stage.enhancements
+                (selectedEnh &&
+                  new Set([
+                    ...bound,
+                    ...a.enh.filter((e) => e.id === selectedEnh.id).map((e) => e.unit),
+                    u.id,
+                  ]).size > (selectedEnh.upgrade ? 3 : 1)) ||
+                new Set([...a.enh.map((e) => e.id), ...(o.enh ? [o.enh] : [])]).size >
+                  stage.enhancements
               )
                 continue
-              const enh = o.enh ? [...a.enh, o.enh].sort() : a.enh
-              next.set(`${cost}:${enh.join(',')}`, { cost, enh })
+              const enh = o.enh ? [...a.enh, { id: o.enh, unit: u.id }] : a.enh
+              next.set(
+                `${cost}:${enh
+                  .map((e) => `${e.id}@${e.unit}`)
+                  .sort()
+                  .join(',')}`,
+                { cost, enh },
+              )
             }
           dp = next
         }

@@ -292,6 +292,8 @@ test('Redemption requires the declared deed before commitment', () => {
 })
 test('Readiness counts optional active CR, legal Warlord, copies, enhancements and excludes unavailable IDs', () => {
   const s = fixture()
+  // Isolate campaign surcharges here; the ready enhancement library has its own integration tests.
+  s.snapshot.enhancements = []
   assert.equal(maximumReady(s, 'deathwatch'), 485)
   const u = s.units[0]
   u.xp = 3

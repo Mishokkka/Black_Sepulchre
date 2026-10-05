@@ -10,6 +10,7 @@ export interface HistoryEntry {
   resources?: { side: Side; supply: [number, number]; intel: [number, number] }[]
 }
 export const COMMAND_LABELS: Record<string, string> = {
+  setup_enhancement: 'Изменено стартовое улучшение',
   accept_site_rules: 'Правила и цены сайта согласованы',
   expand_starting_catalogue: 'Каталог отрядов расширен',
   setup_package: 'Выбран стартовый детачмент',

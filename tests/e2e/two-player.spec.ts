@@ -81,6 +81,23 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
       if (r.error) throw r.error
       return r.data.state as State
     }
+    // Choose an optional starter enhancement through the real UI and versioned Edge command.
+    const initial = await load(0)
+    const veil = initial.snapshot.enhancements.find((e) => e.name === 'Veil of Darkness')!
+    const bearer = initial.units.find(
+      (u) =>
+        u.side === 'necrons' &&
+        initial.snapshot.catalog.find((c) => c.id === u.catalogId)!.character,
+    )!
+    await a.getByLabel(`Улучшение: ${bearer.name}`, { exact: true }).selectOption(veil.id)
+    await expect
+      .poll(async () => (await load(0)).players.necrons.startingEnhancements?.[bearer.id])
+      .toBe(veil.id)
+    await expect(a.getByLabel('Бюджет стартовой армии')).toContainText('495')
+    expect((await load(0)).players.necrons.enhancements).toEqual({})
+    await a.reload()
+    await expect(a.getByLabel(`Улучшение: ${bearer.name}`, { exact: true })).toHaveValue(veil.id)
+    await refresh(b)
     // Concurrent UI clicks use two sessions and the same initial version. A conflict is a valid outcome.
     await Promise.all(
       pages.map((p) => p.getByRole('button', { name: 'Армия готова', exact: true }).click()),

@@ -223,6 +223,27 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
           </p>
         </div>
       </header>
+      {s.flags.startingEnhancements !== 1 && (
+        <section className="panel">
+          <h3>Улучшения принятых detachments</h3>
+          <p>
+            Добавьте необязательные Enhancements в каталог кампании. Назначения и стоимость
+            проверяются при сборе армии; объявленный бой сохраняет свой каталог.
+          </p>
+          <button
+            className="quiet"
+            disabled={
+              !!s.battle ||
+              !!s.snapshotProposal ||
+              !['setup', 'strategy', 'logistics'].includes(s.phase)
+            }
+            onClick={() => send('expand_starting_catalogue')}
+          >
+            Добавить улучшения detachment
+          </button>
+          {s.battle && <small>Каталог можно дополнить после завершения боя.</small>}
+        </section>
+      )}
       <section className="panel catalog-toolbar">
         <div className="catalog-panes" role="group" aria-label="Разделы каталога">
           {(

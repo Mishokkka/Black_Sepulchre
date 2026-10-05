@@ -23,6 +23,7 @@ import {
   tier,
 } from './rules.ts'
 import { underdog, validateMuster } from './muster.ts'
+import { enhancementBearers, bindEnhancement } from './enhancements.ts'
 import { createTable } from './table.ts'
 export function declareBattle(
   s: State,
@@ -249,9 +250,14 @@ export function battleCommand(s: State, c: Command, ctx: Context) {
         Object.assign(b.costs, costs)
         if (p.enhancementStage !== b.stage) {
           p.enhancements = {}
+          p.enhancementExtras = {}
           p.enhancementStage = b.stage
         }
-        for (const v of m.picks) if (v.enhancement) p.enhancements[v.enhancement] = v.id
+        for (const v of m.picks)
+          if (v.enhancement)
+            bindEnhancement(p, v.enhancement, [
+              ...new Set([...enhancementBearers(p, v.enhancement), v.id]),
+            ])
         if (SIDES.every((side) => b.muster[side])) {
           if (b.effects.some((e) => e.code === '34') && SIDES.every((side) => b.lock[side]))
             for (const side of SIDES) intel(s, side, 1)
