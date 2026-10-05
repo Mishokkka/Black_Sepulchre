@@ -27,14 +27,21 @@ export function Check({
   label,
   value,
   change,
+  disabled = false,
 }: {
   label: string
   value: boolean
   change: (b: boolean) => void
+  disabled?: boolean
 }) {
   return (
     <label className="check">
-      <input type="checkbox" checked={value} onChange={(e) => change(e.target.checked)} />
+      <input
+        type="checkbox"
+        checked={value}
+        disabled={disabled}
+        onChange={(e) => change(e.target.checked)}
+      />
       {label}
     </label>
   )

@@ -49,19 +49,20 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
       if (login.error) throw login.error
       accounts.push({ id: user.data.user.id, email, password, api })
       await pages[i].goto('/Black_Sepulchre/')
-      await pages[i].getByLabel('Email', { exact: true }).fill(email)
+      await pages[i].getByLabel('Электронная почта', { exact: true }).fill(email)
       await pages[i].getByLabel('Пароль', { exact: true }).fill(password)
       await pages[i].getByRole('button', { name: 'Войти', exact: true }).click()
       await expect(pages[i].getByRole('heading', { name: 'Ваша кампания' })).toBeVisible()
     }
     const [a, b] = pages
-    await a.getByLabel('Сторона', { exact: true }).selectOption('necrons')
-    await a.getByLabel('Название', { exact: true }).fill('Two-player E2E')
+    await a.getByRole('radio', { name: 'Necrons', exact: true }).check()
+    await a.getByLabel('Название кампании', { exact: true }).fill('Two-player E2E')
     await a.getByRole('button', { name: 'Создать кампанию', exact: true }).click()
     await expect(a.getByRole('heading', { name: 'Подготовьте стартовую армию' })).toBeVisible()
     const inviteButton = a.getByRole('button', { name: /^Код: / })
     await expect(inviteButton).toHaveText(/^Код: [A-Z0-9]{10}$/)
     const invite = (await inviteButton.innerText()).replace('Код: ', '').trim()
+    await b.getByRole('button', { name: 'По приглашению', exact: true }).click()
     await b.getByLabel('Код приглашения', { exact: true }).fill(invite.toLowerCase())
     await b.getByRole('button', { name: 'Присоединиться', exact: true }).click()
     await expect(b.getByRole('heading', { name: 'Подготовьте стартовую армию' })).toBeVisible()

@@ -1,44 +1,26 @@
-import { reportRetreatPlan } from '../../shared/aftermath'
+import { BattleHeader } from './BattleHeader'
+import { MusterView } from './MusterView'
+import { ResultView } from './ResultView'
+import { ConfirmDialog } from './ConfirmDialog'
+import { ReportView } from './ReportView'
+export { ReportView } from './ReportView'
+import { AftermathSummary } from './AftermathSummary'
+import { TABLE_STEPS } from '../../shared/battle-ui'
+import { nextStep } from '../../shared/next-step'
+import { StatusBadge } from './StatusBadge'
 import { BattlePacket } from './BattlePacket'
 import { TableExtras, MissionFacts } from './TableExtras'
 import { useState } from 'react'
-import { useBattleDraft } from '../lib/useBattleDraft'
-import { isMusterDraft, isReportDraft } from '../lib/drafts'
-import {
-  initialReport,
-  reportFields,
-  firstDestroyedCandidates,
-  storesCandidates,
-  cleanReport,
-} from '../../shared/report-form'
 import Markdown from 'react-markdown'
 import { MissionBrief } from './MissionBrief'
 import { EVENTS, MISSION_CARDS, CRISIS_CARDS } from '../../shared/rules.generated'
-import {
-  SIDES,
-  other,
-  type Muster,
-  type Pick,
-  type Report,
-  type Side,
-  type State,
-  type UnitResult,
-} from '../../shared/model'
-import {
-  ARMOURY,
-  available,
-  BREACH,
-  DEFENSIVE,
-  entry,
-  RELICS,
-  TACTICAL,
-  unit,
-  STAGES,
-} from '../../shared/rules'
+import { SIDES, other, type Side, type State } from '../../shared/model'
+import { BREACH, DEFENSIVE, TACTICAL, unit, STAGES } from '../../shared/rules'
 import { actionsFor } from '../../shared/table'
-import { underdog, validateMuster } from '../../shared/muster'
-import { labels, phases, type Send } from './common'
+import { underdog } from '../../shared/muster'
+import { labels, phases } from './common'
 import { Check, Options, type Props } from './common'
+import { RuleHelp } from './RulesContext'
 const ASSET_LABELS: Record<string, string> = {
   barricades: 'Barricades',
   smoke: 'Smoke Screen',
@@ -55,37 +37,9 @@ const ASSET_LABELS: Record<string, string> = {
   extraction: 'Extraction Beacon',
 }
 export function BattleView({ s, side, send }: Props) {
-  const [editingResult, setEditingResult] = useState(false)
   const b = s.battle
   if (s.phase === 'finale_mode')
-    return (
-      <section className="hero">
-        <div>
-          <p className="eyebrow">ПОСЛЕДНИЙ ТАКТ</p>
-          <h2>Две подписи или один шаблон</h2>
-          <p>
-            Два PACT открывают кооператив. Любой WAR — бой друг с другом. Выбор закрыт до решения
-            второго игрока.
-          </p>
-          <div className="buttons">
-            <button
-              disabled={!!s.finalModes[side]}
-              onClick={() => send('finale_mode', { mode: 'PACT' })}
-            >
-              PACT · вместе остановить машину
-            </button>
-            <button
-              className="danger"
-              disabled={!!s.finalModes[side]}
-              onClick={() => send('finale_mode', { mode: 'WAR' })}
-            >
-              WAR · присвоить машину
-            </button>
-          </div>
-          <p>{s.finalModes[side] ? 'Ваш выбор сохранён.' : 'Выберите режим.'}</p>
-        </div>
-      </section>
-    )
+    return <FinaleMode key={`${s.id}:${side}`} s={s} side={side} send={send} />
   if (s.phase === 'terminal')
     return (
       <section className="panel">
@@ -113,35 +67,7 @@ export function BattleView({ s, side, send }: Props) {
   const card = MISSION_CARDS[b.mission ?? '']
   return (
     <>
-      <section className="panel" id="battle-step">
-        <p className="eyebrow">
-          БОЙ {b.number} ·{' '}
-          {b.sector === 'X' ? 'КРИЗИС / ОБЯЗАТЕЛЬНЫЙ КОНТАКТ' : `СЕКТОР ${b.sector}`} ·{' '}
-          {phases[s.phase]}
-        </p>
-        <h2>{card?.title ?? b.mission ?? 'Выбор миссии'}</h2>
-        <p>
-          {labels[b.attacker]} → {labels[b.defender]} · {b.type} · AL {b.al}
-          {b.type === 'PACT' ? ' / 2 на сторону' : ''}
-        </p>
-        <div className="steps">
-          {[
-            'mission',
-            'lock',
-            'muster',
-            'interdict',
-            'assets',
-            'battle',
-            'result',
-            'aftermath',
-            'logistics',
-          ].map((step) => (
-            <span key={step} className={s.phase === step ? 'current' : ''}>
-              {phases[step]}
-            </span>
-          ))}
-        </div>
-      </section>
+      <BattleHeader s={s} side={side} />
       {s.phase === 'mission' && b.defenderForces?.length === 2 && side === b.defender && (
         <section className="panel">
           <h3>Defending Field Force</h3>
@@ -208,7 +134,9 @@ export function BattleView({ s, side, send }: Props) {
       )}
       {s.phase === 'lock' && (
         <section className="panel" id="recon-panel">
-          <h3>Recon Lock</h3>
+          <h3 className="rule-label">
+            Recon Lock <RuleHelp topic="preparation" />
+          </h3>
           <p>
             Без Lock или оба Lock — одновременное раскрытие. Единственный Lock раскрывается вторым.
           </p>
@@ -236,76 +164,11 @@ export function BattleView({ s, side, send }: Props) {
         <BattlePacket s={s} side={side} send={send} />
       )}{' '}
       {s.phase === 'battle' && <TableView s={s} side={side} send={send} />}
-      {s.phase === 'result' && (
-        <section className="panel" id="result-panel">
-          <h3>Оба подтверждают результат</h3>
-          <p>
-            {labels.deathwatch}: {b.report?.vp.deathwatch} · {labels.necrons}:{' '}
-            {b.report?.vp.necrons} · исход {b.outcome}
-          </p>
-          <p>{b.report?.narrative}</p>
-          {b.report?.units.map((r) => (
-            <p key={r.id}>
-              {unit(s, r.id).name}: {r.entered ? 'участвовал' : 'не вошёл'}
-              {r.destroyed ? ' · погиб' : ''}
-              {r.withdrawn ? ' · эвакуирован' : ''}
-              {r.usedMedicae ? ' · Medicae' : ''}
-              {r.casualtySources.length ? ` · причина потерь: ${r.casualtySources.join(', ')}` : ''}
-              {r.deed ? ` · ${r.deed}` : ''}
-              {r.distinguished ? ' · Distinguished' : ''}
-            </p>
-          ))}
-          <button disabled={b.confirm.includes(side)} onClick={() => send('confirm_result')}>
-            Подтвердить результат и потери
-          </button>
-          <button className="quiet" onClick={() => setEditingResult(!editingResult)}>
-            {editingResult ? 'Закрыть исправление' : 'Исправить отчёт'}
-          </button>
-          <p className="muted">Новая отправка снимает прежнее подтверждение второго игрока.</p>
-          <details>
-            <summary>Условия победы, спасение и направления отхода</summary>
-            {SIDES.map((who) => (
-              <p key={who}>
-                {labels[who]}: отход в {b.report?.retreat[who] ?? '—'}
-                {b.type === 'PACT' &&
-                  ` · Channeler после Final Pulse: ${b.report?.facts[`prime_valid:${who}`] ? 'условия выполнены' : 'условия не выполнены'}`}
-                {b.type === 'WAR' &&
-                  ` · живая модель с OC у Engine: ${b.report?.facts[`engine_alive_oc:${who}`] ? 'да' : 'нет'}`}
-                {b.report?.facts[`first_destroyed:${who}`]
-                  ? ` · первый уничтоженный: ${s.units.find((u) => u.id === b.report?.facts[`first_destroyed:${who}`])?.name ?? '—'}`
-                  : ''}
-              </p>
-            ))}
-            <p>Отход гарнизона: {b.report?.garrisonRetreat ?? '—'}</p>
-            {/[AK]3/.test(b.mission ?? '') && (
-              <p>
-                Throne после hazards:{' '}
-                {labels[b.report?.facts.throne_control as Side] ?? 'без контроля'}
-              </p>
-            )}
-            {!!b.report?.facts.anchor_control && (
-              <p>Anchor: {labels[b.report!.facts.anchor_control as Side]}</p>
-            )}
-            {!!b.report?.facts.stores_id && (
-              <p>
-                Hardened Stores: {s.units.find((u) => u.id === b.report?.facts.stores_id)?.name}
-              </p>
-            )}
-          </details>
-          {editingResult && (
-            <ReportView
-              key={`${b.id}:${side}:${b.confirm.join(',')}`}
-              s={s}
-              side={side}
-              send={send}
-            />
-          )}
-        </section>
-      )}
+      {s.phase === 'result' && <ResultView s={s} side={side} send={send} />}
       {s.phase === 'ending' && <Endings s={s} side={side} send={send} />}
       {s.phase === 'aftermath' && <AftermathView s={s} side={side} send={send} />}
-      {b.mission && (
-        <details className="panel mission-card" open={s.phase === 'battle'}>
+      {b.mission && s.phase !== 'battle' && (
+        <details className="panel mission-card">
           <summary>Карточка миссии и напоминания</summary>
           <MissionBrief
             code={b.mission ?? b.type}
@@ -346,6 +209,65 @@ export function BattleView({ s, side, send }: Props) {
     </>
   )
 }
+
+function FinaleMode({ s, side, send }: Props) {
+  const [choice, setChoice] = useState<'PACT' | 'WAR' | null>(null)
+  const saved = s.finalModes[side]
+  return (
+    <section className="panel finale-mode" id="battle-panel">
+      <p className="eyebrow">ПОСЛЕДНИЙ ТАКТ · БОЙ 18</p>
+      <h2>Выберите режим финала</h2>
+      <p>
+        Выбор каждого командира закрыт до решения второго игрока. После сохранения его нельзя
+        изменить.
+      </p>
+      <div className="finale-choices">
+        <article>
+          <h3>PACT</h3>
+          <p>
+            Вместе остановить машину. Кооперативный финал откроется, если оба командира выберут
+            PACT.
+          </p>
+          <button className="primary" disabled={!!saved} onClick={() => setChoice('PACT')}>
+            PACT · вместе остановить машину
+          </button>
+        </article>
+        <article>
+          <h3>WAR</h3>
+          <p>Присвоить машину. Любой выбор WAR открывает бой командиров друг с другом.</p>
+          <button className="danger" disabled={!!saved} onClick={() => setChoice('WAR')}>
+            WAR · присвоить машину
+          </button>
+        </article>
+      </div>
+      <p className="notice" role="status">
+        {saved
+          ? `Ваш выбор: ${saved}. Ожидается решение второго командира.`
+          : s.finalModes[other(side)]
+            ? 'Второй командир уже сделал закрытый выбор. Теперь ваше решение.'
+            : 'Оба командира ещё выбирают режим финала.'}
+      </p>
+      <ConfirmDialog
+        open={!!choice && !saved}
+        onClose={() => setChoice(null)}
+        title={`Сохранить закрытый выбор ${choice ?? ''}?`}
+        confirm={`Сохранить ${choice ?? ''}`}
+        disabled={!!saved}
+        onConfirm={() => send('finale_mode', { mode: choice })}
+      >
+        <p>
+          {choice === 'PACT'
+            ? 'PACT откроет кооперативный финал только при таком же выборе второго командира. Если другой командир выберет WAR, начнётся бой друг с другом.'
+            : 'Ваш выбор WAR откроет бой командиров друг с другом независимо от решения второго игрока.'}
+        </p>
+        <p>
+          Решение нельзя изменить после сохранения. До второго выбора соперник видит только факт
+          готовности.
+        </p>
+      </ConfirmDialog>
+    </section>
+  )
+}
 function crisisText(s: State) {
   const b = s.battle!
   return b.type === 'encounter'
@@ -353,332 +275,6 @@ function crisisText(s: State) {
     : b.type === 'WAR'
       ? 'SEAL CONDUIT при физическом контроле. OVERRIDE ENGINE с R4, два своих current tags. R2–5 по 3 VP за tagged + controlled Conduit; R4/5 +6 за controlled Engine с Override. После Final Pulse кандидат: Override, два Seal records и живая модель OC >0 в 3 Engine. Один кандидат выигрывает; при двух — больше VP; равенство или ни одного — общее поражение.'
       : 'ENCODE: один старт на сторону за ход. Echo может быть живой при старте, должна погибнуть к completion. Два ключа стабилизируют Seal, Instability −2. PRIME ENGINE с R4 после трёх stable Seals. Любое движение / Battle-shock гасит Prime. Instability +2 в начале раунда; 12 — немедленное поражение. После Echo phase и Final Pulse R5: три stable Seals и два действующих Channeler дают CONCORDAT.'
-}
-function MusterView({ s, side, send }: Props) {
-  const b = s.battle!,
-    p = s.players[side],
-    candidates = s.units.filter(
-      (u) =>
-        u.side === side &&
-        available(s, u) &&
-        (u.location === (b.forces?.[side] === 'stf' ? 'stf' : 'field') ||
-          (u.location === 'garrison' && u.sector === b.sector)),
-    ),
-    draft = useBattleDraft<Muster>(
-      s.id,
-      b.id,
-      'muster',
-      s.version,
-      { picks: [], rest: [], detachments: p.package.slice(0, 1), commander: '', dispositions: [] },
-      isMusterDraft,
-    ),
-    m = draft.value,
-    { picks, rest, detachments, commander, dispositions } = m
-  const setPicks = (v: Pick[]) => draft.update((m) => ({ ...m, picks: v }))
-  const setRest = (v: string[]) => draft.update((m) => ({ ...m, rest: v }))
-  const setDetachments = (v: string[]) => draft.update((m) => ({ ...m, detachments: v }))
-  const setCommander = (v: string) => draft.update((m) => ({ ...m, commander: v }))
-  const setDispositions = (v: string[]) => draft.update((m) => ({ ...m, dispositions: v }))
-  const edit = (id: string, value: Partial<Pick>) =>
-    draft.update((m) => ({
-      ...m,
-      picks: m.picks.map((p) => (p.id === id ? { ...p, ...value } : p)),
-    }))
-  let error = '',
-    costs: Record<string, number> = {}
-  try {
-    costs = validateMuster(s, side, m)
-  } catch (e) {
-    error = (e as Error).message
-  }
-  if (b.muster[side])
-    return (
-      <section className="panel" id="muster-panel">
-        <h3>Ваш legal commitment сохранён</h3>
-        <p>Состав неизменяем. Ожидается второй командир.</p>
-      </section>
-    )
-  return (
-    <section className="panel" id="muster-panel">
-      <h3>Закрытый состав</h3>
-      {draft.status}
-      <p>
-        Initial {b.initial} · Pool {b.pool} · первое прибытие R{b.firstSlot}. В Field defence
-        гарнизон Initial заполняет свободный AL.
-      </p>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Роль</th>
-              <th>Формация / транспорт</th>
-              <th>Улучшения</th>
-            </tr>
-          </thead>
-          <tbody>
-            {candidates.map((u) => {
-              const pick = picks.find((p) => p.id === u.id),
-                cat = entry(s, u, b.snapshot)
-              return (
-                <tr key={u.id}>
-                  <td>
-                    <Check
-                      label={`${u.name} · ${u.rc} RC`}
-                      value={!!pick}
-                      change={(v) => {
-                        if (v) {
-                          setPicks([
-                            ...picks,
-                            {
-                              id: u.id,
-                              role: u.location === 'garrison' ? 'initial' : 'field',
-                              formation: u.id,
-                              transport: null,
-                              reserve: false,
-                              enhancement: null,
-                              paidOptions: [],
-                              honours: [...u.honours],
-                              armoury: !!u.armoury,
-                              relic: !!u.relic,
-                              redemption: null,
-                              redemptionDeed: null,
-                              protocol: u.scars.some((c) => side === 'necrons' && c.id === 12)
-                                ? 'HOLD'
-                                : null,
-                            },
-                          ])
-                          setRest(rest.filter((id) => id !== u.id))
-                        } else setPicks(picks.filter((p) => p.id !== u.id))
-                      }}
-                    />
-                    <small>
-                      Damage {u.damage} · XP {u.xp}
-                      {costs[u.id] !== undefined && ` · ${costs[u.id]} Effective`}
-                    </small>
-                    {!pick && (
-                      <Check
-                        label="RESTING"
-                        value={rest.includes(u.id)}
-                        change={(v) =>
-                          setRest(v ? [...rest, u.id] : rest.filter((id) => id !== u.id))
-                        }
-                      />
-                    )}
-                  </td>
-                  <td>
-                    {pick && (
-                      <>
-                        <select
-                          aria-label={`Роль ${u.name}`}
-                          value={pick.role}
-                          onChange={(e) => edit(u.id, { role: e.target.value as Pick['role'] })}
-                        >
-                          {(u.location !== 'garrison' ? ['field'] : ['initial', 'pool']).map(
-                            (v) => (
-                              <option key={v}>{v}</option>
-                            ),
-                          )}
-                        </select>
-                        <Check
-                          label="Initial Reserves"
-                          value={pick.reserve}
-                          change={(v) => edit(u.id, { reserve: v })}
-                        />
-                      </>
-                    )}
-                  </td>
-                  <td>
-                    {pick && (
-                      <>
-                        <Options
-                          label="Attached формация"
-                          value={pick.formation}
-                          change={(v) => edit(u.id, { formation: v })}
-                          items={picks.map((v) => ({ id: v.id, name: unit(s, v.id).name }))}
-                        />
-                        <Options
-                          label="Embarked в"
-                          value={pick.transport ?? ''}
-                          change={(v) => edit(u.id, { transport: v || null })}
-                          items={picks
-                            .filter((p) => entry(s, unit(s, p.id)).transport > 0)
-                            .map((p) => ({ id: p.id, name: unit(s, p.id).name }))}
-                        />
-                      </>
-                    )}
-                  </td>
-                  <td>
-                    {pick && (
-                      <>
-                        {u.honours.map((id) => (
-                          <Check
-                            key={id}
-                            label={id}
-                            value={pick.honours.includes(id)}
-                            change={(v) =>
-                              edit(u.id, {
-                                honours: v
-                                  ? [...pick.honours, id]
-                                  : pick.honours.filter((h) => h !== id),
-                              })
-                            }
-                          />
-                        ))}
-                        {u.armoury && (
-                          <Check
-                            label={ARMOURY[u.armoury].name}
-                            value={pick.armoury}
-                            change={(v) => edit(u.id, { armoury: v })}
-                          />
-                        )}{' '}
-                        {u.relic && (
-                          <Check
-                            label={RELICS[u.relic].name}
-                            value={pick.relic}
-                            change={(v) => edit(u.id, { relic: v })}
-                          />
-                        )}{' '}
-                        {cat.character && (
-                          <Options
-                            label="Enhancement"
-                            value={pick.enhancement ?? ''}
-                            change={(v) => edit(u.id, { enhancement: v || null })}
-                            items={b.snapshot.enhancements.map((e) => ({
-                              id: e.id,
-                              name: `${e.name} +${e.cost}`,
-                            }))}
-                          />
-                        )}{' '}
-                        {(cat.packageCosts ?? [])
-                          .filter(
-                            (o) =>
-                              o.cost > 0 && o.detachments.some((id) => detachments.includes(id)),
-                          )
-                          .map((o) =>
-                            o.optional ? (
-                              <Check
-                                key={o.name}
-                                label={`${o.name} · +${o.cost} очков на бой`}
-                                value={(pick.paidOptions ?? []).includes(o.name)}
-                                change={(v) =>
-                                  edit(u.id, {
-                                    paidOptions: v
-                                      ? [...(pick.paidOptions ?? []), o.name]
-                                      : (pick.paidOptions ?? []).filter((n) => n !== o.name),
-                                  })
-                                }
-                              />
-                            ) : (
-                              <small key={o.name}>
-                                {o.name} · обязательные +{o.cost} очков в этом detachment
-                              </small>
-                            ),
-                          )}
-                        {u.scars.length > 0 && (
-                          <Options
-                            label="Redemption Scar"
-                            value={pick.redemption === null ? '' : String(pick.redemption)}
-                            change={(v) => edit(u.id, { redemption: v ? Number(v) : null })}
-                            items={u.scars.map((sc) => ({
-                              id: String(sc.id),
-                              name: `Scar ${sc.id}`,
-                            }))}
-                          />
-                        )}
-                        {pick.redemption !== null && (
-                          <Options
-                            label="Redemption Deed до commitment"
-                            value={pick.redemptionDeed ?? ''}
-                            change={(redemptionDeed) => edit(u.id, { redemptionDeed })}
-                            items={['HOLD', 'BREAK', 'HUNT', 'ENDURE', 'OPERATE', 'EXTRACT'].map(
-                              (id) => ({ id, name: id }),
-                            )}
-                          />
-                        )}{' '}
-                        {u.side === 'necrons' && u.scars.some((c) => c.id === 12) && (
-                          <Options
-                            label="Protocol Obsession"
-                            value={pick.protocol ?? 'HOLD'}
-                            change={(protocol) => edit(u.id, { protocol })}
-                            items={['HOLD', 'HUNT'].map((id) => ({ id, name: id }))}
-                          />
-                        )}
-                      </>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-      <div className="form-grid">
-        <div>
-          <h4>Detachments на бой</h4>
-          {p.package.map((id) => (
-            <Check
-              key={id}
-              label={s.snapshot.detachments.find((d) => d.id === id)!.name}
-              value={detachments.includes(id)}
-              change={(v) => {
-                const next = v ? [...detachments, id] : detachments.filter((d) => d !== id)
-                setDetachments(next)
-                setPicks(
-                  picks.map((pick) => ({
-                    ...pick,
-                    paidOptions: (pick.paidOptions ?? []).filter((name) =>
-                      entry(s, unit(s, pick.id), b.snapshot).packageCosts?.some(
-                        (o) =>
-                          o.optional &&
-                          o.name === name &&
-                          o.detachments.some((d) => next.includes(d)),
-                      ),
-                    ),
-                  })),
-                )
-              }}
-            />
-          ))}
-        </div>
-        <div>
-          {(b.snapshot.dispositions ?? [])
-            .filter((d) => d.side === side)
-            .map((d) => (
-              <Check
-                key={d.id}
-                label={d.name}
-                value={dispositions.includes(d.id)}
-                change={(v) =>
-                  setDispositions(
-                    v ? [...dispositions, d.id] : dispositions.filter((id) => id !== d.id),
-                  )
-                }
-              />
-            ))}
-        </div>
-        <Options
-          label="Warlord / Garrison Commander"
-          value={commander}
-          change={setCommander}
-          items={picks.map((p) => ({ id: p.id, name: unit(s, p.id).name }))}
-        />
-      </div>
-      <p className={error ? 'validation' : 'success'}>
-        {error || 'Состав прошёл проверки кампании.'}
-      </p>
-      <div className="buttons">
-        <button disabled={!!error} onClick={() => send('commit_muster', { muster: m })}>
-          Запечатать legal состав
-        </button>
-        {['encounter', 'WAR', 'PACT'].includes(b.type) && (
-          <button className="quiet" onClick={() => send('emergency_muster')}>
-            Нет legal армии → Emergency Muster
-          </button>
-        )}
-      </div>
-    </section>
-  )
 }
 function InterdictView({ s, side, send }: Props) {
   const [asset, setAsset] = useState(''),
@@ -710,7 +306,9 @@ function AssetView({ s, side, send }: Props) {
     })
   return (
     <section className="panel" id="assets-panel">
-      <h3>Assets после reveal</h3>
+      <h3 className="rule-label">
+        Assets после reveal <RuleHelp topic="preparation" />
+      </h3>
       <p>
         Underdog {underdog(b, side)} · Defensive {side === b.defender && b.defAsset ? 1 : 0} ·
         Breach {side === b.attacker ? b.breaches : 0}. Enemy Interdict:{' '}
@@ -760,122 +358,207 @@ function TableView({ s, side, send }: Props) {
     [ruinsBonus, setRuinsBonus] = useState(false)
   const o = t.objects.find((o) => o.id === object),
     options = o ? actionsFor(s, o) : []
+  const n = nextStep(s, side)
+  const advanceAllowed = !n.waiting && t.step !== 'finished'
+  const selectObject = (id: string) => {
+    const target = t.objects.find((o) => o.id === id)
+    if (!target || target.disabled) return
+    setObject(id)
+    const actions = actionsFor(s, target)
+    setKind(actions.length === 1 ? actions[0] : '')
+  }
   return (
     <>
-      <section className="panel" id="table-panel">
+      <section className="panel battle-table-panel" id="table-panel">
         <div className="section-head">
-          <h2>
-            R{t.round} · {t.step} · {labels[t.turn]}
-          </h2>
-          <div className="score">
-            {t.vp.deathwatch} : {t.vp.necrons}
-          </div>
+          <h2>За столом</h2>
+          <StatusBadge tone={n.waiting ? 'info' : 'ready'}>{TABLE_STEPS[t.step]}</StatusBadge>
         </div>
-        {t.round === 1 && t.step === 'start' && (
-          <Options
-            label="Первый игрок по tabletop roll-off"
-            value={t.first}
-            change={(side) => send('table_first', { side })}
-            items={SIDES.map((id) => ({ id, name: labels[id] }))}
-          />
-        )}
-        <div className="table-map">
-          <svg
-            viewBox={`-2 -2 ${dimensions.l + 4} ${dimensions.w + 4}`}
-            role="img"
-            aria-label="Объекты текущей миссии"
-          >
-            <rect
-              x="0"
-              y="0"
-              width={dimensions.l}
-              height={dimensions.d}
-              fill="#786044"
-              opacity=".2"
+        <div className="battle-live-grid">
+          <aside className="battle-mission-panel" aria-label="Оперативная карточка миссии">
+            <p className="eyebrow">МИССИЯ · {b.mission ?? b.type}</p>
+            <MissionBrief
+              code={b.mission ?? b.type}
+              exact={MISSION_CARDS[b.mission ?? '']?.body ?? CRISIS_CARDS[b.type] ?? crisisText(s)}
             />
-            <rect
-              x="0"
-              y={dimensions.w - dimensions.d}
-              width={dimensions.l}
-              height={dimensions.d}
-              fill="#4f7761"
-              opacity=".2"
-            />
-            {t.objects
-              .filter((o) => !o.disabled)
-              .map((o) => (
-                <g key={o.id} onClick={() => setObject(o.id)}>
-                  <circle
-                    cx={o.x}
-                    cy={o.y}
-                    r={o.kind === 'objective' ? 2 : 1.4}
-                    className={o.control ?? 'neutral'}
-                  />
-                  <text x={o.x} y={o.y + 0.6}>
-                    {o.id}
-                  </text>
-                </g>
-              ))}
-          </svg>
-        </div>
-        {b.type === 'PACT' && (
-          <p>
-            Instability <strong>{t.instability}/12</strong> · Keys{' '}
-            {t.objects.reduce((n, o) => n + o.keys.length, 0)}/6 · Primes{' '}
-            {Object.keys(t.primes).length}/2
-          </p>
-        )}
-        <div className="object-grid">
-          {t.objects.map((o) => (
-            <div className="object" key={o.id}>
-              <strong>
-                {o.id} · {o.kind}
-              </strong>
-              <small>
-                ({o.x.toFixed(1)}, {o.y.toFixed(1)}) {o.disabled ? '· отключён' : ''}
-              </small>
+            {b.effects.map((e, i) => (
+              <p key={i}>
+                <strong>{e.code}</strong> — {EVENTS[e.code]?.effect ?? e.code}
+              </p>
+            ))}
+          </aside>
+          <div className="battle-board">
+            {t.round === 1 && t.step === 'start' && (
               <Options
-                label="Физический контроль"
-                value={o.control ?? ''}
-                change={(who) =>
-                  send('table_controls', { controls: [{ id: o.id, side: who || null }] })
-                }
+                label="Первый игрок по tabletop roll-off"
+                value={t.first}
+                change={(side) => send('table_first', { side })}
                 items={SIDES.map((id) => ({ id, name: labels[id] }))}
               />
-              <small>
-                Tag: {o.tag ? labels[o.tag] : '—'}
-                {o.keys.length ? ` · Keys ${o.keys.join(' + ')}` : ''}
-                {o.carrier ? ` · Bearer ${unit(s, o.carrier).name}` : ''}
-              </small>
-              {b.type === 'PACT' && ['1', '2', '3'].includes(o.id) && (
-                <label>
-                  Echo wounds
-                  <input
-                    type="number"
-                    min="0"
-                    max="10"
-                    value={t.echoes[Number(o.id) - 1].wounds}
-                    onChange={(e) =>
-                      send('echo_wounds', {
-                        index: Number(o.id) - 1,
-                        wounds: Number(e.target.value),
-                      })
-                    }
-                  />
-                </label>
-              )}
+            )}
+            <div className="table-map">
+              <svg
+                viewBox={`-2 -2 ${dimensions.l + 4} ${dimensions.w + 4}`}
+                role="img"
+                aria-label="Объекты текущей миссии"
+              >
+                <rect
+                  x="0"
+                  y="0"
+                  width={dimensions.l}
+                  height={dimensions.d}
+                  fill="#786044"
+                  opacity=".2"
+                />
+                <rect
+                  x="0"
+                  y={dimensions.w - dimensions.d}
+                  width={dimensions.l}
+                  height={dimensions.d}
+                  fill="#4f7761"
+                  opacity=".2"
+                />
+                {t.objects.map((o) => (
+                  <g
+                    key={o.id}
+                    role="button"
+                    tabIndex={o.disabled ? -1 : 0}
+                    aria-label={`Объект ${o.id} · ${o.kind}${o.disabled ? ' · отключён' : ''}`}
+                    aria-disabled={o.disabled}
+                    aria-pressed={object === o.id}
+                    onClick={() => selectObject(o.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        selectObject(o.id)
+                      }
+                    }}
+                  >
+                    <title>
+                      {o.id} · {o.kind} · {o.control ? labels[o.control] : 'без контроля'}
+                    </title>
+                    {object === o.id && (
+                      <circle className="marker-selected" cx={o.x} cy={o.y} r={3.2} />
+                    )}
+                    {o.kind === 'objective' ? (
+                      <circle cx={o.x} cy={o.y} r={2} className={o.control ?? 'neutral'} />
+                    ) : o.kind === 'interaction' ? (
+                      <rect
+                        className={'mission-marker ' + (o.control ?? 'neutral')}
+                        x={o.x - 1.5}
+                        y={o.y - 1.5}
+                        width={3}
+                        height={3}
+                        rx={0.2}
+                      />
+                    ) : (
+                      <path
+                        className={'mission-marker ' + (o.control ?? 'neutral')}
+                        d={`M ${o.x} ${o.y - 1.8} l 1.8 1.8 l -1.8 1.8 l -1.8 -1.8 Z`}
+                      />
+                    )}
+                    {o.disabled && (
+                      <path
+                        className="marker-disabled"
+                        d={`M ${o.x - 1.7} ${o.y - 1.7} l 3.4 3.4 M ${o.x - 1.7} ${o.y + 1.7} l 3.4 -3.4`}
+                      />
+                    )}
+                    <text x={o.x} y={o.y + 4}>
+                      {o.id}
+                    </text>
+                  </g>
+                ))}
+              </svg>
             </div>
-          ))}
+            {b.type === 'PACT' && (
+              <p>
+                Instability <strong>{t.instability}/12</strong> · Keys{' '}
+                {t.objects.reduce((n, o) => n + o.keys.length, 0)}/6 · Primes{' '}
+                {Object.keys(t.primes).length}/2
+              </p>
+            )}
+          </div>
+          <aside className="battle-current-action">
+            <p className="eyebrow">ТЕКУЩИЙ ШАГ</p>
+            <h3>{TABLE_STEPS[t.step]}</h3>
+            <p>{n.text}</p>
+            <StatusBadge tone={n.waiting ? 'info' : 'ready'}>Ход {labels[t.turn]}</StatusBadge>
+            {t.step !== 'finished' && (
+              <>
+                <button
+                  className="primary"
+                  disabled={!advanceAllowed}
+                  onClick={() => send('table_advance')}
+                >
+                  Завершить шаг
+                </button>
+                {n.waiting && <p className="muted">Шаг завершает другой командир.</p>}
+              </>
+            )}
+            {object && (
+              <p className="board-selection">
+                Выбран объект <strong>{object}</strong>
+              </p>
+            )}
+            <small>
+              Круг — objective · квадрат — interaction · ромб — item. Контроль объектов сверяется с
+              физическим столом.
+            </small>
+          </aside>
         </div>
+        <details className="battle-object-controls">
+          <summary>
+            Контроль объектов · {t.objects.filter((o) => !o.disabled).length} активных
+          </summary>
+          <div className="object-grid">
+            {t.objects.map((o) => (
+              <div className="object" key={o.id}>
+                <strong>
+                  {o.id} · {o.kind}
+                </strong>
+                <small>
+                  ({o.x.toFixed(1)}, {o.y.toFixed(1)}) {o.disabled ? '· отключён' : ''}
+                </small>
+                <Options
+                  label="Физический контроль"
+                  value={o.control ?? ''}
+                  change={(who) =>
+                    send('table_controls', { controls: [{ id: o.id, side: who || null }] })
+                  }
+                  items={SIDES.map((id) => ({ id, name: labels[id] }))}
+                />
+                <small>
+                  Tag: {o.tag ? labels[o.tag] : '—'}
+                  {o.keys.length ? ` · Keys ${o.keys.join(' + ')}` : ''}
+                  {o.carrier ? ` · Bearer ${unit(s, o.carrier).name}` : ''}
+                </small>
+                {b.type === 'PACT' && ['1', '2', '3'].includes(o.id) && (
+                  <label>
+                    Echo wounds
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={t.echoes[Number(o.id) - 1].wounds}
+                      onChange={(e) =>
+                        send('echo_wounds', {
+                          index: Number(o.id) - 1,
+                          wounds: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </label>
+                )}
+              </div>
+            ))}
+          </div>
+        </details>
         {t.notes.length > 0 && (
           <div className="notice">
             {t.notes.map((n, i) => (
               <p key={i}>{n}</p>
             ))}
           </div>
-        )}
-        {t.step !== 'finished' && (
-          <button onClick={() => send('table_advance')}>Завершить {t.step} → следующий этап</button>
         )}
       </section>
       {t.step === 'movement' && (
@@ -892,8 +575,7 @@ function TableView({ s, side, send }: Props) {
               label="Объект"
               value={object}
               change={(v) => {
-                setObject(v)
-                setKind('')
+                selectObject(v)
               }}
               items={t.objects
                 .filter((o) => !o.disabled)
@@ -989,295 +671,6 @@ function TableView({ s, side, send }: Props) {
     </>
   )
 }
-export function ReportView({
-  s,
-  side,
-  send,
-  correction = false,
-}: Props & { correction?: boolean }) {
-  const b = correction ? (s.battle?.aftermathApplied ? s.battle : s.history.at(-1))! : s.battle!,
-    draft = useBattleDraft<Report>(
-      s.id,
-      b.id,
-      correction ? 'correction' : 'report',
-      s.version,
-      initialReport(b),
-      (v): v is Report =>
-        isReportDraft(v) &&
-        v.units.length === initialReport(b).units.length &&
-        new Set(v.units.map((u) => u.id)).size === v.units.length &&
-        v.units.every((u) => b.before.some((old) => old.id === u.id)),
-    ),
-    report = draft.value,
-    { units: rows, facts, narrative, vp, retreat, garrisonRetreat } = report
-  const setFacts = (v: Record<string, unknown>) => draft.update((r) => ({ ...r, facts: v }))
-  const setNarrative = (v: string) => draft.update((r) => ({ ...r, narrative: v }))
-  const setVP = (v: Report['vp']) => draft.update((r) => ({ ...r, vp: v }))
-  const setRetreat = (v: Report['retreat']) => draft.update((r) => ({ ...r, retreat: v }))
-  const setGarrisonRetreat = (v: Report['garrisonRetreat']) =>
-    draft.update((r) => ({ ...r, garrisonRetreat: v }))
-  const plan = reportRetreatPlan(s, b, report)
-  const missingRetreat =
-    SIDES.some((who) => plan.force[who]?.length && !plan.force[who]!.includes(retreat[who]!)) ||
-    (plan.garrison && plan.garrison.length > 0 && !plan.garrison.includes(garrisonRetreat!))
-  const edit = (id: string, value: Partial<UnitResult>) =>
-    draft.update((r) => ({
-      ...r,
-      units: r.units.map((row) => (row.id === id ? { ...row, ...value } : row)),
-    }))
-  return (
-    <section className="panel" id="report-panel">
-      <h3>{correction ? 'Новая ревизия результата' : 'Итог и потери по ID'}</h3>
-      {draft.status}
-      {correction && (
-        <>
-          <p>
-            Оба согласуют откат всех зависимых решений к исходному результату. Сохранённые dice
-            повторно не бросаются; доход пересчитывается один раз.
-          </p>
-          {SIDES.map((who) => (
-            <label key={who}>
-              VP {labels[who]}
-              <input
-                type="number"
-                min="0"
-                max="50"
-                value={vp[who]}
-                onChange={(e) => setVP({ ...vp, [who]: Number(e.target.value) })}
-              />
-            </label>
-          ))}
-        </>
-      )}
-      <p>
-        VP {b.table.vp.deathwatch} : {b.table.vp.necrons}. Участие и прибытие перенесены из хода
-        боя. Отметьте потери, Deed и Distinguished; применимые бонусы появятся сами.
-      </p>
-      {rows.map((r) => {
-        const fields = reportFields(s, b, r)
-        if (!r.entered)
-          return (
-            <details className="report-row" key={r.id}>
-              <summary>
-                {fields.u.name} · не прибыл{r.destroyed ? ' · Initial Reserve потерян' : ''}
-              </summary>
-              <p>Участие зафиксировано в ходе боя; награды за участие не применяются.</p>
-              {fields.medicae && (
-                <Check
-                  label="Medicae при новом Damage"
-                  value={r.usedMedicae ?? false}
-                  change={(v) => edit(r.id, { usedMedicae: v })}
-                />
-              )}
-            </details>
-          )
-        return (
-          <div className="report-row" key={r.id}>
-            <strong>{s.units.find((u) => u.id === r.id)?.name ?? r.id}</strong>
-            <div className="buttons">
-              <small>Участвовал · {labels[fields.u.side]}</small>
-              {fields.withdrawn && (
-                <Check
-                  label="Эвакуирован со стола"
-                  value={r.withdrawn}
-                  change={(v) => edit(r.id, { withdrawn: v })}
-                />
-              )}
-              <Check
-                label="Уничтожен"
-                value={r.destroyed}
-                change={(v) => edit(r.id, { destroyed: v })}
-              />
-              {fields.distinguished && (
-                <Check
-                  label="Distinguished"
-                  value={r.distinguished}
-                  change={(v) => edit(r.id, { distinguished: v })}
-                />
-              )}
-              {fields.medicae && (
-                <Check
-                  label="Medicae при новом Damage"
-                  value={r.usedMedicae ?? false}
-                  change={(v) => edit(r.id, { usedMedicae: v })}
-                />
-              )}
-            </div>
-            <Options
-              label="Deed, максимум один на исходную формацию"
-              value={r.deed ?? ''}
-              change={(v) => edit(r.id, { deed: (v || null) as UnitResult['deed'] })}
-              items={['HOLD', 'BREAK', 'HUNT', 'ENDURE', 'OPERATE', 'EXTRACT'].map((id) => ({
-                id,
-                name: id,
-              }))}
-            />
-            {fields.memory && (
-              <Check
-                label="Memory of Eternity использовано, bearer выжил"
-                value={r.signatureXP ?? false}
-                change={(v) => edit(r.id, { signatureXP: v })}
-              />
-            )}
-            {fields.hunt && (
-              <Check
-                label="Scar Driven to Hunt: objective XENOS target"
-                value={r.scarBonus ?? false}
-                change={(v) => edit(r.id, { scarBonus: v })}
-              />
-            )}
-            {fields.hazard && (
-              <Check
-                label="Погиб именно от mission hazard: Casualty −1"
-                value={r.casualtySources.includes(
-                  b.mission === 'C1' ? 'c1_debris' : b.mission === 'D1' ? 'd1_toxic' : 'j3_reactor',
-                )}
-                change={(v) =>
-                  edit(r.id, {
-                    casualtySources: v
-                      ? [
-                          b.mission === 'C1'
-                            ? 'c1_debris'
-                            : b.mission === 'D1'
-                              ? 'd1_toxic'
-                              : 'j3_reactor',
-                        ]
-                      : r.casualtySources.filter((source) => source === 'no_recovery'),
-                  })
-                }
-              />
-            )}
-          </div>
-        )
-      })}
-      {b.type === 'PACT' &&
-        SIDES.map((who) => (
-          <Check
-            key={who}
-            label={`${labels[who]}: Channeler жив, OC >0, не BS, без move, в 3 Engine после Final Pulse`}
-            value={facts[`prime_valid:${who}`] === true}
-            change={(v) => setFacts({ ...facts, [`prime_valid:${who}`]: v })}
-          />
-        ))}
-      {b.type === 'WAR' &&
-        SIDES.map((who) => (
-          <Check
-            key={who}
-            label={`${labels[who]}: живая модель с OC >0 в 3 Engine после Final Pulse`}
-            value={facts[`engine_alive_oc:${who}`] === true}
-            change={(v) => setFacts({ ...facts, [`engine_alive_oc:${who}`]: v })}
-          />
-        ))}
-      {/[AK]3/.test(b.mission!) && (
-        <Check
-          label="Attacker контролирует Throne в конце R5 после hazards"
-          value={facts.throne_control === b.attacker}
-          change={(v) => setFacts({ ...facts, throne_control: v ? b.attacker : b.defender })}
-        />
-      )}
-      {SIDES.map(
-        (who) =>
-          firstDestroyedCandidates(s, b, report, who).length > 0 && (
-            <Options
-              key={who}
-              label={`Первый уничтоженный ID ${labels[who]} · Hard Evacuation / Extraction`}
-              value={String(facts[`first_destroyed:${who}`] ?? '')}
-              change={(v) => setFacts({ ...facts, [`first_destroyed:${who}`]: v })}
-              items={firstDestroyedCandidates(s, b, report, who).map((r) => ({
-                id: r.id,
-                name: s.units.find((u) => u.id === r.id)!.name,
-              }))}
-            />
-          ),
-      )}
-      {storesCandidates(b, report).length > 0 && (
-        <Options
-          label="Hardened Stores: один уничтоженный ID"
-          value={String(facts.stores_id ?? '')}
-          change={(v) => setFacts({ ...facts, stores_id: v })}
-          items={storesCandidates(b, report).map((r) => ({
-            id: r.id,
-            name: s.units.find((u) => u.id === r.id)!.name,
-          }))}
-        />
-      )}
-      {b.table.objects.some((o) => o.id === 'overlay') && (
-        <Options
-          label="Контроль Anchor в конце R5 (если есть overlay)"
-          value={String(facts.anchor_control ?? '')}
-          change={(v) => setFacts({ ...facts, anchor_control: v || null })}
-          items={SIDES.map((id) => ({ id, name: labels[id] }))}
-        />
-      )}
-      {SIDES.map(
-        (who) =>
-          plan.force[who] &&
-          (plan.force[who]!.length > 0 ? (
-            <Options
-              key={who}
-              label={`Выберите отход ${labels[who]}`}
-              value={retreat[who] ?? ''}
-              change={(v) => setRetreat({ ...retreat, [who]: v || undefined })}
-              items={plan.force[who]!.map((id) => ({ id, name: id }))}
-            />
-          ) : (
-            <p key={who} className="notice">
-              {labels[who]}: нет доступного своего сектора. Движок рассчитает аварийную эвакуацию в
-              Home.
-            </p>
-          )),
-      )}
-      {plan.garrison &&
-        (plan.garrison.length > 0 ? (
-          <Options
-            label="Единый отход захваченного гарнизона"
-            value={garrisonRetreat ?? ''}
-            change={(v) => setGarrisonRetreat((v as Report['garrisonRetreat']) || null)}
-            items={plan.garrison.map((id) => ({ id, name: id }))}
-          />
-        ) : (
-          <p className="notice">Гарнизон эвакуируется в Home автоматически.</p>
-        ))}
-      {missingRetreat && (
-        <p className="notice">
-          Следующий шаг: выберите доступный отход выше, затем отправьте отчёт.
-        </p>
-      )}
-      <label>
-        История боя
-        <textarea
-          maxLength={5000}
-          rows={3}
-          value={narrative}
-          onChange={(e) => setNarrative(e.target.value)}
-        />
-      </label>
-      <button
-        disabled={!!missingRetreat}
-        onClick={async () => {
-          const updated = cleanReport(s, b, {
-            ...report,
-            vp: correction ? vp : b.table.vp,
-            withdrawal: b.table.records.mutualWithdrawal
-              ? [...SIDES]
-              : b.table.records.withdrawalSide
-                ? [b.table.records.withdrawalSide as Side]
-                : [],
-            facts: {
-              ...facts,
-              withdrawal_timing_valid:
-                !!b.table.records.withdrawalSide || !!b.table.records.mutualWithdrawal,
-            },
-          })
-          if (await send(correction ? 'request_correction' : 'submit_result', { report: updated }))
-            draft.clear()
-        }}
-      >
-        Отправить результат на подтверждение обоими
-      </button>
-    </section>
-  )
-}
 function Endings({ s, side, send }: Props) {
   return (
     <section className="panel">
@@ -1310,7 +703,9 @@ function Endings({ s, side, send }: Props) {
 function AftermathView({ s, side, send }: Props) {
   const b = s.battle!,
     preview = (
-      s as State & { preview?: { players: State['players']; units: State['units']; phase: string } }
+      s as State & {
+        preview?: { players: State['players']; units: State['units']; phase: State['phase'] }
+      }
     ).preview
   return (
     <section className="panel" id="aftermath-panel">
@@ -1390,33 +785,7 @@ function AftermathView({ s, side, send }: Props) {
       <hr />
       {preview ? (
         <>
-          <h4>Итог до фиксации</h4>
-          {SIDES.map((who) => (
-            <p key={who}>
-              {labels[who]}: Supply {s.players[who].supply} → {preview.players[who].supply}; Intel{' '}
-              {s.players[who].intel} → {preview.players[who].intel}; Recovery{' '}
-              {s.players[who].recovery} → {preview.players[who].recovery}; MF{' '}
-              {preview.players[who].mf}
-            </p>
-          ))}
-          {preview.units
-            .filter((u) => {
-              const old = s.units.find((v) => v.id === u.id)
-              return (
-                !old ||
-                old.damage !== u.damage ||
-                old.xp !== u.xp ||
-                old.status !== u.status ||
-                old.scars.length !== u.scars.length
-              )
-            })
-            .map((u) => (
-              <p key={u.id}>
-                {u.name}: XP {u.xp} · Damage {u.damage} · {u.status} · Scars{' '}
-                {u.scars.map((c) => c.id).join(', ') || '—'}
-              </p>
-            ))}
-          <p>Далее: {phases[preview.phase]}</p>
+          <AftermathSummary s={s} preview={preview} />
           <button disabled={b.confirm.includes(side)} onClick={() => send('confirm_aftermath')}>
             Подтвердить этот расчёт
           </button>

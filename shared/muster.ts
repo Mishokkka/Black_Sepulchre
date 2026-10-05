@@ -88,7 +88,6 @@ export function validateMuster(
     return u
   }
   const counts: Record<string, number> = {},
-    costs: Record<string, number> = {},
     forms = new Map<string, typeof m.picks>()
   let enhancementCount = 0
   const enhIds = new Set<string>()
@@ -267,19 +266,7 @@ export function validateMuster(
       })),
     )
   }
-  for (const v of m.picks) {
-    const u = unit(s, v.id),
-      c = entry(s, u, b.snapshot),
-      ordered = m.picks
-        .filter((v) => sameDatasheet(entry(s, unit(s, v.id), b.snapshot).datasheet, c.datasheet))
-        .sort((a, b) => a.id.localeCompare(b.id)),
-      i = ordered.findIndex((x) => x.id === v.id)
-    costs[v.id] =
-      (c.copyPrices[i] ?? c.rc) +
-      optionalPackageCost(c, v.paidOptions ?? [], m.detachments) +
-      (v.enhancement ? b.snapshot.enhancements.find((e) => e.id === v.enhancement)!.cost : 0) +
-      surcharge(s, u, v, m.picks)
-  }
+  const costs = musterCosts(s, m, b)
   const sum = (role: string) =>
       m.picks.filter((v) => v.role === role).reduce((n, v) => n + costs[v.id], 0),
     field = sum('field'),
@@ -340,6 +327,24 @@ export function validateMuster(
           (u.location === 'garrison' && u.sector === b.sector && garrisonLegal(s, u, u.sector!))),
       'Нелегальный RESTING',
     )
+  }
+  return costs
+}
+/** The same cost calculation serves validation and an unfinished local draft. */
+export function musterCosts(s: State, m: Muster, b: Battle = s.battle!): Record<string, number> {
+  const costs: Record<string, number> = {}
+  for (const v of m.picks) {
+    const u = unit(s, v.id),
+      c = entry(s, u, b.snapshot),
+      ordered = m.picks
+        .filter((v) => sameDatasheet(entry(s, unit(s, v.id), b.snapshot).datasheet, c.datasheet))
+        .sort((a, b) => a.id.localeCompare(b.id)),
+      i = ordered.findIndex((x) => x.id === v.id)
+    costs[v.id] =
+      (c.copyPrices[i] ?? c.rc) +
+      optionalPackageCost(c, v.paidOptions ?? [], m.detachments) +
+      (v.enhancement ? b.snapshot.enhancements.find((e) => e.id === v.enhancement)!.cost : 0) +
+      surcharge(s, u, v, m.picks)
   }
   return costs
 }
