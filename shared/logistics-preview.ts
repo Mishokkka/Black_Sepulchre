@@ -9,10 +9,18 @@ export function logisticsPreview(
   payload: Record<string, unknown>,
 ) {
   try {
+    let random = false
     const next = command(
       s,
       { type, payload },
-      { actor: side, dice: () => 1, id: () => 'qol-preview-unit' },
+      {
+        actor: side,
+        dice: () => {
+          random = true
+          return 1
+        },
+        id: () => 'qol-preview-unit',
+      },
     )
     const a = s.players[side],
       z = next.players[side]
@@ -53,6 +61,25 @@ export function logisticsPreview(
     return {
       allowed: true as const,
       reason: '',
+      random,
+      phase: next.phase,
+      debtRemaining: z.debt,
+      debtRepaid: a.debt - z.debt,
+      recoveryRemaining: z.recovery,
+      unit: payload.id
+        ? (() => {
+            const before = s.units.find((u) => u.id === payload.id),
+              after = next.units.find((u) => u.id === payload.id)
+            return before && after
+              ? {
+                  damage: [before.damage, after.damage],
+                  xp: [before.xp, after.xp],
+                  evac: [before.evacDebt, after.evacDebt],
+                  commission: [!!before.flags.commission, !!after.flags.commission],
+                }
+              : null
+          })()
+        : null,
       supply: a.supply - z.supply,
       remaining: z.supply,
       local,

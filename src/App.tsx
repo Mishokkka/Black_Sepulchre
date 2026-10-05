@@ -2,26 +2,18 @@ import { Auth, PasswordRecovery, RECOVERY_KEY } from './views/AuthView'
 import { DraftUser } from './lib/useBattleDraft'
 import { clearFinishedDrafts } from './lib/drafts'
 import { campaignKey, initialCampaign, type CampaignChoice } from './lib/campaign-selection'
-import { NextStep } from './views/NextStep'
+import { CampaignShell } from './views/CampaignShell'
+import { CampaignAccess, CampaignChooser } from './views/CampaignAccess'
+import { ScreenLoading } from './views/ScreenLoading'
+import { commandReceipt, type CommandReceipt } from './lib/command-receipt'
+import type { PendingRequest } from './lib/requests'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import {
-  BookOpen,
-  Footprints,
-  LogOut,
-  Map,
-  RefreshCw,
-  Shield,
-  Skull,
-  Swords,
-  Users,
-} from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { supabase } from './lib/supabase'
 import type { Command, Side, State, View } from '../shared/model'
-import { STAGES } from '../shared/rules'
-import { labels, phases, type Send } from './views/common'
+import type { Send } from './views/common'
 import type { LibraryAPI } from './views/CatalogView'
-import { SyncStatus } from './views/SyncStatus'
 import {
   errorHelp,
   CampaignRequestError,
@@ -35,97 +27,58 @@ const CampaignMap = lazy(() =>
 )
 const SetupView = lazy(() => import('./views/SetupView').then((m) => ({ default: m.SetupView })))
 const StrategyView = lazy(() =>
-  import('./views/CampaignViews').then((m) => ({ default: m.StrategyView })),
+  import('./views/StrategyView').then((m) => ({ default: m.StrategyView })),
 )
 const LogisticsView = lazy(() =>
-  import('./views/CampaignViews').then((m) => ({ default: m.LogisticsView })),
+  import('./views/LogisticsView').then((m) => ({ default: m.LogisticsView })),
 )
-const RosterView = lazy(() =>
-  import('./views/CampaignViews').then((m) => ({ default: m.RosterView })),
-)
+const RosterView = lazy(() => import('./views/RosterView').then((m) => ({ default: m.RosterView })))
 const BattleView = lazy(() => import('./views/BattleView').then((m) => ({ default: m.BattleView })))
-const ReportView = lazy(() => import('./views/BattleView').then((m) => ({ default: m.ReportView })))
+const ResultCorrection = lazy(() =>
+  import('./views/ResultCorrection').then((m) => ({ default: m.ResultCorrection })),
+)
 const CatalogView = lazy(() =>
   import('./views/CatalogView').then((m) => ({ default: m.CatalogView })),
 )
 const HistoryView = lazy(() =>
   import('./views/HistoryView').then((m) => ({ default: m.HistoryView })),
 )
+const OverviewView = lazy(() =>
+  import('./views/OverviewView').then((m) => ({ default: m.OverviewView })),
+)
 const ReferenceView = lazy(() => import('./views/ReferenceView'))
-function Gate({ ready, onError }: { ready: (id: string) => void; onError: (m: string) => void }) {
-  const inFlight = useRef(false)
-  const [name, setName] = useState('The Black Sepulchre'),
-    [display, setDisplay] = useState('Commander'),
-    [side, setSide] = useState<Side>('deathwatch'),
-    [code, setCode] = useState(''),
-    [busy, setBusy] = useState(false)
-  const run = async (join: boolean) => {
-    if (inFlight.current) return
-    inFlight.current = true
-    setBusy(true)
-    try {
-      const r = join
-        ? await supabase.rpc('v221_join_campaign', {
-            p_invite_code: code.trim().toUpperCase(),
-            p_display_name: display,
-          })
-        : await supabase.rpc('create_campaign', {
-            p_name: name,
-            p_side: side,
-            p_display_name: display,
-          })
-      if (r.error) onError(r.error.message)
-      else ready(r.data)
-    } catch (error) {
-      onError((error as Error).message)
-    } finally {
-      inFlight.current = false
-      setBusy(false)
-    }
-  }
+function Gate({
+  ready,
+  onError,
+  back,
+}: {
+  ready: (id: string) => void
+  onError: (m: string) => void
+  back?: () => void
+}) {
   return (
-    <div className="center">
-      <section className="login">
-        <h1>Ваша кампания</h1>
-        <label>
-          Имя командира
-          <input value={display} onChange={(e) => setDisplay(e.target.value)} />
-        </label>
-        <label>
-          Название
-          <input value={name} onChange={(e) => setName(e.target.value)} />
-        </label>
-        <label>
-          Сторона
-          <select
-            aria-label="Сторона"
-            value={side}
-            onChange={(e) => setSide(e.target.value as Side)}
-          >
-            {Object.entries(labels).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button disabled={busy} onClick={() => run(false)}>
-          Создать кампанию
-        </button>
-        <hr />
-        <label>
-          Код приглашения
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Код второго командира"
-          />
-        </label>
-        <button disabled={busy || !code.trim()} onClick={() => run(true)}>
-          Присоединиться
-        </button>
-      </section>
-    </div>
+    <CampaignAccess
+      onError={onError}
+      back={back}
+      signOut={() => {
+        void supabase.auth.signOut()
+      }}
+      run={async (join, { name, display, side, code }) => {
+        const r = join
+          ? await supabase.rpc('v221_join_campaign', {
+              p_invite_code: code,
+              p_display_name: display,
+            })
+          : await supabase.rpc('create_campaign', {
+              p_name: name,
+              p_side: side,
+              p_display_name: display,
+            })
+        if (r.error) throw r.error
+        ready(r.data)
+        return undefined
+      }}
+    />
   )
 }
 export default function App() {
@@ -139,11 +92,12 @@ export default function App() {
     [view, setView] = useState<View | null>(null),
     [side, setSide] = useState<Side>('deathwatch'),
     [tab, setTab] = useState('overview'),
+    [historyBattle, setHistoryBattle] = useState(''),
     [error, setError] = useState<Error | string>(''),
     [busy, setBusy] = useState(false),
     [invite, setInvite] = useState(''),
-    [pending, setPending] = useState<unknown>(null),
-    [correcting, setCorrecting] = useState(false),
+    [pending, setPending] = useState<PendingRequest | null>(null),
+    [receipt, setReceipt] = useState<CommandReceipt | null>(null),
     [membershipReady, setMembershipReady] = useState(false),
     [membershipFailed, setMembershipFailed] = useState(false),
     [membershipAttempt, setMembershipAttempt] = useState(0)
@@ -156,6 +110,7 @@ export default function App() {
   scope.current = `${session?.user.id ?? ''}:${id ?? ''}`
   useEffect(() => {
     setSync(initialSync(navigator.onLine))
+    setReceipt(null)
     if (id && session) {
       try {
         setPending(readPending(sessionStorage, session.user.id, id))
@@ -181,9 +136,9 @@ export default function App() {
         setId(null)
         setView(null)
         setPending(null)
+        setReceipt(null)
         setInvite('')
         setError('')
-        setCorrecting(false)
         setCampaigns([])
         setChoosing(false)
         setCreating(false)
@@ -271,7 +226,6 @@ export default function App() {
     setView(null)
     setInvite('')
     setError('')
-    setCorrecting(false)
     setTab('overview')
     setChoosing(false)
     setCreating(false)
@@ -423,6 +377,7 @@ export default function App() {
   }, [id, load])
   const send: Send = async (type, payload = {}) => {
     if (!id || !view || pending || sending.current) return false
+    setReceipt(null)
     if (!navigator.onLine) {
       setError('Нет интернета')
       return false
@@ -444,7 +399,9 @@ export default function App() {
       /* In-memory retry remains available if storage is blocked. */
     }
     try {
-      await call(body)
+      const result = await call(body)
+      if (started !== scope.current) return false
+      setReceipt(commandReceipt(body, result?.state, side, Date.now()))
       setPending(null)
       try {
         sessionStorage.removeItem(receiptKey)
@@ -479,11 +436,17 @@ export default function App() {
   }
   const retry = async () => {
     if (!pending || sending.current) return
+    if (!navigator.onLine) {
+      setError('Нет интернета')
+      return
+    }
     sending.current = true
     const started = scope.current
     setBusy(true)
     try {
-      await call(pending as Record<string, unknown>)
+      const result = await call({ ...pending })
+      if (started !== scope.current) return
+      setReceipt(commandReceipt(pending, result?.state, side, Date.now()))
       setPending(null)
       try {
         sessionStorage.removeItem(pendingKey(user.current!, id!))
@@ -511,7 +474,7 @@ export default function App() {
   }
   const help = errorHelp(error, !!pending, sync.online)
   const alert = (error || !!pending) && (
-    <div role="alert" className="toast">
+    <div role="alert" className={`toast${pending ? ' uncertain' : ''}`}>
       <span>{help.text}</span>
       {!!pending && (
         <button className="quiet" disabled={busy} onClick={retry}>
@@ -549,7 +512,7 @@ export default function App() {
       </button>
     </div>
   )
-  if (!authReady) return <div className="center">Загрузка…</div>
+  if (!authReady) return <ScreenLoading full label="Проверяем доступ…" />
   if (!session)
     return (
       <>
@@ -574,7 +537,7 @@ export default function App() {
         />
       </>
     )
-  if (!membershipReady) return <div className="center">Загрузка списка кампаний…</div>
+  if (!membershipReady) return <ScreenLoading full label="Загрузка списка кампаний…" />
   if (membershipFailed)
     return (
       <>
@@ -591,48 +554,24 @@ export default function App() {
       <>
         {alert}
         {campaigns.length > 0 && !creating ? (
-          <div className="center">
-            <section className="login">
-              <h1>Выберите кампанию</h1>
-              {campaigns.map((c) => (
-                <button
-                  key={c.id}
-                  className="quiet campaign-choice"
-                  onClick={() => selectCampaign(c.id)}
-                >
-                  {c.name}
-                  <small>
-                    {labels[c.side]}
-                    {id === c.id ? ' · текущая' : ''}
-                  </small>
-                </button>
-              ))}
-              <button onClick={() => setCreating(true)}>Создать или присоединиться</button>
-              <button className="quiet" onClick={() => supabase.auth.signOut()}>
-                Выйти
-              </button>
-            </section>
-          </div>
+          <CampaignChooser
+            campaigns={campaigns}
+            current={id}
+            choose={selectCampaign}
+            create={() => setCreating(true)}
+            signOut={() => {
+              void supabase.auth.signOut()
+            }}
+          />
         ) : (
-          <>
-            {campaigns.length > 0 && (
-              <button className="quiet" onClick={() => setCreating(false)}>
-                ← К списку кампаний
-              </button>
-            )}
-            <Gate
-              ready={(next) => {
-                selectCampaign(next)
-                setMembershipAttempt((n) => n + 1)
-              }}
-              onError={setError}
-            />
-            {campaigns.length === 0 && (
-              <button className="quiet" onClick={() => supabase.auth.signOut()}>
-                Выйти
-              </button>
-            )}
-          </>
+          <Gate
+            back={campaigns.length > 0 ? () => setCreating(false) : undefined}
+            ready={(next) => {
+              selectCampaign(next)
+              setMembershipAttempt((n) => n + 1)
+            }}
+            onError={setError}
+          />
         )}
       </>
     )
@@ -640,55 +579,37 @@ export default function App() {
     return (
       <>
         {alert}
-        <div className="center">
-          <div>
-            <p>Загрузка кампании…</p>
-            <button onClick={load}>Обновить</button>
+        <div className="screen-loading-center">
+          <div className="campaign-loading">
+            <ScreenLoading label="Загрузка кампании…" />
+            <button className="quiet" onClick={load}>
+              Повторить загрузку
+            </button>
           </div>
         </div>
       </>
     )
-  const s = view as unknown as State,
-    stage = STAGES[s.stage],
-    p = s.players[side],
-    nav = [
-      ['overview', Shield, 'Сводка'],
-      ['strategy', Footprints, 'Стратегия'],
-      ['map', Map, 'Карта'],
-      ['roster', Users, 'Армия'],
-      ['catalog', BookOpen, 'Каталог'],
-      ['battle', Swords, 'Текущий бой'],
-      ['logistics', Shield, 'Logistics'],
-      ['history', BookOpen, 'История'],
-      ['rules', BookOpen, 'Правила'],
-    ] as const
+  const s = view as unknown as State
   return (
     <DraftUser.Provider value={session.user.id}>
-      <div className="app">
-        <aside>
-          <div className="brand">
-            <Skull />
-            <div>
-              BLACK
-              <br />
-              SEPULCHRE
-            </div>
-          </div>
-          <span className={`faction ${side}`}>{labels[side]}</span>
-          <nav>
-            {nav.map(([key, Icon, label]) => (
-              <button
-                key={key}
-                className={tab === key ? 'selected' : 'quiet'}
-                onClick={() => setTab(key)}
-              >
-                <Icon size={18} />
-                {label}
-              </button>
-            ))}
-          </nav>
-          <div className="aside-bottom">
-            <small>Правила 2.2.1 · состояние {s.version}</small>
+      <CampaignShell
+        receipt={receipt}
+        dismissReceipt={() => setReceipt(null)}
+        s={s}
+        side={side}
+        tab={tab}
+        navigate={(tab) => {
+          if (tab === 'history') setHistoryBattle('')
+          setTab(tab)
+        }}
+        sync={sync}
+        pending={!!pending}
+        busy={busy}
+        invite={invite}
+        refresh={load}
+        alert={alert}
+        utilities={
+          <>
             <button
               className="quiet"
               disabled={busy || !!pending}
@@ -711,172 +632,73 @@ export default function App() {
             >
               <LogOut size={16} /> Выйти
             </button>
-          </div>
-        </aside>
-        <main className="content">
-          {alert}
-          <header>
-            <div>
-              <p className="eyebrow">KHARON SECUNDUS · {phases[s.phase]}</p>
-              <h1>{s.name}</h1>
-            </div>
-            <div className="toolbar">
-              <button
-                className="quiet"
-                onClick={() => navigator.clipboard.writeText(invite)}
-                title="Скопировать код приглашения"
-              >
-                Код: {invite}
-              </button>
-              <button className="quiet" aria-label="Обновить состояние" onClick={load}>
-                <RefreshCw size={18} className={busy ? 'spin' : ''} />
-              </button>
-            </div>
-          </header>
-          <SyncStatus sync={sync} pending={!!pending} side={side} />
-          <div className="statusline">
-            <span>Бой {Math.min(18, s.battles + 1)} / 18</span>
-            <span>AL {stage.al}</span>
-            <span>Supply {p.supply}</span>
-            <span>Intel {p.intel}</span>
-            <span>Recovery {p.recovery}</span>
-            <span>Choir {s.choir}/8</span>
-            {p.debt > 0 && <span>Аварийный долг {p.debt}</span>}
-          </div>
-          <Suspense
-            fallback={
-              <p className="panel" role="status">
-                Загрузка раздела…
-              </p>
-            }
-          >
-            <fieldset className="workspace" disabled={busy || !!pending}>
-              <NextStep s={s} side={side} navigate={setTab} />
-              {s.correctionProposal && (
-                <section className="panel" id="correction-panel">
-                  <h2>Предложена коррекция последнего результата</h2>
-                  <p>
-                    Зависимые действия приостановлены. После общего согласия они будут отменены и
-                    последствия боя пересчитаны из прежнего состояния.
-                  </p>
-                  <p>
-                    VP Deathwatch {s.correctionProposal.report.vp.deathwatch} : Necrons{' '}
-                    {s.correctionProposal.report.vp.necrons}
-                  </p>
-                  <p>{s.correctionProposal.report.narrative}</p>
-                  {s.correctionProposal.report.units.map((r) => (
-                    <p key={r.id}>
-                      {s.units.find((u) => u.id === r.id)?.name}:{' '}
-                      {r.entered ? 'участвовал' : 'не вошёл'}
-                      {r.destroyed ? ' · уничтожен' : ''}
-                      {r.deed ? ` · ${r.deed}` : ''}
-                    </p>
-                  ))}
-                  <button
-                    disabled={s.correctionProposal.approved.includes(side)}
-                    onClick={() => {
-                      send('approve_correction')
-                      setCorrecting(false)
-                    }}
-                  >
-                    Согласовать откат и новую ревизию
-                  </button>
-                  <button className="quiet" onClick={() => send('cancel_correction')}>
-                    Отклонить
-                  </button>
-                </section>
+          </>
+        }
+      >
+        <Suspense fallback={<ScreenLoading />}>
+          <fieldset className="workspace" disabled={busy || !!pending}>
+            {(s.correctionProposal || s.flags.correctionAvailable) && (
+              <ResultCorrection key={`${s.id}:${side}`} s={s} side={side} send={send} />
+            )}
+            <div id="stage-panel">
+              {tab === 'history' ? (
+                <HistoryView
+                  key={`${s.id}:${historyBattle}`}
+                  s={s}
+                  side={side}
+                  initialBattle={historyBattle}
+                />
+              ) : tab === 'catalog' ? (
+                <CatalogView
+                  key={`${s.id}:${side}`}
+                  s={s}
+                  side={side}
+                  send={send}
+                  api={libraryApi}
+                />
+              ) : s.phase === 'setup' ? (
+                <SetupView
+                  s={s}
+                  side={side}
+                  send={send}
+                  members={
+                    sync.metadataFailed ||
+                    !sync.online ||
+                    !sync.membersChecked ||
+                    Date.now() - sync.membersChecked > 45000
+                      ? null
+                      : sync.members
+                  }
+                />
+              ) : (
+                <>
+                  {tab === 'overview' && (
+                    <OverviewView
+                      s={s}
+                      side={side}
+                      navigate={setTab}
+                      openHistory={(battle = '') => {
+                        setHistoryBattle(battle)
+                        setTab('history')
+                      }}
+                    />
+                  )}
+                  {tab === 'map' && <CampaignMap s={s} side={side} />}
+                  {tab === 'strategy' && <StrategyView s={s} side={side} send={send} />}
+                  {tab === 'roster' && <RosterView s={s} side={side} send={send} />}
+                  {tab === 'battle' && <BattleView s={s} side={side} send={send} />}
+                  {tab === 'logistics' && <LogisticsView s={s} side={side} send={send} />}
+                  {tab === 'rules' && (
+                    <Suspense fallback={<ScreenLoading label="Загрузка свода правил…" />}>
+                      <ReferenceView s={s} />
+                    </Suspense>
+                  )}
+                </>
               )}
-              {s.flags.correctionAvailable && !s.correctionProposal && (
-                <details className="panel">
-                  <summary>Исправить последний результат</summary>
-                  <button className="quiet" onClick={() => setCorrecting(!correcting)}>
-                    {correcting ? 'Закрыть редактор' : 'Подготовить новую ревизию'}
-                  </button>
-                  {correcting && <ReportView s={s} side={side} send={send} correction />}
-                </details>
-              )}
-              <div id="stage-panel">
-                {tab === 'history' ? (
-                  <HistoryView key={s.id} s={s} side={side} />
-                ) : tab === 'catalog' ? (
-                  <CatalogView s={s} side={side} send={send} api={libraryApi} />
-                ) : s.phase === 'setup' ? (
-                  <SetupView
-                    s={s}
-                    side={side}
-                    send={send}
-                    members={
-                      sync.metadataFailed ||
-                      !sync.online ||
-                      !sync.membersChecked ||
-                      Date.now() - sync.membersChecked > 45000
-                        ? null
-                        : sync.members
-                    }
-                  />
-                ) : (
-                  <>
-                    {tab === 'overview' && (
-                      <>
-                        <div className="hero">
-                          <div>
-                            <p className="eyebrow">
-                              {s.phase === 'terminal' ? 'ЭПИЛОГ' : 'СЛЕДУЮЩИЙ ШАГ'}
-                            </p>
-                            <h2>{phases[s.phase]}</h2>
-                            <p>
-                              {s.phase === 'strategy'
-                                ? `Действует ${labels[s.active]}. ${s.activation?.actions} Actions · ${s.activation?.mp} MP.`
-                                : s.phase === 'terminal'
-                                  ? `Исход: ${s.winner === 'both_win' ? 'CONCORDAT — общая победа' : s.winner === 'both_lose' ? 'Общее поражение' : labels[s.winner as Side]}`
-                                  : 'Решения и расчёты сохраняются для обоих игроков.'}
-                            </p>
-                            <button
-                              onClick={() =>
-                                setTab(
-                                  s.phase === 'strategy' || s.phase === 'reaction'
-                                    ? 'strategy'
-                                    : s.phase === 'logistics'
-                                      ? 'logistics'
-                                      : 'battle',
-                                )
-                              }
-                            >
-                              Перейти к текущему этапу
-                            </button>
-                          </div>
-                          <div className="hero-stats">
-                            <strong>{p.mf}</strong>
-                            <span>Main Force</span>
-                            <strong>{p.integrity}</strong>
-                            <span>Integrity Home</span>
-                            <strong>{p.fragments}/3</strong>
-                            <span>Fragments</span>
-                          </div>
-                        </div>
-                        <CampaignMap s={s} side={side} />
-                        <button className="quiet" onClick={() => setTab('history')}>
-                          История кампании · {s.log.length} записей
-                        </button>
-                      </>
-                    )}
-                    {tab === 'map' && <CampaignMap s={s} side={side} />}
-                    {tab === 'strategy' && <StrategyView s={s} side={side} send={send} />}
-                    {tab === 'roster' && <RosterView s={s} side={side} send={send} />}
-                    {tab === 'battle' && <BattleView s={s} side={side} send={send} />}
-                    {tab === 'logistics' && <LogisticsView s={s} side={side} send={send} />}
-                    {tab === 'rules' && (
-                      <Suspense fallback={<p>Загрузка свода…</p>}>
-                        <ReferenceView s={s} />
-                      </Suspense>
-                    )}
-                  </>
-                )}
-              </div>
-            </fieldset>
-          </Suspense>
-        </main>
-      </div>
+            </div>
+          </fieldset>
+        </Suspense>
+      </CampaignShell>
     </DraftUser.Provider>
   )
 }

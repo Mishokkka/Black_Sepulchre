@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { BookOpen, Search, Upload, X } from 'lucide-react'
+import { ScreenLoading } from './ScreenLoading'
 import type { CatalogUnit, Snapshot } from '../../shared/model'
 import {
   cardFromImport,
@@ -80,7 +82,33 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
     [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false),
     [search, setSearch] = useState(''),
-    [reference, setReference] = useState<ReferenceLibrary | null>(null)
+    [reference, setReference] = useState<ReferenceLibrary | null>(null),
+    [pane, setPane] = useState<'library' | 'reference' | 'catalog'>('library'),
+    [loading, setLoading] = useState(true),
+    [referenceLoading, setReferenceLoading] = useState(false)
+  const editor = useRef<HTMLDivElement>(null),
+    referenceInFlight = useRef(false),
+    editorTrigger = useRef<HTMLElement | null>(null)
+  const needle = search.trim().toLocaleLowerCase('ru')
+  const matches = (name: string) => name.toLocaleLowerCase('ru').includes(needle)
+  const matchingLibrary = library.filter((item) =>
+    item.data.units.some((u) => matches(u.datasheet)),
+  )
+  const catalogChoices = campaignChoices(s.snapshot.catalog, side).filter((c) =>
+    matches(c.datasheet),
+  )
+  const referenceSheets =
+    reference?.datasheets.filter((d) => d.campaignSide === side && matches(d.name)) ?? []
+  useEffect(() => {
+    if (!selected || !editor.current) return
+    editor.current.focus({ preventScroll: true })
+    editor.current.scrollIntoView({
+      block: 'start',
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 'instant'
+        : 'smooth',
+    })
+  }, [selected])
   const load = async () => {
     setBusy(true)
     try {
@@ -94,6 +122,7 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
   }
   useEffect(() => {
     let active = true
+    setLoading(true)
     api('imports')
       .then((r) => {
         if (active) setLibrary(r.imports ?? [])
@@ -101,17 +130,30 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
       .catch((e) => {
         if (active) setError(e.message)
       })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
     return () => {
       active = false
     }
   }, [api, side])
   const choose = (source: SourceImport, unitId: string, ref?: ReferenceSheet) => {
+    editorTrigger.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
     setSelected({ source, unitId, reference: ref })
     setError('')
   }
+  const closeEditor = () => {
+    setSelected(null)
+    requestAnimationFrame(() => {
+      const trigger = editorTrigger.current
+      if (trigger?.isConnected && trigger.getClientRects().length) trigger.focus()
+      else document.getElementById('catalog-search')?.focus()
+    })
+  }
   const units = (source: SourceImport) =>
     source.units
-      .filter((u) => u.datasheet.toLowerCase().includes(search.toLowerCase()))
+      .filter((u) => matches(u.datasheet))
       .map((u) => (
         <div className="unit-row" key={u.id}>
           <div>
@@ -171,12 +213,59 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
   }
   return (
     <>
-      <section className="panel">
-        <h2>Каталог и источники</h2>
-        <p>
-          Загрузите составы New Recruit, выберите вариант и сохраните его в каталог. Покупка отрядов
-          и Refit доступны в Logistics. Правила и текущие цены сайта уже приняты.
-        </p>
+      <header className="hero">
+        <div>
+          <p className="eyebrow">ИНСТРУМЕНТЫ КОМАНДИРА</p>
+          <h2>Каталог и источники</h2>
+          <p>
+            Подготовьте варианты из New Recruit или справочника. Покупка отрядов и Refit доступны в
+            Logistics.
+          </p>
+        </div>
+      </header>
+      <section className="panel catalog-toolbar">
+        <div className="catalog-panes" role="group" aria-label="Разделы каталога">
+          {(
+            [
+              { id: 'library', name: 'Библиотека', icon: Upload },
+              { id: 'reference', name: 'Справочник', icon: BookOpen },
+              { id: 'catalog', name: 'Каталог кампании', icon: Search },
+            ] as const
+          ).map((item) => (
+            <button
+              className="quiet"
+              key={item.id}
+              aria-pressed={pane === item.id}
+              onClick={() => setPane(item.id)}
+            >
+              <item.icon size={17} />
+              {item.name}
+            </button>
+          ))}
+        </div>
+        <label htmlFor="catalog-search">Поиск datasheet</label>
+        <div className="reference-search">
+          <Search size={18} aria-hidden="true" />
+          <input
+            id="catalog-search"
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Immortals, Veterans, …"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setSearch('')
+            }}
+          />
+          {search && (
+            <button
+              className="quiet"
+              aria-label="Очистить поиск каталога"
+              onClick={() => setSearch('')}
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
         {error && (
           <p role="alert" className="validation">
             {error}
@@ -187,9 +276,56 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
             {notice}
           </p>
         )}
+      </section>
+      {selected && (
+        <div
+          ref={editor}
+          tabIndex={-1}
+          className="catalog-editor-anchor"
+          aria-label="Подготовка варианта"
+        >
+          <TemplateEditor
+            key={`${selected.source.source.hash ?? selected.source.source.catalogueId}:${selected.unitId}`}
+            selection={selected}
+            snapshot={s.snapshot}
+            canSave={canPublish}
+            onClose={closeEditor}
+            onAdd={async (c, target) => {
+              try {
+                const next = snapshotWithCatalog(
+                  s.snapshot,
+                  c,
+                  target,
+                  new Date().toISOString().slice(0, 10),
+                  crypto.randomUUID(),
+                )
+                const ok = await send('save_catalog', { snapshot: next })
+                if (ok !== false) {
+                  closeEditor()
+                  setNotice('Вариант сохранён в каталоге и доступен для покупки / Refit.')
+                  setError('')
+                }
+              } catch (e) {
+                setError((e as Error).message)
+              }
+            }}
+          />
+        </div>
+      )}
+      <section className="panel catalog-library" hidden={pane !== 'library'}>
+        <div className="section-head">
+          <div>
+            <p className="eyebrow">ВАША БИБЛИОТЕКА</p>
+            <h3>Источники New Recruit</h3>
+          </div>
+          <small>{library.length} / 30 файлов</small>
+        </div>
         <fieldset disabled={busy}>
-          <label>
-            JSON New Recruit · один Force, до 2 МБ
+          <label className="catalog-upload">
+            <span>
+              <Upload size={19} /> Загрузить JSON New Recruit
+            </span>
+            <small>Один Force · до 2 МБ · только ваша фракция</small>
             <input
               type="file"
               accept=".json,application/json"
@@ -260,33 +396,48 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
               </details>
             </div>
           )}
-          <label>
-            Поиск datasheet
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Immortals, Veterans, …"
-            />
-          </label>
           <div className="buttons">
             <button className="quiet" onClick={load}>
               Обновить библиотеку
             </button>
-            <small>{library.length} / 30 файлов вашей стороны</small>
+            <small aria-live="polite">
+              {needle
+                ? `Найдено источников: ${matchingLibrary.length}`
+                : 'Выберите источник, затем подготовьте вариант отряда.'}
+            </small>
           </div>
-          {!library.length && (
-            <p className="muted">Библиотека пуста. Загрузите ваши экспорты персонажей и команд.</p>
+          {loading && <ScreenLoading label="Загрузка библиотеки…" />}
+          {!loading && !library.length && !error && (
+            <div className="empty-state">
+              <Upload size={25} />
+              <h3>Библиотека пока пуста</h3>
+              <p>
+                Загрузите экспорт персонажей или команд из New Recruit, чтобы подготовить первый
+                вариант.
+              </p>
+            </div>
           )}
-          {library.map((item) => (
+          {!loading && library.length > 0 && !matchingLibrary.length && (
+            <div className="empty-state">
+              <h3>Совпадений нет</h3>
+              <p>Попробуйте другое название datasheet.</p>
+              <button className="quiet" onClick={() => setSearch('')}>
+                Очистить поиск
+              </button>
+            </div>
+          )}
+          {matchingLibrary.map((item) => (
             <details key={item.hash} className="source-file">
               <summary>
                 {item.data.source.filename} · {item.data.units.length} составов · rev{' '}
                 {item.data.source.catalogueRevision}
               </summary>
-              <small>
-                SHA-256 {item.hash} · {item.createdAt}
-              </small>
+              <details className="source-metadata">
+                <summary>Данные источника</summary>
+                <small>
+                  SHA-256 {item.hash} · {item.createdAt}
+                </small>
+              </details>
               {item.data.issues
                 .filter((i) => i.code !== 'source_review')
                 .map((i, j) => (
@@ -307,8 +458,9 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
           ))}
         </fieldset>
       </section>
-      <details className="panel">
-        <summary>Wahapedia · остальные юниты и вооружение</summary>
+      <section className="panel catalog-reference" hidden={pane !== 'reference'}>
+        <p className="eyebrow">СПРАВОЧНЫЕ DATASHEETS</p>
+        <h3>Отряды и вооружение · Wahapedia</h3>
         <p>
           Справочник из 142 datasheets. Выберите нужный состав и вооружение, затем сохраните вариант
           в каталог. Legends и союзники Imperial Agents пока не включены.
@@ -316,17 +468,25 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
         {!reference && (
           <button
             className="quiet"
+            disabled={referenceLoading}
             onClick={async () => {
+              if (referenceInFlight.current) return
+              referenceInFlight.current = true
+              setReferenceLoading(true)
+              setError('')
               try {
                 const r = await fetch(`${import.meta.env.BASE_URL}data/wahapedia.reference.json`)
                 if (!r.ok) throw Error('Не удалось загрузить справочник')
                 setReference(await r.json())
               } catch (e) {
                 setError((e as Error).message)
+              } finally {
+                referenceInFlight.current = false
+                setReferenceLoading(false)
               }
             }}
           >
-            Открыть справочник
+            {referenceLoading ? 'Загрузка справочника…' : 'Загрузить справочник'}
           </button>
         )}
         {reference && (
@@ -341,103 +501,103 @@ export function CatalogView({ s, side, send, api }: Props & { api: LibraryAPI })
                 </span>
               ))}
             </p>
-            {reference.datasheets
-              .filter(
-                (d) =>
-                  d.campaignSide === side && d.name.toLowerCase().includes(search.toLowerCase()),
-              )
-              .map((d) => (
-                <details key={d.id}>
-                  <summary>
-                    {d.name} · {d.weaponProfiles.length} профилей оружия
-                  </summary>
-                  <p>{[...d.keywords, ...d.factionKeywords].join(' · ')}</p>
-                  <p>
-                    {d.source.documents.join('; ')} ·{' '}
-                    <a href={d.source.url} target="_blank" rel="noreferrer">
-                      Datasheet и wargear
-                    </a>
-                  </p>
-                  <ProfileTable
-                    profiles={Object.values(referenceImport(d).profiles).filter(
-                      (p) => p.type === 'Unit',
-                    )}
-                  />
-                  <ProfileTable
-                    profiles={Object.values(referenceImport(d).profiles).filter(
-                      (p) => p.type !== 'Unit',
-                    )}
-                  />
-                  <p>Способности: {d.references.abilities.join(', ') || '—'}</p>
-                  <p>
-                    Цены:{' '}
-                    {d.pointTiers
-                      .map(
-                        (p) =>
-                          `${p.models} моделей: ${p.points} pts (копии ${p.copyFrom}–${p.copyTo ?? '∞'})`,
-                      )
-                      .join('; ')}
-                  </p>
-                  {d.contextDependentKeywords.length > 0 && (
-                    <p className="notice">
-                      Контекстные keywords: {d.contextDependentKeywords.join(', ')}. Не добавляйте
-                      их автоматически.
-                    </p>
+            <p className="muted" aria-live="polite">
+              Найдено datasheets: {referenceSheets.length}
+            </p>
+            {!referenceSheets.length && (
+              <div className="empty-state">
+                <h3>Совпадений нет</h3>
+                <p>Попробуйте другое название datasheet.</p>
+                <button className="quiet" onClick={() => setSearch('')}>
+                  Очистить поиск
+                </button>
+              </div>
+            )}
+            {referenceSheets.map((d) => (
+              <details key={d.id}>
+                <summary>
+                  {d.name} · {d.weaponProfiles.length} профилей оружия
+                </summary>
+                <p>{[...d.keywords, ...d.factionKeywords].join(' · ')}</p>
+                <p>
+                  {d.source.documents.join('; ')} ·{' '}
+                  <a href={d.source.url} target="_blank" rel="noreferrer">
+                    Datasheet и wargear
+                  </a>
+                </p>
+                <ProfileTable
+                  profiles={Object.values(referenceImport(d).profiles).filter(
+                    (p) => p.type === 'Unit',
                   )}
-                  <button
-                    className="quiet"
-                    onClick={() => {
-                      const imp = referenceImport(d)
-                      choose(imp, imp.units[0].id, d)
-                    }}
-                  >
-                    Собрать вариант из справочника
-                  </button>
-                </details>
-              ))}
+                />
+                <ProfileTable
+                  profiles={Object.values(referenceImport(d).profiles).filter(
+                    (p) => p.type !== 'Unit',
+                  )}
+                />
+                <p>Способности: {d.references.abilities.join(', ') || '—'}</p>
+                <p>
+                  Цены:{' '}
+                  {d.pointTiers
+                    .map(
+                      (p) =>
+                        `${p.models} моделей: ${p.points} pts (копии ${p.copyFrom}–${p.copyTo ?? '∞'})`,
+                    )
+                    .join('; ')}
+                </p>
+                {d.contextDependentKeywords.length > 0 && (
+                  <p className="notice">
+                    Контекстные keywords: {d.contextDependentKeywords.join(', ')}. Не добавляйте их
+                    автоматически.
+                  </p>
+                )}
+                <button
+                  className="quiet"
+                  onClick={() => {
+                    const imp = referenceImport(d)
+                    choose(imp, imp.units[0].id, d)
+                  }}
+                >
+                  Собрать вариант из справочника
+                </button>
+              </details>
+            ))}
           </>
         )}
-      </details>
-      {selected && (
-        <TemplateEditor
-          key={`${selected.source.source.hash ?? selected.source.source.catalogueId}:${selected.unitId}`}
-          selection={selected}
-          snapshot={s.snapshot}
-          canSave={canPublish}
-          onClose={() => setSelected(null)}
-          onAdd={async (c, target) => {
-            try {
-              const next = snapshotWithCatalog(
-                s.snapshot,
-                c,
-                target,
-                new Date().toISOString().slice(0, 10),
-                crypto.randomUUID(),
-              )
-              const ok = await send('save_catalog', { snapshot: next })
-              if (ok !== false) {
-                setSelected(null)
-                setNotice('Вариант сохранён в каталоге и доступен для покупки / Refit.')
-                setError('')
-              }
-            } catch (e) {
-              setError((e as Error).message)
-            }
-          }}
-        />
-      )}
-      <CatalogManager s={s} side={side} send={send} />
-      <details className="panel">
-        <summary>Отряды в каталоге ({campaignChoices(s.snapshot.catalog, side).length})</summary>
-        {campaignChoices(s.snapshot.catalog, side).map((c) => (
-          <details key={c.id}>
-            <summary>
-              {c.datasheet} · {modelLabel(c.models)} · {c.rc} RC
-            </summary>
-            <DatasheetView card={c.card} />
-          </details>
-        ))}
-      </details>
+      </section>
+      <div hidden={pane !== 'catalog'}>
+        <section className="panel catalog-current">
+          <p className="eyebrow">КАТАЛОГ КАМПАНИИ</p>
+          <h3>Готовые варианты отрядов</h3>
+          <p className="muted" aria-live="polite">
+            Найдено вариантов: {catalogChoices.length}
+          </p>
+          {!catalogChoices.length && (
+            <div className="empty-state">
+              <h3>Вариантов не найдено</h3>
+              <p>
+                {needle
+                  ? 'Попробуйте другое название datasheet.'
+                  : 'Подготовьте вариант из библиотеки или справочника.'}
+              </p>
+              {needle && (
+                <button className="quiet" onClick={() => setSearch('')}>
+                  Очистить поиск
+                </button>
+              )}
+            </div>
+          )}
+          {catalogChoices.map((c) => (
+            <details key={c.id}>
+              <summary>
+                {c.datasheet} · {modelLabel(c.models)} · {c.rc} RC
+              </summary>
+              <DatasheetView card={c.card} />
+            </details>
+          ))}
+        </section>
+        <CatalogManager s={s} side={side} send={send} />
+      </div>
     </>
   )
 }

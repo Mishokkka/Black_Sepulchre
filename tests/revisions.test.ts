@@ -9,6 +9,7 @@ import { available } from '../shared/rules.ts'
 import { maximumReady } from '../shared/readiness.ts'
 import { importLegacy } from '../shared/state.ts'
 import type { State, Side, Muster, Report } from '../shared/model.ts'
+import { battleCommandError } from '../shared/battle-ui.ts'
 const run = (
   s: State,
   type: string,
@@ -185,6 +186,40 @@ test('Report revision replays the saved dice and replaces income, XP and depende
   assert.equal(s.units[0].xp, originalXP)
   assert.equal(s.battles, 1)
   assert.equal(s.history.length, 1)
+})
+
+test('Public correction preflight permits a server-valid revision without exposing the rollback base', () => {
+  const s = settle(ended()),
+    view = project(s, 'deathwatch') as unknown as State
+  const before = structuredClone(view),
+    report = structuredClone(s.history.at(-1)!.report!)
+  report.narrative = 'Revision from the public client'
+  assert.equal(view.rollback, null)
+  assert.equal(battleCommandError(view, 'deathwatch', 'request_correction', { report }), '')
+  assert.equal(
+    run(s, 'request_correction', { report }).correctionProposal!.report.narrative,
+    report.narrative,
+  )
+  assert.deepEqual(view, before)
+  const invalid = structuredClone(report)
+  invalid.vp.deathwatch = 51
+  assert.match(
+    battleCommandError(view, 'deathwatch', 'request_correction', { report: invalid }),
+    /VP/,
+  )
+  assert.throws(() => run(s, 'request_correction', { report: invalid }))
+  invalid.vp.deathwatch = report.vp.deathwatch
+  invalid.units[0].id = invalid.units[1].id
+  assert.match(
+    battleCommandError(view, 'deathwatch', 'request_correction', { report: invalid }),
+    /committed ID/,
+  )
+  assert.throws(() => run(s, 'request_correction', { report: invalid }))
+  view.flags.correctionAvailable = false
+  assert.match(
+    battleCommandError(view, 'deathwatch', 'request_correction', { report }),
+    /Нет сохранённого/,
+  )
 })
 test('Catalogue price changes apply immediately for free; missing datasheet keeps persistent identity', () => {
   let s = fixture()
