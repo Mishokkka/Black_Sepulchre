@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react'
 import { useBattleDraft } from '../lib/useBattleDraft'
 import { isMusterDraft } from '../lib/drafts'
 import type { Muster, Pick } from '../../shared/model'
-import { ARMOURY, RELICS, entry, unit } from '../../shared/rules'
+import { ARMOURY, RELICS, STAGES, entry, unit } from '../../shared/rules'
+import { enhancementChoices, preferredEnhancement } from '../../shared/enhancements'
+import { EnhancementChoice } from './EnhancementChoice'
 import { rosterUnits } from '../../shared/roster'
 import { musterPreview, musterCandidateReason, battleCommandError } from '../../shared/battle-ui'
 import { Check, Options, type Props } from './common'
@@ -25,7 +27,19 @@ export function MusterView({ s, side, send }: Props) {
     { picks, rest, detachments, commander, dispositions } = m
   const setPicks = (v: Pick[]) => draft.update((m) => ({ ...m, picks: v }))
   const setRest = (v: string[]) => draft.update((m) => ({ ...m, rest: v }))
-  const setDetachments = (v: string[]) => draft.update((m) => ({ ...m, detachments: v }))
+  const setDetachments = (v: string[]) =>
+    draft.update((m) => ({
+      ...m,
+      detachments: v,
+      picks: m.picks.map((pick) => ({
+        ...pick,
+        enhancement: enhancementChoices(s, side, pick.id, b.snapshot, v, b.stage).some(
+          (e) => e.id === pick.enhancement,
+        )
+          ? pick.enhancement
+          : null,
+      })),
+    }))
   const setCommander = (v: string) => draft.update((m) => ({ ...m, commander: v }))
   const setDispositions = (v: string[]) => draft.update((m) => ({ ...m, dispositions: v }))
   const edit = (id: string, value: Partial<Pick>) =>
@@ -115,7 +129,14 @@ export function MusterView({ s, side, send }: Props) {
                               formation: u.id,
                               transport: null,
                               reserve: false,
-                              enhancement: null,
+                              enhancement: preferredEnhancement(
+                                s,
+                                side,
+                                u.id,
+                                b.snapshot,
+                                detachments,
+                                b.stage,
+                              ),
                               paidOptions: [],
                               honours: [...u.honours],
                               armoury: !!u.armoury,
@@ -234,15 +255,24 @@ export function MusterView({ s, side, send }: Props) {
                                 change={(v) => edit(u.id, { relic: v })}
                               />
                             )}{' '}
-                            {cat.character && (
-                              <Options
-                                label="Enhancement"
+                            {(enhancementChoices(s, side, u.id, b.snapshot, detachments, b.stage)
+                              .length > 0 ||
+                              pick.enhancement) && (
+                              <EnhancementChoice
+                                label={`Улучшение: ${u.name}`}
                                 value={pick.enhancement ?? ''}
                                 change={(v) => edit(u.id, { enhancement: v || null })}
-                                items={b.snapshot.enhancements.map((e) => ({
-                                  id: e.id,
-                                  name: `${e.name} +${e.cost}`,
-                                }))}
+                                options={enhancementChoices(
+                                  s,
+                                  side,
+                                  u.id,
+                                  b.snapshot,
+                                  detachments,
+                                  b.stage,
+                                )}
+                                picks={picks}
+                                unitId={u.id}
+                                limit={b.type === 'PACT' ? 2 : STAGES[b.stage].enhancements}
                               />
                             )}{' '}
                             {(cat.packageCosts ?? [])

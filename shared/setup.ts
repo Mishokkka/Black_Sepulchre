@@ -1,8 +1,8 @@
 import type { Muster, Side, State } from './model.ts'
 import { other } from './model.ts'
 import { assert, entry } from './rules.ts'
-import { validateMuster } from './muster.ts'
-export function startingArmy(s: State, side: Side) {
+import { validateMuster, musterCosts } from './muster.ts'
+export function startingArmyPreview(s: State, side: Side) {
   const us = s.units.filter(
     (u) => u.side === side && u.location === 'field' && u.status === 'active',
   )
@@ -23,7 +23,7 @@ export function startingArmy(s: State, side: Side) {
       formation: u.id,
       transport: null,
       reserve: false,
-      enhancement: null,
+      enhancement: s.players[side].startingEnhancements?.[u.id] ?? null,
       honours: [],
       armoury: false,
       relic: false,
@@ -35,8 +35,13 @@ export function startingArmy(s: State, side: Side) {
     commander: us.find((u) => entry(s, u).character)?.id ?? '',
     dispositions: [],
   }
-  const costs = s.battles === 0 ? validateMuster(s, side, setupMuster, setupBattle) : {}
-  const price = s.battles === 0 ? Object.values(costs).reduce((n, c) => n + c, 0) : 0
+  const costs = s.battles === 0 ? musterCosts(s, setupMuster, setupBattle) : {}
+  const price = Object.values(costs).reduce((n, c) => n + c, 0)
+  return { units: us, effective: price, muster: setupMuster, battle: setupBattle }
+}
+export function startingArmy(s: State, side: Side) {
+  const { units: us, effective: price, muster, battle } = startingArmyPreview(s, side)
+  if (s.battles === 0) validateMuster(s, side, muster, battle)
   assert(
     s.battles > 0 || (price >= 470 && price <= 500),
     'Стартовый состав должен быть 470–500 Effective',

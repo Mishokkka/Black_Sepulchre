@@ -50,6 +50,15 @@ export interface Enhancement {
   cost: number
   eligible: string[]
   detachment: string
+  /** OR between clauses, AND within each clause. Legacy eligible remains an AND. */
+  eligibleAny?: string[][]
+  excluded?: string[]
+  datasheets?: string[]
+  /** Upgrade: up to three legal units, one slot, price paid for every bearer. */
+  upgrade?: boolean
+  /** An explicit unit-bearer exception in the accepted detachment. */
+  unitEligible?: boolean
+  source?: string
 }
 export interface Detachment {
   id: string
@@ -107,6 +116,10 @@ export interface Player {
   package: string[]
   packageStage: number
   enhancements: Record<string, string>
+  /** Additional bearers of an Upgrade; enhancements stores the first bearer for compatibility. */
+  enhancementExtras?: Record<string, string[]>
+  /** Optional starting loadout, unit ID -> enhancement ID; stage binding occurs at first use. */
+  startingEnhancements?: Record<string, string>
   enhancementStage: number
   inventory: string[]
   relics: string[]

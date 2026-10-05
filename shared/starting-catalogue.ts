@@ -1,6 +1,7 @@
 import type { CatalogUnit, Side, State } from './model.ts'
 import { datasheetName, sameDatasheet, suggestedTransport } from './datasheets.ts'
 import { STOCK_CATALOG, STOCK_DETACHMENTS } from './stock.generated.ts'
+import { STOCK_ENHANCEMENTS, STOCK_BINDINGS } from './enhancements.generated.ts'
 
 /** Add choices, never replace an owner's saved variant, price, roster or package. */
 export function expandStartingCatalogue(s: State) {
@@ -30,6 +31,45 @@ export function expandStartingCatalogue(s: State) {
     )
       s.snapshot.detachments.push(structuredClone(d))
   s.flags.startingCatalogue = 1
+  expandStartingEnhancements(s)
+}
+
+/** Match saved detachment IDs, preserve owner prices and make existing campaigns opt in. */
+export function expandStartingEnhancements(s: State) {
+  const detachmentId = (id: string) => {
+    const stock = STOCK_DETACHMENTS.find((d) => d.id === id)!
+    return s.snapshot.detachments.find(
+      (d) => d.side === stock.side && sameDatasheet(d.name, stock.name),
+    )?.id
+  }
+  for (const stock of STOCK_ENHANCEMENTS) {
+    const detachment = detachmentId(stock.detachment)
+    if (
+      !detachment ||
+      s.snapshot.enhancements.some(
+        (e) =>
+          e.id === stock.id || (e.detachment === detachment && sameDatasheet(e.name, stock.name)),
+      )
+    )
+      continue
+    s.snapshot.enhancements.push({ ...structuredClone(stock), detachment })
+  }
+  for (const binding of STOCK_BINDINGS) {
+    const detachment = detachmentId(binding.detachment)
+    if (!detachment) continue
+    for (const c of s.snapshot.catalog.filter(
+      (c) => c.side === 'necrons' && sameDatasheet(c.datasheet, binding.datasheet),
+    )) {
+      c.packageCosts ??= []
+      if (
+        !c.packageCosts.some(
+          (o) => sameDatasheet(o.name, binding.name) && o.detachments.includes(detachment),
+        )
+      )
+        c.packageCosts.push({ name: binding.name, cost: binding.cost, detachments: [detachment] })
+    }
+  }
+  s.flags.startingEnhancements = 1
 }
 
 /** Campaign small-format rules: individual RC <=40% AL, no Epic/Titanic, one copy. */

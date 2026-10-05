@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { startingArmy } from '../../shared/setup'
+import { startingArmy, startingArmyPreview } from '../../shared/setup'
+import { enhancementChoices } from '../../shared/enhancements'
+import { EnhancementChoice, enhancementEligibilityLabel } from './EnhancementChoice'
+import { STOCK_BINDINGS } from '../../shared/enhancements.generated'
 import { starterChoices } from '../../shared/starting-catalogue'
 import { entry } from '../../shared/rules'
 import { modelLabel } from '../../shared/unit-choices'
@@ -17,8 +20,20 @@ export function SetupView({ s, side, send, members }: Props & { members?: Side[]
   )
   const choices = starterChoices(s, side)
   const selected = choices.find((c) => c.id === catalog)
+  const preview = startingArmyPreview(s, side)
+  const selectedEnhancements = preview.muster.picks.filter((p) => p.enhancement)
+  const enhancementPoints = selectedEnhancements.reduce(
+    (n, p) => n + (s.snapshot.enhancements.find((e) => e.id === p.enhancement)?.cost ?? 0),
+    0,
+  )
+  const detachmentEnhancements = s.snapshot.enhancements.filter((e) =>
+    s.players[side].package.includes(e.detachment),
+  )
+  const pantheon = s.players[side].package.some(
+    (id) => s.snapshot.detachments.find((d) => d.id === id)?.name === 'Pantheon of Woe',
+  )
   let armyProblem = '',
-    effective = rows.reduce((n, u) => n + u.rc, 0)
+    effective = preview.effective
   try {
     effective = startingArmy(s, side).effective
   } catch (error) {
@@ -58,6 +73,53 @@ export function SetupView({ s, side, send, members }: Props & { members?: Side[]
             На старте выбирается один detachment любой стоимости DP. Его правила применяются в
             битвах за столом.
           </small>
+          {s.battles === 0 && (
+            <div className="setup-enhancements">
+              <h3>Улучшения detachment · по желанию</h3>
+              <p className="muted">
+                На старте доступен один слот Enhancement. Назначьте улучшение подходящему отряду
+                ниже или оставьте состав без него.
+              </p>
+              {s.flags.startingEnhancements !== 1 && (
+                <button className="quiet" onClick={() => send('expand_starting_catalogue')}>
+                  Добавить улучшения detachment
+                </button>
+              )}
+              {detachmentEnhancements.length > 0 && (
+                <details>
+                  <summary>Доступные улучшения · {detachmentEnhancements.length}</summary>
+                  <ul className="enhancement-catalogue">
+                    {detachmentEnhancements.map((e) => (
+                      <li key={e.id}>
+                        <strong>
+                          {e.name} · {e.cost} очков{e.upgrade ? ' · Upgrade' : ''}
+                        </strong>
+                        <small>{enhancementEligibilityLabel(e)}</small>
+                      </li>
+                    ))}
+                  </ul>
+                  <small>
+                    Цены закреплены для принятых detachments кампании.{' '}
+                    <a
+                      href={detachmentEnhancements.find((e) => e.source)?.source}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Источник каталога
+                    </a>
+                  </small>
+                </details>
+              )}
+              {pantheon && (
+                <p className="notice">
+                  Pantheon of Woe использует обязательные Necrodermal Bindings для C’tan:{' '}
+                  {STOCK_BINDINGS.map((b) => `${b.name} +${b.cost}`).join(' · ')}. Они учитываются
+                  автоматически в стоимости подходящего отряда. Epic Hero и TITANIC доступны с 1000
+                  очков.
+                </p>
+              )}
+            </div>
+          )}
           {rows.map((u) => (
             <article className="setup-unit" key={u.id}>
               <div>
@@ -77,6 +139,32 @@ export function SetupView({ s, side, send, members }: Props & { members?: Side[]
                     (c) => !c.epic && !c.keywords.includes('TITANIC') && c.rc <= 200,
                   )}
                 />
+                {s.battles === 0 &&
+                  (enhancementChoices(s, side, u.id, s.snapshot, s.players[side].package, 0)
+                    .length > 0 ||
+                    s.players[side].startingEnhancements?.[u.id]) && (
+                    <EnhancementChoice
+                      label={`Улучшение: ${u.name}`}
+                      value={s.players[side].startingEnhancements?.[u.id] ?? ''}
+                      change={(enhancement) =>
+                        void send('setup_enhancement', {
+                          id: u.id,
+                          enhancement: enhancement || null,
+                        })
+                      }
+                      options={enhancementChoices(
+                        s,
+                        side,
+                        u.id,
+                        s.snapshot,
+                        s.players[side].package,
+                        0,
+                      )}
+                      picks={preview.muster.picks}
+                      unitId={u.id}
+                      limit={1}
+                    />
+                  )}
               </div>
               <button
                 className="quiet"
@@ -139,6 +227,10 @@ export function SetupView({ s, side, send, members }: Props & { members?: Side[]
             </p>
             <p>Один detachment · любой стоимости DP</p>
             <p>CHARACTER во главе армии</p>
+            <p>
+              Улучшения: {new Set(selectedEnhancements.map((p) => p.enhancement)).size} / 1 слот · +
+              {enhancementPoints} Effective
+            </p>
           </div>
           {armyProblem ? (
             <p className="notice" role="status">

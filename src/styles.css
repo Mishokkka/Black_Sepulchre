@@ -5264,6 +5264,26 @@ button.campaign-choice {
   border-top: 1px solid var(--border);
   padding-top: 24px;
 }
+.setup-enhancements {
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.enhancement-choice {
+  margin-top: 14px;
+}
+.enhancement-choice small {
+  line-height: 1.5;
+}
+.enhancement-catalogue {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0;
+}
+.enhancement-catalogue li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
 .setup-readiness .cards {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

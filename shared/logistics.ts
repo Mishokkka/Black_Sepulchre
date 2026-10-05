@@ -1,4 +1,5 @@
 import { HONOURS } from './rules.generated.ts'
+import { enhancementEligible, enhancementBearers, bindEnhancement } from './enhancements.ts'
 import { SIDES, type Command, type Context, type State } from './model.ts'
 import {
   ARMOURY,
@@ -275,8 +276,13 @@ export function logistics(s: State, c: Command, ctx: Context) {
       u.status = 'archived'
       u.relic = null
       u.armoury = null
-      for (const [e, id] of Object.entries(p.enhancements))
-        if (id === u.id) delete p.enhancements[e]
+      for (const e of Object.keys(p.enhancements))
+        bindEnhancement(
+          p,
+          e,
+          enhancementBearers(p, e).filter((id) => id !== u.id),
+        )
+      if (p.startingEnhancements) delete p.startingEnhancements[u.id]
       return
     }
     case 'claim_honour': {
@@ -476,12 +482,27 @@ export function logistics(s: State, c: Command, ctx: Context) {
       const e = str(c.payload.enhancement),
         to = unit(s, c.payload.to, side)
       local(to)
+      const enhancement = s.snapshot.enhancements.find((v) => v.id === e)
+      const bearers = enhancementBearers(p, e)
+      const from = c.payload.from ?? bearers[0]
       assert(
-        p.enhancements[e] && entry(s, to).character && !entry(s, to).epic,
+        enhancement &&
+          bearers.includes(String(from)) &&
+          !bearers.includes(to.id) &&
+          enhancementEligible(enhancement, entry(s, to)),
         'Enhancement не закреплено / target',
       )
       if (p.enhancementStage === s.stage) spend(s, side, 15)
-      p.enhancements[e] = to.id
+      else {
+        // Old-stage assignments are free to change; only this chosen transfer is now bound.
+        p.enhancements = {}
+        p.enhancementExtras = {}
+      }
+      bindEnhancement(
+        p,
+        e,
+        p.enhancementStage === s.stage ? bearers.map((id) => (id === from ? to.id : id)) : [to.id],
+      )
       p.enhancementStage = s.stage
       return
     }
