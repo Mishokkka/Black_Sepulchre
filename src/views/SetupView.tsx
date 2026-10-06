@@ -13,6 +13,7 @@ import { SetupReadiness } from './SetupReadiness'
 import type { Side } from '../../shared/model'
 import { CheckCircle2, Shield, Trash2 } from 'lucide-react'
 import { RuleHelp } from './RulesContext'
+import { PackageEditor } from './PackageEditor'
 export function SetupView({ s, side, send, members }: Props & { members?: Side[] | null }) {
   const [catalog, setCatalog] = useState('')
   const rows = s.units.filter(
@@ -59,16 +60,7 @@ export function SetupView({ s, side, send, members }: Props & { members?: Side[]
             470–500 Effective. Нужен CHARACTER во главе армии. Один отряд — не дороже 200 RC;
             максимум две копии Battleline и одна остальных datasheet.
           </p>
-          <Options
-            label="Стартовый detachment"
-            value={s.players[side].package[0] ?? ''}
-            change={(id) => {
-              if (id) void send('setup_package', { package: [id] })
-            }}
-            items={s.snapshot.detachments
-              .filter((d) => !d.side || d.side === side)
-              .map((d) => ({ id: d.id, name: `${d.name} · ${d.dp} DP` }))}
-          />
+          <PackageEditor s={s} side={side} send={send} setup />
           <small>
             На старте выбирается один detachment любой стоимости DP. Его правила применяются в
             битвах за столом.

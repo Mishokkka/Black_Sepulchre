@@ -347,12 +347,13 @@ test('Only uncertain delivery may retry the same request UUID', () => {
   for (const status of [400, 401, 403, 409, 413]) assert.equal(retryableStatus(status), false)
 })
 
-test('Ossuary Key awards each ordinary completed Action, and never awards VP in PACT', () => {
+test('Ossuary Key awards one ordinary completed Action per battle, and never awards VP in PACT', () => {
   let { s } = finished()
   const b = s.battle!,
     actor = b.muster.deathwatch!.picks[0].id
   s.units.find((u) => u.id === actor)!.relic = 'key'
   b.muster.deathwatch!.picks[0].relic = true
+  b.muster.deathwatch!.picks[0].honours = ['field_engineers']
   b.mission = 'G3'
   b.table = createTable(s, 'G3', context())
   for (const round of [1, 2]) {
@@ -376,7 +377,10 @@ test('Ossuary Key awards each ordinary completed Action, and never awards VP in 
       notShocked: true,
     })
   }
-  assert.equal(s.battle!.table.vp.deathwatch, 12)
+  assert.equal(s.battle!.table.vp.deathwatch, 11)
+  assert.equal(s.battle!.table.records['jamUntil:1'], 2)
+  assert.equal(s.battle!.table.records[`use:deathwatch:${actor}:key`], true)
+  assert.equal(s.battle!.table.records[`use:deathwatch:${actor}:field_engineers`], true)
   s.battle!.mission = 'PACT'
   s.battle!.table = createTable(s, 'PACT', context())
   s.battle!.table.step = 'movement'

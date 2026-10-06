@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { HONOURS, SCARS, EQUIPMENT_EFFECTS, ASSET_EFFECTS } from '../../shared/rules.generated'
 import { SIDES } from '../../shared/model'
-import { ARMOURY, RELICS, STAGES } from '../../shared/rules'
+import { ARMOURY, RELICS, STAGES, armouryBlocked } from '../../shared/rules'
 import { Options, type Props } from './common'
 import { labels } from './common'
 import { DatasheetView } from './DatasheetView'
+import { scarHasOnceUse } from '../../shared/campaign-upgrades'
 export function BattlePacket({ s, side, send }: Props) {
   const b = s.battle!,
     [extra, setExtra] = useState('')
@@ -49,15 +50,37 @@ export function BattlePacket({ s, side, send }: Props) {
                     return (
                       <p key={id}>
                         <strong>{h.name}</strong> — {h.effect}
-                        {who === side && s.phase === 'battle' && (
-                          <button
-                            className="quiet"
-                            disabled={!!b.table.records[`use:${side}:${p.id}:${id}`]}
-                            onClick={() => send('table_use', { actor: p.id, item: id })}
-                          >
-                            Отметить одноразовое использование
-                          </button>
+                        {[
+                          'field_engineers',
+                          'operational_mastery',
+                          'black_spear_veteran',
+                          'secure_and_extract',
+                        ].includes(id) && (
+                          <small>
+                            {' '}
+                            ·{' '}
+                            {b.table.records[`use:${who}:${p.id}:${id}`]
+                              ? 'Использовано'
+                              : 'Отмечается при Action'}
+                          </small>
                         )}
+                        {who === side &&
+                          s.phase === 'battle' &&
+                          id !== 'dig_in' &&
+                          ![
+                            'field_engineers',
+                            'operational_mastery',
+                            'black_spear_veteran',
+                            'secure_and_extract',
+                          ].includes(id) && (
+                            <button
+                              className="quiet"
+                              disabled={!!b.table.records[`use:${side}:${p.id}:${id}`]}
+                              onClick={() => send('table_use', { actor: p.id, item: id })}
+                            >
+                              Отметить одноразовое использование
+                            </button>
+                          )}
                       </p>
                     )
                   })}
@@ -65,18 +88,66 @@ export function BattlePacket({ s, side, send }: Props) {
                     <p key={sc.id}>
                       <strong>{SCARS[who].find((c) => c.id === sc.id)!.name}</strong> —{' '}
                       {SCARS[who].find((c) => c.id === sc.id)!.effect}
+                      {scarHasOnceUse(who, sc.id) && who === side && s.phase === 'battle' && (
+                        <button
+                          className="quiet"
+                          disabled={!!b.table.records[`use:${side}:${p.id}:scar:${sc.id}`]}
+                          onClick={() => send('table_use', { actor: p.id, item: `scar:${sc.id}` })}
+                        >
+                          Отметить одноразовый бонус шрама
+                        </button>
+                      )}
                     </p>
                   ))}
                   {p.armoury && u.armoury && (
                     <p>
                       <strong>{ARMOURY[u.armoury].name}</strong> —{' '}
                       {EQUIPMENT_EFFECTS[ARMOURY[u.armoury].name]}
+                      {armouryBlocked(s, u) && (
+                        <strong className="validation">
+                          {' '}
+                          · Заблокировано: эффект и CR отключены
+                        </strong>
+                      )}
+                      {!armouryBlocked(s, u) &&
+                        !ARMOURY[u.armoury].consumable &&
+                        who === side &&
+                        s.phase === 'battle' && (
+                          <button
+                            className="quiet"
+                            disabled={
+                              !!b.table.records[`use:${side}:${p.id}:${u.armoury}`] ||
+                              !s.units.find((v) => v.id === p.id)?.armoury
+                            }
+                            onClick={() => send('table_use', { actor: p.id, item: u.armoury })}
+                          >
+                            Отметить одноразовое использование
+                          </button>
+                        )}
                     </p>
                   )}
                   {p.relic && u.relic && (
                     <p>
                       <strong>{RELICS[u.relic].name}</strong> —{' '}
                       {EQUIPMENT_EFFECTS[RELICS[u.relic].name]}
+                      {u.relic === 'key' && (
+                        <small>
+                          {' '}
+                          ·{' '}
+                          {b.table.records[`use:${who}:${p.id}:key`]
+                            ? 'Использовано'
+                            : 'Отмечается при Action'}
+                        </small>
+                      )}
+                      {u.relic !== 'key' && who === side && s.phase === 'battle' && (
+                        <button
+                          className="quiet"
+                          disabled={!!b.table.records[`use:${side}:${p.id}:${u.relic}`]}
+                          onClick={() => send('table_use', { actor: p.id, item: u.relic })}
+                        >
+                          Отметить одноразовое использование
+                        </button>
+                      )}
                     </p>
                   )}
                   {p.enhancement && (

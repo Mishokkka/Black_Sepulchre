@@ -122,3 +122,37 @@ export function pruneStartingEnhancements(s: State, side: Side) {
     }),
   )
 }
+
+/** Cost is returned to the army's Effective budget, never credited as Supply. */
+export function packageEnhancementImpact(s: State, side: Side, next: string[]) {
+  const p = s.players[side]
+  const ids = new Set([
+    ...Object.keys(p.enhancements),
+    ...Object.keys(p.enhancementExtras ?? {}),
+    ...Object.values(p.startingEnhancements ?? {}),
+  ])
+  const removed = [...ids].flatMap((id) => {
+    const e = s.snapshot.enhancements.find((e) => e.id === id)
+    if (e && next.includes(e.detachment)) return []
+    const bearers = [
+      ...new Set([
+        ...enhancementBearers(p, id),
+        ...Object.entries(p.startingEnhancements ?? {})
+          .filter(([, value]) => value === id)
+          .map(([unit]) => unit),
+      ]),
+    ]
+    return [{ id, name: e?.name ?? id, cost: e?.cost ?? 0, bearers }]
+  })
+  return { removed, points: removed.reduce((n, e) => n + e.cost * e.bearers.length, 0) }
+}
+
+export function removePackageEnhancements(s: State, side: Side, next: string[]) {
+  const p = s.players[side]
+  for (const e of packageEnhancementImpact(s, side, next).removed) {
+    bindEnhancement(p, e.id, [])
+    p.startingEnhancements = Object.fromEntries(
+      Object.entries(p.startingEnhancements ?? {}).filter(([, id]) => id !== e.id),
+    )
+  }
+}

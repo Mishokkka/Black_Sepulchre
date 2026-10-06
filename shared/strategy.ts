@@ -1,4 +1,5 @@
 import { other, type Command, type Context, type SectorKey, type State } from './model.ts'
+import { removePackageEnhancements } from './enhancements.ts'
 import {
   ADJACENCY,
   assert,
@@ -394,6 +395,7 @@ export function setPackage(s: State, side: Context['actor'], value: unknown) {
     s.stage < 2 ? p.length === 1 : p.reduce((n, d) => n + d!.dp, 0) <= STAGES[s.stage].dp,
     'Package превышает DP',
   )
+  removePackageEnhancements(s, side, value as string[])
   s.players[side].package = value as string[]
   s.players[side].packageStage = s.stage
 }

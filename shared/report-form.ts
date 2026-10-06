@@ -1,5 +1,5 @@
 import { SIDES, type Battle, type Report, type State, type UnitResult } from './model.ts'
-import { entry } from './rules.ts'
+import { entry, armouryBlocked } from './rules.ts'
 
 export function initialReport(b: Battle): Report {
   const withdrawal = b.table.records.mutualWithdrawal
@@ -54,7 +54,7 @@ export function reportFields(s: State, b: Battle, r: UnitResult) {
       (r.destroyed || (b.terminal && r.entered)) &&
       u.armoury === 'medicae' &&
       pick.armoury &&
-      !u.scars.some((sc) => u.side === 'deathwatch' && sc.id === 4),
+      !armouryBlocked(s, u),
     memory: r.entered && !r.destroyed && pick.honours.includes('memory_of_eternity'),
     hunt:
       r.entered &&

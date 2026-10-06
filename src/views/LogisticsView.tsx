@@ -20,6 +20,7 @@ import { LogisticsAction } from './LogisticsAction'
 import { RosterView } from './RosterView'
 import { StatusBadge } from './StatusBadge'
 import { UnitChoice } from './UnitChoice'
+import { PackageEditor } from './PackageEditor'
 import { RuleHelp } from './RulesContext'
 import { Check, labels, Options, phases, type Props } from './common'
 
@@ -312,20 +313,7 @@ export function LogisticsView({ s, side, send }: Props) {
           <div className="support-grid">
             <div>
               <h3>Stage Package</h3>
-              {s.snapshot.detachments
-                .filter((d) => !d.side || d.side === side)
-                .map((d) => (
-                  <Check
-                    key={d.id}
-                    label={`${d.name} · ${d.dp} DP`}
-                    value={p.package.includes(d.id)}
-                    change={(v) =>
-                      send('package', {
-                        package: v ? [...p.package, d.id] : p.package.filter((id) => id !== d.id),
-                      })
-                    }
-                  />
-                ))}
+              <PackageEditor s={s} side={side} send={send} />
             </div>
             <div>
               <h3>Veteran Drill</h3>

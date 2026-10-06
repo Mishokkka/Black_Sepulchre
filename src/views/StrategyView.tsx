@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { PackageImpact } from './PackageEditor'
 import { ArrowRight, CheckCircle2, Flag, LockKeyhole, Route, Zap } from 'lucide-react'
 import type { SectorKey } from '../../shared/model'
 import { SECTORS, supplied } from '../../shared/rules'
@@ -375,6 +376,7 @@ export function StrategyView({ s, side, send }: Props) {
               />
             </>
           )}
+          {action === 'doctrine' && <PackageImpact s={s} side={side} next={packageDraft} />}
           <Projection preview={selectedAction} />
           {action === 'sabotage' && selectedAction.allowed && (
             <p className="movement-consequence">

@@ -41,6 +41,7 @@ import {
 } from './rules.ts'
 import { addEffect, beginActivation, finishActivation } from './state.ts'
 import { capture, setExhausted } from './strategy.ts'
+import { armouryBlocked } from './rules.ts'
 export function outcome(s: State, r: Report): Battle['outcome'] {
   const b = s.battle!,
     t = b.table
@@ -873,8 +874,10 @@ function applyAftermath(s: State, ctx: Context) {
       pick.armoury &&
       ur.usedMedicae === true &&
       u.damage > before &&
-      !u.scars.some((sc) => u.side === 'deathwatch' && sc.id === 4) &&
-      !b.effects.some((e) => e.code === '41' && e.data.unit === u.id)
+      !armouryBlocked(
+        s,
+        b.before.find((v) => v.id === u.id)!,
+      )
     ) {
       u.damage--
       u.armoury = null
@@ -914,32 +917,31 @@ function applyAftermath(s: State, ctx: Context) {
     if (b.effects.some((e) => e.code === '63' && e.data.unit === u.id) && !ur.destroyed) xp++
     u.xp += xp
     for (const sc of u.scars) {
+      // A scar received in this aftermath did not exist for this battle's Deeds.
+      if (!old.scars.some((v) => v.id === sc.id)) continue
       const shortAuto =
         (u.side === 'deathwatch' &&
           sc.id === 11 &&
-          ['ENDURE', 'OPERATE', 'EXTRACT'].includes(ur.deed ?? '')) ||
-        (u.side === 'necrons' && sc.id === 11 && ['OPERATE', 'EXTRACT'].includes(ur.deed ?? ''))
+          ['ENDURE', 'OPERATE'].includes(ur.deed ?? '')) ||
+        (u.side === 'necrons' && sc.id === 11 && ur.deed === 'OPERATE')
       if (shortAuto) {
         u.scars = u.scars.filter((c) => c !== sc)
         continue
       }
       if (pick.redemption === sc.id && ur.deed && pick.redemptionDeed === ur.deed) {
-        sc.redemption++
         const short =
-          (u.side === 'deathwatch' &&
-            sc.id === 11 &&
-            ['ENDURE', 'OPERATE', 'EXTRACT'].includes(ur.deed)) ||
-          (u.side === 'necrons' && sc.id === 11 && ['OPERATE', 'EXTRACT'].includes(ur.deed))
+          (u.side === 'deathwatch' && sc.id === 11 && ['ENDURE', 'OPERATE'].includes(ur.deed)) ||
+          (u.side === 'necrons' && sc.id === 11 && ur.deed === 'OPERATE')
         const commandScar =
           (u.side === 'deathwatch' && sc.id === 8) || (u.side === 'necrons' && sc.id === 6)
-        if (
-          short ||
-          (sc.redemption >= 2 && (!commandScar || ['OPERATE', 'EXTRACT'].includes(ur.deed)))
-        )
+        if (commandScar && ur.deed !== 'OPERATE') continue
+        sc.redemption++
+        if (short || (sc.redemption >= 2 && (!commandScar || ur.deed === 'OPERATE')))
           u.scars = u.scars.filter((c) => c !== sc)
       }
     }
     if (u.scars.length < 3) u.trauma = false
+    if (!u.scars.length) u.flags.rehabLedger = false
     if (u.side === 'deathwatch' && u.scars.some((c) => c.id === 7)) u.flags.ammunitionDue = true
     if (u.flags.stageDeedStage === b.stage && u.flags.stageDeed === ur.deed) {
       u.flags.stageDeedProgress = Number(u.flags.stageDeedProgress ?? 0) + 1
@@ -1316,9 +1318,15 @@ function applyEvent(s: State, ctx: Context) {
     damaged = false,
   ) => {
     const u = live(id)
-    if (u && !u.armoury && !entry(s, u).epic) {
+    if (
+      u &&
+      u.side === side &&
+      !u.armoury &&
+      !entry(s, u).epic &&
+      !u.scars.some((sc) => side === 'deathwatch' && sc.id === 4)
+    ) {
       u.armoury = item
-      if (damaged) u.flags.damagedArmoury = true
+      u.flags.damagedArmoury = damaged
     } else credit(s, side, compensation)
   }
   if (e === '11') {

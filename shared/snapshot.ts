@@ -1,9 +1,9 @@
-import { HONOURS } from './rules.generated.ts'
 import { SIDES, type Command, type Context, type Snapshot, type State } from './model.ts'
 import { assert, credit, entry, present, spend, str, supplied } from './rules.ts'
 import { loadoutSignature, sameDatasheet } from './datasheets.ts'
 import { inLogistics, logisticsForce } from './logistics.ts'
-import { pruneStartingEnhancements } from './enhancements.ts'
+import { pruneStartingEnhancements, removePackageEnhancements } from './enhancements.ts'
+import { honourEligible } from './campaign-upgrades.ts'
 
 export const SITE_RULES_SOURCE =
   'Правила и цены сайта Black Sepulchre · 2.2.1 · приняты для дружеской кампании'
@@ -68,8 +68,7 @@ export function snapshotCommand(
         delete u.retiredCatalog
       } else u.retiredCatalog = structuredClone(old)
       const pending = u.honours.filter((id) => {
-        const h = HONOURS.find((h) => h.id === id)
-        return !next || (h?.character && !next.character) || next.epic
+        return !next || !honourEligible(id, next)
       })
       u.flags.pendingHonours = pending.join(',')
     }
@@ -90,14 +89,7 @@ export function snapshotCommand(
         )
       )
         p.packageStage = -1
-      p.enhancements = Object.fromEntries(
-        Object.entries(p.enhancements).filter(([id]) =>
-          s.snapshot.enhancements.some((e) => e.id === id),
-        ),
-      )
-      p.enhancementExtras = Object.fromEntries(
-        Object.entries(p.enhancementExtras ?? {}).filter(([id]) => !!p.enhancements[id]),
-      )
+      removePackageEnhancements(s, side, p.package)
       pruneStartingEnhancements(s, side)
     }
     return
@@ -138,8 +130,7 @@ export function snapshotCommand(
     delete u.retiredCatalog
     u.flags.pendingHonours = u.honours
       .filter((id) => {
-        const h = HONOURS.find((h) => h.id === id)
-        return (h?.character && !next.character) || next.epic
+        return !honourEligible(id, next)
       })
       .join(',')
     return

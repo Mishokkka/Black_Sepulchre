@@ -1,5 +1,6 @@
 export { revealAllowed } from './visibility.ts'
 import { HONOURS } from './rules.generated.ts'
+import { honourEligible } from './campaign-upgrades.ts'
 import { SIDES, type Battle, type Muster, type Side, type State } from './model.ts'
 import { sameDatasheet, datasheetName } from './datasheets.ts'
 import { validateCargo } from './transport.ts'
@@ -141,6 +142,22 @@ export function validateMuster(
       'Honour неприменимо',
     )
     assert(
+      hs.every((h) => honourEligible(h!.id, c)),
+      'Honour неприменимо',
+    )
+    if (v.honours.includes('pathfinders'))
+      assert(
+        m.picks.filter((p) => p.formation === v.formation).length === 1,
+        'Pathfinders только unattached bearer',
+      )
+    assert(
+      typeof v.armoury === 'boolean' &&
+        typeof v.relic === 'boolean' &&
+        (!v.armoury || !!u.armoury) &&
+        (!v.relic || !!u.relic),
+      'Предмет не назначен ID',
+    )
+    assert(
       !c.epic || (!v.honours.length && !v.armoury && !v.relic),
       'Epic не получает Campaign upgrades',
     )
@@ -160,6 +177,8 @@ export function validateMuster(
         ['HOLD', 'BREAK', 'HUNT', 'ENDURE', 'OPERATE', 'EXTRACT'].includes(v.redemptionDeed ?? ''),
         'Выберите подходящий Redemption Deed',
       )
+    if ((side === 'deathwatch' && v.redemption === 8) || (side === 'necrons' && v.redemption === 6))
+      assert(v.redemptionDeed === 'OPERATE', 'Для Command Scar требуется OPERATE')
     assert(
       (!u.scars.some((c) => c.id === 12) && side === 'necrons') ||
         v.protocol === 'HOLD' ||
