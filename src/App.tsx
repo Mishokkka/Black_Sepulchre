@@ -19,7 +19,8 @@ import {
   CampaignRequestError,
   retryableStatus,
   pendingKey,
-  readPending,
+  restorePending,
+  clearPending,
 } from './lib/requests'
 import { initialSync, type SyncState } from './lib/sync'
 const CampaignMap = lazy(() =>
@@ -113,7 +114,7 @@ export default function App() {
     setReceipt(null)
     if (id && session) {
       try {
-        setPending(readPending(sessionStorage, session.user.id, id))
+        setPending(restorePending(localStorage, sessionStorage, session.user.id, id))
       } catch {
         /* The in-memory receipt remains available if storage is blocked. */
       }
@@ -394,7 +395,7 @@ export default function App() {
     }
     const receiptKey = pendingKey(session!.user.id, id)
     try {
-      sessionStorage.setItem(receiptKey, JSON.stringify(body))
+      localStorage.setItem(receiptKey, JSON.stringify(body))
     } catch {
       /* In-memory retry remains available if storage is blocked. */
     }
@@ -404,7 +405,7 @@ export default function App() {
       setReceipt(commandReceipt(body, result?.state, side, Date.now()))
       setPending(null)
       try {
-        sessionStorage.removeItem(receiptKey)
+        clearPending(localStorage, sessionStorage, receiptKey)
       } catch {
         /* optional storage */
       }
@@ -416,13 +417,13 @@ export default function App() {
       setPending(uncertain ? body : null)
       if (uncertain) {
         try {
-          sessionStorage.setItem(receiptKey, JSON.stringify(body))
+          localStorage.setItem(receiptKey, JSON.stringify(body))
         } catch {
           /* In-memory retry still uses the same UUID. */
         }
       } else {
         try {
-          sessionStorage.removeItem(receiptKey)
+          clearPending(localStorage, sessionStorage, receiptKey)
         } catch {
           /* optional storage */
         }
@@ -449,7 +450,7 @@ export default function App() {
       setReceipt(commandReceipt(pending, result?.state, side, Date.now()))
       setPending(null)
       try {
-        sessionStorage.removeItem(pendingKey(user.current!, id!))
+        clearPending(localStorage, sessionStorage, pendingKey(user.current!, id!))
       } catch {
         /* optional storage */
       }
@@ -460,7 +461,7 @@ export default function App() {
         if (e instanceof CampaignRequestError && !e.retryable && e.status !== 401) {
           setPending(null)
           try {
-            sessionStorage.removeItem(pendingKey(user.current!, id!))
+            clearPending(localStorage, sessionStorage, pendingKey(user.current!, id!))
           } catch {
             /* optional storage */
           }

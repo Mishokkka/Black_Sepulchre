@@ -10,6 +10,9 @@ export interface HistoryEntry {
   resources?: { side: Side; supply: [number, number]; intel: [number, number] }[]
 }
 export const COMMAND_LABELS: Record<string, string> = {
+  battle_reconcile_request: 'Предложено исправление событий боя',
+  battle_reconcile_approve: 'Исправление событий боя согласовано',
+  battle_reconcile_cancel: 'Исправление событий боя отклонено',
   setup_enhancement: 'Изменено стартовое улучшение',
   accept_site_rules: 'Правила и цены сайта согласованы',
   expand_starting_catalogue: 'Каталог отрядов расширен',

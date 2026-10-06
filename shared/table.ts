@@ -8,6 +8,7 @@ import {
   type State,
   type TableState,
 } from './model.ts'
+import { hazardReceipt, tableCheckpoint } from './table-checks.ts'
 import { ARMOURY, assert, entry, integer, STAGES, unit } from './rules.ts'
 import { scarHasOnceUse } from './campaign-upgrades.ts'
 export function createTable(s: State, mission: string, ctx: Context): TableState {
@@ -192,6 +193,7 @@ export function createTable(s: State, mission: string, ctx: Context): TableState
     round: 1,
     turn: s.active,
     first: s.active,
+    firstConfirmed: false,
     step: 'start',
     vp: { deathwatch: 0, necrons: 0 },
     objects,
@@ -388,6 +390,7 @@ export function tableCommand(s: State, c: Command, ctx: Context) {
       assert(SIDES.includes(p.side as Side), 'Неизвестная сторона')
       t.first = p.side as Side
       t.turn = t.first
+      t.firstConfirmed = true
       return
     case 'table_controls': {
       assert(Array.isArray(p.controls) && p.controls.length <= 12, 'Неверные факты контроля')
@@ -473,7 +476,8 @@ export function tableCommand(s: State, c: Command, ctx: Context) {
       return
     }
     case 'table_hazard_ack':
-      t.receipts.push(`R${t.round}:${t.step}`)
+      assert(t.step === 'hazards', 'Подтверждение опасностей в конце раунда')
+      if (!t.receipts.includes(hazardReceipt(t, side))) t.receipts.push(hazardReceipt(t, side))
       return
     case 'table_fact': {
       const name = String(p.name)
@@ -601,6 +605,14 @@ export function tableCommand(s: State, c: Command, ctx: Context) {
         t.turn === side || ['start', 'end_round', 'hazards'].includes(t.step),
         'Сейчас ход другой стороны',
       )
+      {
+        const checkpoint = tableCheckpoint(s, side)
+        assert(!checkpoint.blocked, checkpoint.blocked)
+        assert(
+          !checkpoint.review || p.reviewed === true,
+          'Сверьте контроль, факты и последствия перед переходом',
+        )
+      }
       advance(s, ctx)
       return
     default:
@@ -980,13 +992,15 @@ function advance(s: State, ctx: Context) {
       } else t.step = 'shooting'
       return
     case 'shooting':
+      t.step = 'charge'
+      return
+    case 'charge':
+      t.step = 'fight'
+      return
+    case 'fight':
       t.step = 'end_turn'
       return
     case 'end_turn':
-      for (const a of t.actions.filter(
-        (a) => a.round === t.round && a.side === t.turn && a.pending && a.kind !== 'COMMUNE',
-      ))
-        a.pending = false
       if (t.round === 5 && t.turn !== t.first) commandScore(s)
       if (t.turn === t.first) {
         t.turn = other(t.first)
@@ -994,7 +1008,6 @@ function advance(s: State, ctx: Context) {
       } else t.step = 'end_round'
       return
     case 'end_round':
-      for (const a of t.actions.filter((a) => a.round === t.round && a.pending)) a.pending = false
       if (code === 'H3')
         for (const who of SIDES)
           t.records[`fact:beforeHazardKills:${who}:${t.round}`] =

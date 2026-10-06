@@ -148,7 +148,7 @@ test('Withdrawal deadline is same Movement, closes actions and caps VP', () => {
       }),
     /эвакуации/,
   )
-  s = run(s, 'table_advance')
+  s = run(s, 'table_advance', { reviewed: true })
   assert.equal(s.battle!.table.step, 'finished')
   assert.equal(s.battle!.table.vp.deathwatch, 25)
 })

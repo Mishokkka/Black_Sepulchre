@@ -208,18 +208,23 @@ export default function Demo() {
       own[2].flags.commission = true
       own[2].xp = 8
     }
-    if (['live', 'result', 'aftermath', 'chronicle'].includes(mode)) {
+    if (['live', 'live-start', 'result', 'aftermath', 'chronicle'].includes(mode)) {
+      const live = mode === 'live' || mode === 'live-start'
       next.players.deathwatch.mf = 'D'
       next.players.necrons.mf = 'F'
-      if (mode === 'live') declareBattle(next, 'F', 'deathwatch', false, context())
+      if (live) declareBattle(next, 'F', 'deathwatch', false, context())
       else declareBattle(next, 'X', 'deathwatch', false, context(), 'encounter')
       const b = next.battle!
-      b.mission = mode === 'live' ? 'F1' : 'encounter'
+      b.mission = live ? 'F1' : 'encounter'
       b.table = createTable(next, b.mission, context())
-      b.table.round = mode === 'live' ? 3 : 5
-      b.table.step = mode === 'live' ? 'movement' : 'finished'
+      b.table.round = mode === 'live-start' ? 1 : mode === 'live' ? 3 : 5
+      b.table.step = mode === 'live-start' ? 'start' : mode === 'live' ? 'movement' : 'finished'
       b.table.vp =
-        mode === 'live' ? { deathwatch: 18, necrons: 12 } : { deathwatch: 10, necrons: 5 }
+        mode === 'live-start'
+          ? { deathwatch: 0, necrons: 0 }
+          : mode === 'live'
+            ? { deathwatch: 18, necrons: 12 }
+            : { deathwatch: 10, necrons: 5 }
       b.lock = { deathwatch: false, necrons: false }
       b.interdict = { deathwatch: null, necrons: null }
       for (const who of SIDES) {
@@ -249,7 +254,7 @@ export default function Demo() {
         b.assets[who] = { tactical: [], defensive: [], breach: [] }
       }
       next.phase = 'battle'
-      if (mode !== 'live')
+      if (!live)
         next = command(
           next,
           {
@@ -320,9 +325,17 @@ export default function Demo() {
     setTab(
       mode === 'chronicle'
         ? 'overview'
-        : ['battle', 'muster', 'live', 'result', 'aftermath', 'finale', 'war', 'pact'].includes(
-              mode,
-            )
+        : [
+              'battle',
+              'muster',
+              'live',
+              'live-start',
+              'result',
+              'aftermath',
+              'finale',
+              'war',
+              'pact',
+            ].includes(mode)
           ? 'battle'
           : mode === 'logistics'
             ? 'logistics'
@@ -510,6 +523,7 @@ export default function Demo() {
                 'battle',
                 'muster',
                 'live',
+                'live-start',
                 'logistics',
                 'result',
                 'aftermath',

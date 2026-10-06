@@ -18,7 +18,7 @@ import { beginActivation, finishActivation, newUnit } from './state.ts'
 import { strategic, setPackage } from './strategy.ts'
 import { battleCommand, declareBattle } from './battle.ts'
 import { revealAllowed, validateMuster } from './muster.ts'
-import { tableCommand } from './table.ts'
+import { projectTableJournal, reconcileTable, recordedTableCommand } from './table-journal.ts'
 import { aftermathCommand } from './aftermath.ts'
 import { inLogistics, logistics } from './logistics.ts'
 import { acceptSiteRules, snapshotCommand } from './snapshot.ts'
@@ -84,6 +84,11 @@ export function command(state: State, c: Command, context: Context): State {
   assert(
     !s.correctionProposal || ['approve_correction', 'cancel_correction'].includes(c.type),
     'Коррекция ожидает решения обоих; зависимые действия остановлены',
+  )
+  assert(
+    !s.battle?.reconciliation ||
+      ['battle_reconcile_approve', 'battle_reconcile_cancel'].includes(c.type),
+    'Исправление событий ожидает решения обоих; зависимые действия остановлены',
   )
   assert(
     !s.snapshotProposal ||
@@ -266,7 +271,8 @@ export function command(state: State, c: Command, context: Context): State {
     s.phase = 'terminal'
     s.activation = null
   } else if (AFTER.includes(c.type)) aftermathCommand(s, c, ctx)
-  else if (c.type.startsWith('table_') || c.type === 'echo_wounds') tableCommand(s, c, ctx)
+  else if (c.type.startsWith('battle_reconcile_')) reconcileTable(s, c, ctx)
+  else if (c.type.startsWith('table_') || c.type === 'echo_wounds') recordedTableCommand(s, c, ctx)
   else logistics(s, c, ctx)
   s.version = state.version + 1
   s.log.push(describeCommand(state, s, c, ctx.actor, dice))
@@ -533,6 +539,7 @@ export function project(state: State, side: Side): View {
   s.resultBase = null
   const clean = (b: State['battle']) => {
     if (!b) return
+    projectTableJournal(b)
     b.hiddenSignal = ''
     delete b.table.records.trueSignal
     if (!b.table.records['decoyShown:' + other(side)]) delete b.decoys[other(side)]

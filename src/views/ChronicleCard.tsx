@@ -11,6 +11,7 @@ import { historySummary } from '../../shared/history'
 import { SIDES } from '../../shared/model'
 import { labels } from './common'
 import { StatusBadge } from './StatusBadge'
+import { BattleEventList } from './BattleJournal'
 
 export function ResourceChanges({ rows }: { rows: ChronicleGroup['rows'] }) {
   const changes = resourceChanges(rows)
@@ -137,6 +138,12 @@ export function ChronicleCard({
               </p>
             ))}
           {b?.ending && <p>Судьба планеты: {b.ending}</p>}
+          {!!b?.journal?.length && (
+            <details className="battle-journal">
+              <summary>События стола и источники VP · {b.journal.length}</summary>
+              <BattleEventList events={b.journal} />
+            </details>
+          )}
           {b?.report && (
             <p className="muted">
               Уничтоженные ID — факты боя; окончательный статус отряда определяется Casualty и

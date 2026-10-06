@@ -1,7 +1,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { initialSync, syncMessage } from '../src/lib/sync'
-import { CampaignRequestError, errorHelp, pendingKey, readPending } from '../src/lib/requests'
+import {
+  CampaignRequestError,
+  clearPending,
+  errorHelp,
+  pendingKey,
+  readPending,
+  restorePending,
+} from '../src/lib/requests'
 
 test('Offline/uncertain delivery take precedence over a recent server read', () => {
   const sync = { ...initialSync(), lastLoad: 1000, realtime: 'connected' as const }
@@ -46,4 +53,35 @@ test('An uncertain receipt survives reload for its own account/campaign and reta
   assert.equal(readPending(storage, 'user-one', 'campaign-two'), null)
   saved.set(pendingKey('user-one', 'campaign-two'), JSON.stringify(request))
   assert.equal(readPending(storage, 'user-one', 'campaign-two'), null)
+})
+test('Legacy pending requests migrate to persistent storage, survive tab closure and clear after replay', () => {
+  const request = {
+    campaignId: 'campaign',
+    requestId: '00000000-0000-4000-8000-000000000123',
+    expectedVersion: 9,
+    command: { type: 'table_advance', payload: {} },
+  }
+  const storage = () => {
+    const values = new Map<string, string>()
+    return {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        values.set(key, value)
+      },
+      removeItem: (key: string) => {
+        values.delete(key)
+      },
+    } as Storage
+  }
+  const persistent = storage(),
+    oldTab = storage(),
+    key = pendingKey('user', 'campaign')
+  oldTab.setItem(key, JSON.stringify(request))
+  assert.deepEqual(restorePending(persistent, oldTab, 'user', 'campaign'), request)
+  assert.equal(oldTab.getItem(key), null)
+  const newTab = storage()
+  assert.deepEqual(restorePending(persistent, newTab, 'user', 'campaign'), request)
+  assert.equal(restorePending(persistent, newTab, 'other-user', 'campaign'), null)
+  clearPending(persistent, newTab, key)
+  assert.equal(restorePending(persistent, newTab, 'user', 'campaign'), null)
 })

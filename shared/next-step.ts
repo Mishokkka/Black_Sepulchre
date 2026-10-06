@@ -12,6 +12,10 @@ export function nextStep(
   })
   const wait = (text: string, tab = 'battle') => result(text, tab, 'battle-step', true)
   const b = s.battle
+  if (b?.reconciliation)
+    return b.reconciliation.approved.includes(side)
+      ? wait('Другой командир проверяет исправление событий боя')
+      : result('Проверьте и согласуйте исправление событий боя', 'battle', 'battle-reconciliation')
   if (s.correctionProposal)
     return s.correctionProposal.approved.includes(side)
       ? wait('Другой командир согласует коррекцию результата')
@@ -117,7 +121,7 @@ export function nextStep(
     return result('Отметьте потери и отправьте отчёт о бое', 'battle', 'report-panel')
   if (
     b.table.turn !== side &&
-    ['command', 'movement', 'shooting', 'end_turn'].includes(b.table.step)
+    ['command', 'movement', 'shooting', 'charge', 'fight', 'end_turn'].includes(b.table.step)
   )
     return wait(`Раунд ${b.table.round}: идёт ход другого командира; выполняйте реакции за столом`)
   const steps: Record<string, string> = {
@@ -125,6 +129,8 @@ export function nextStep(
     command: 'Запишите действия командной фазы',
     movement: 'Запишите прибытие резервов и действия движения',
     shooting: 'Запишите действия стрельбы',
+    charge: 'Выполните чарджи за столом, проверьте запреты Actions',
+    fight: 'Разрешите ближний бой за столом и обновите контроль целей',
     end_turn: 'Запишите контроль целей и завершите ход',
     end_round: 'Проверьте контроль целей и завершите раунд',
     hazards: 'Примените и подтвердите опасности миссии',
