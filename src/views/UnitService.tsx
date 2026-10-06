@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { HONOURS, SCARS } from '../../shared/rules.generated'
+import { HONOURS, SCARS, EQUIPMENT_EFFECTS } from '../../shared/rules.generated'
+import { honourEligible } from '../../shared/campaign-upgrades'
 import { ARMOURY, entry, present, RELICS } from '../../shared/rules'
 import { command } from '../../shared/engine'
 import { logisticsForce } from '../../shared/logistics'
@@ -159,16 +160,26 @@ export function UnitService({ s, side, send, u }: Props & { u: Unit }) {
               value={honour}
               change={setHonour}
               items={HONOURS.filter(
-                (h) => (!h.side || h.side === side) && !u.honours.includes(h.id),
+                (h) => honourEligible(h.id, entry(s, u)) && !u.honours.includes(h.id),
               ).map((h) => ({ id: h.id, name: `${h.name} · ${h.tier}${h.formation ? ' Ф' : ''}` }))}
             />
-            <button
-              className="quiet"
-              disabled={!honour}
-              onClick={() => send('claim_honour', { id: u.id, honour })}
-            >
-              Выбрать Honour
-            </button>
+            {honour && (
+              <>
+                <p className="muted">
+                  {HONOURS.find((h) => h.id === honour)?.effect} Активный эффект добавляет CR при
+                  сборе на бой.
+                </p>
+                <LogisticsAction
+                  s={s}
+                  side={side}
+                  send={send}
+                  type="claim_honour"
+                  payload={{ id: u.id, honour }}
+                  label="Выбрать Honour"
+                  quiet
+                />
+              </>
+            )}
           </div>
           <div>
             <Options
@@ -180,21 +191,39 @@ export function UnitService({ s, side, send, u }: Props & { u: Unit }) {
                 name: `${a.name} · ${a.cost}`,
               }))}
             />
-            <button
-              className="quiet"
-              disabled={!item || !!u.armoury}
-              onClick={() => send('buy_armoury', { id: u.id, item })}
-            >
-              Купить
-            </button>
+            {item && (
+              <>
+                <p className="muted">
+                  {EQUIPMENT_EFFECTS[ARMOURY[item].name]}{' '}
+                  {ARMOURY[item].tier
+                    ? `${ARMOURY[item].tier}${ARMOURY[item].formation ? ' Ф' : ''} · CR при активации в составе.`
+                    : 'Без CR.'}
+                </p>
+                <LogisticsAction
+                  s={s}
+                  side={side}
+                  send={send}
+                  type="buy_armoury"
+                  payload={{ id: u.id, item }}
+                  label="Купить Armoury"
+                  quiet
+                />
+              </>
+            )}
             {p.inventory.includes(item) && (
-              <button className="quiet" onClick={() => send('assign_armoury', { id: u.id, item })}>
-                Из inventory
-              </button>
+              <LogisticsAction
+                s={s}
+                side={side}
+                send={send}
+                type="assign_armoury"
+                payload={{ id: u.id, item }}
+                label="Выдать из inventory"
+                quiet
+              />
             )}
             {u.armoury && (
               <button className="quiet" onClick={() => send('discard_armoury', { id: u.id })}>
-                Отказаться от предмета
+                Отказаться от предмета · без возврата Supply
               </button>
             )}
           </div>
@@ -210,13 +239,26 @@ export function UnitService({ s, side, send, u }: Props & { u: Unit }) {
                 }))}
               />
               <div className="buttons">
+                <p className="muted">
+                  {u.scars.find((sc) => sc.id === Number(scar))?.progress
+                    ? 'Progress: следующая попытка гарантирована за обычную цену.'
+                    : u.flags.rehabLedger
+                      ? 'Corpse Ledger: +1 к следующему броску.'
+                      : 'Провал даст Progress. Повторная попытка доступна в новом Window.'}
+                </p>
                 <LogisticsAction
                   s={s}
                   side={side}
                   send={send}
                   type="rehabilitate"
                   payload={{ id: u.id, scar: Number(scar) }}
-                  label="Rehab · D6 3+"
+                  label={
+                    u.scars.find((sc) => sc.id === Number(scar))?.progress
+                      ? 'Rehab · гарантирован'
+                      : u.flags.rehabLedger
+                        ? 'Rehab · D6 2+'
+                        : 'Rehab · D6 3+'
+                  }
                   quiet
                 />
                 <LogisticsAction
@@ -237,15 +279,28 @@ export function UnitService({ s, side, send, u }: Props & { u: Unit }) {
                 label="Relic со склада"
                 value={relic}
                 change={setRelic}
-                items={p.relics.map((id, i) => ({ id, name: `${RELICS[id].name} (${i + 1})` }))}
+                items={[...new Set(p.relics)].map((id) => ({
+                  id,
+                  name: `${RELICS[id].name} · на складе ${p.relics.filter((v) => v === id).length}`,
+                }))}
               />
-              <button
-                className="quiet"
-                disabled={!relic}
-                onClick={() => send('assign_relic', { id: u.id, item: relic })}
-              >
-                Назначить
-              </button>
+              {relic && (
+                <>
+                  <p className="muted">
+                    {EQUIPMENT_EFFECTS[RELICS[relic].name]}{' '}
+                    {u.relic && `Прежняя реликвия ${RELICS[u.relic].name} вернётся на склад.`}
+                  </p>
+                  <LogisticsAction
+                    s={s}
+                    side={side}
+                    send={send}
+                    type="assign_relic"
+                    payload={{ id: u.id, item: relic }}
+                    label="Назначить Relic"
+                    quiet
+                  />
+                </>
+              )}
             </div>
           )}
         </div>
@@ -309,9 +364,15 @@ export function UnitService({ s, side, send, u }: Props & { u: Unit }) {
           change={setDeed}
           items={['HOLD', 'EXTRACT', 'OPERATE'].map((id) => ({ id, name: id }))}
         />
-        <button className="quiet" onClick={() => send('stage_deed', { id: u.id, deed })}>
-          Закрепить Deed Stage
-        </button>
+        <LogisticsAction
+          s={s}
+          side={side}
+          send={send}
+          type="stage_deed"
+          payload={{ id: u.id, deed }}
+          label="Закрепить Deed Stage"
+          quiet
+        />
         {u.relic && (
           <>
             <Options
@@ -320,46 +381,76 @@ export function UnitService({ s, side, send, u }: Props & { u: Unit }) {
               change={setRecipient}
               items={s.units
                 .filter(
-                  (v) => v.side === side && v.status === 'active' && v.id !== u.id && !v.relic,
+                  (v) =>
+                    v.side === side &&
+                    v.status === 'active' &&
+                    v.id !== u.id &&
+                    !v.relic &&
+                    !entry(s, v).epic &&
+                    present(s, v) === p.mf,
                 )
                 .map((v) => ({ id: v.id, name: v.name }))}
             />
-            <button
-              className="quiet"
-              disabled={!recipient}
-              onClick={() => send('transfer_relic', { from: u.id, to: recipient })}
-            >
-              Передать · 10 Supply
-            </button>
+            {recipient && (
+              <LogisticsAction
+                s={s}
+                side={side}
+                send={send}
+                type="transfer_relic"
+                payload={{ from: u.id, to: recipient }}
+                label="Передать Relic"
+                quiet
+              />
+            )}
           </>
         )}
         {Object.entries(p.enhancements)
           .filter(([id]) => enhancementBearers(p, id).includes(u.id))
           .map(([id]) => (
-            <Options
-              key={id}
-              label={`Передать Enhancement ${s.snapshot.enhancements.find((e) => e.id === id)?.name}`}
-              value=""
-              change={(to) => send('transfer_enhancement', { enhancement: id, from: u.id, to })}
-              items={s.units
-                .filter(
-                  (v) =>
-                    v.side === side &&
-                    v.id !== u.id &&
-                    v.status === 'active' &&
-                    !enhancementBearers(p, id).includes(v.id) &&
-                    enhancementEligible(
-                      s.snapshot.enhancements.find((e) => e.id === id)!,
-                      entry(s, v),
-                    ),
-                )
-                .map((v) => ({ id: v.id, name: v.name }))}
-            />
+            <EnhancementTransfer key={id} s={s} side={side} send={send} u={u} id={id} />
           ))}
         <button className="danger" onClick={() => send('disband', { id: u.id })}>
           Disband ID с положенным возвратом
         </button>
       </details>
     </fieldset>
+  )
+}
+
+function EnhancementTransfer({ s, side, send, u, id }: Props & { u: Unit; id: string }) {
+  const [to, setTo] = useState('')
+  const p = s.players[side],
+    e = s.snapshot.enhancements.find((e) => e.id === id)
+  if (!e) return null
+  return (
+    <div>
+      <Options
+        label={`Передать Enhancement ${e.name}`}
+        value={to}
+        change={setTo}
+        items={s.units
+          .filter(
+            (v) =>
+              v.side === side &&
+              v.id !== u.id &&
+              v.status === 'active' &&
+              present(s, v) === p.mf &&
+              !enhancementBearers(p, id).includes(v.id) &&
+              enhancementEligible(e, entry(s, v)),
+          )
+          .map((v) => ({ id: v.id, name: v.name }))}
+      />
+      {to && (
+        <LogisticsAction
+          s={s}
+          side={side}
+          send={send}
+          type="transfer_enhancement"
+          payload={{ enhancement: id, from: u.id, to }}
+          label="Передать Enhancement"
+          quiet
+        />
+      )}
+    </div>
   )
 }

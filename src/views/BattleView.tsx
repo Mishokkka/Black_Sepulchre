@@ -353,9 +353,13 @@ function TableView({ s, side, send }: Props) {
     [actor, setActor] = useState(''),
     [object, setObject] = useState(''),
     [kind, setKind] = useState(''),
+    [actionHonour, setActionHonour] = useState(''),
     [die, setDie] = useState(3),
     [ack, setAck] = useState(false),
-    [ruinsBonus, setRuinsBonus] = useState(false)
+    [ruinsBonus, setRuinsBonus] = useState(false),
+    [actionUpgrades, setActionUpgrades] = useState<
+      Record<string, { fieldEngineers?: boolean; ossuaryKey?: boolean }>
+    >({})
   const o = t.objects.find((o) => o.id === object),
     options = o ? actionsFor(s, o) : []
   const n = nextStep(s, side)
@@ -568,7 +572,10 @@ function TableView({ s, side, send }: Props) {
             <Options
               label="Actor persistent ID"
               value={actor}
-              change={setActor}
+              change={(id) => {
+                setActor(id)
+                setActionHonour('')
+              }}
               items={b.muster[side]!.picks.map((p) => ({ id: p.id, name: unit(s, p.id).name }))}
             />
             <Options
@@ -588,6 +595,32 @@ function TableView({ s, side, send }: Props) {
               items={options.map((id) => ({ id, name: id }))}
             />
           </div>
+          {actor && (
+            <Options
+              label="Кампанийное разрешение для Action"
+              emptyLabel="Обычный Action"
+              value={actionHonour}
+              change={setActionHonour}
+              items={[
+                ...(['secure_and_extract', 'operational_mastery', 'black_spear_veteran'] as const)
+                  .filter(
+                    (id) =>
+                      b.muster[side]!.picks.find((p) => p.id === actor)?.honours.includes(id) &&
+                      !t.records[`use:${side}:${actor}:${id}`] &&
+                      !['CLAIM', 'OVERRIDE ENGINE', 'PRIME ENGINE'].includes(kind),
+                  )
+                  .map((id) => ({
+                    id,
+                    name:
+                      id === 'secure_and_extract'
+                        ? 'Secure and Extract · после Advance, без Shoot/Charge'
+                        : id === 'operational_mastery'
+                          ? 'Operational Mastery · Action + Shoot с −1 Hit, без Charge'
+                          : 'Black Spear Veteran · Action + Shoot, без Charge',
+                  })),
+              ]}
+            />
+          )}
           <Check
             label="За столом проверены eligibility, range, запреты Shoot/Charge и требуемый контроль"
             value={ack}
@@ -603,6 +636,9 @@ function TableView({ s, side, send }: Props) {
                 eligible: true,
                 inRange: true,
                 deliveryEligible: true,
+                advanced: actionHonour === 'secure_and_extract',
+                actionShoot: ['operational_mastery', 'black_spear_veteran'].includes(actionHonour),
+                actionHonour: actionHonour || undefined,
               })
             }
           >
@@ -638,6 +674,37 @@ function TableView({ s, side, send }: Props) {
                 onChange={(e) => setDie(Number(e.target.value))}
               />
             </label>
+            {b.muster[side]!.picks.find((p) => p.id === a.actor)?.honours.includes(
+              'field_engineers',
+            ) &&
+              !t.records[`use:${side}:${a.actor}:field_engineers`] && (
+                <Check
+                  label="Применить Field Engineers · Jam, один раз за бой"
+                  value={!!actionUpgrades[a.id]?.fieldEngineers}
+                  change={(v) =>
+                    setActionUpgrades({
+                      ...actionUpgrades,
+                      [a.id]: { ...actionUpgrades[a.id], fieldEngineers: v },
+                    })
+                  }
+                />
+              )}
+            {unit(s, a.actor).relic === 'key' &&
+              b.muster[side]!.picks.find((p) => p.id === a.actor)?.relic &&
+              b.type !== 'PACT' &&
+              !['CLAIM', 'OVERRIDE ENGINE', 'PRIME ENGINE'].includes(a.kind) &&
+              !t.records[`use:${side}:${a.actor}:key`] && (
+                <Check
+                  label="Применить Ossuary Key · +1 VP, один раз за бой"
+                  value={!!actionUpgrades[a.id]?.ossuaryKey}
+                  change={(v) =>
+                    setActionUpgrades({
+                      ...actionUpgrades,
+                      [a.id]: { ...actionUpgrades[a.id], ossuaryKey: v },
+                    })
+                  }
+                />
+              )}
             <div className="buttons">
               <button
                 onClick={() =>
@@ -651,6 +718,8 @@ function TableView({ s, side, send }: Props) {
                     die,
                     ruinsBonus,
                     inRuins: ruinsBonus,
+                    fieldEngineers: !!actionUpgrades[a.id]?.fieldEngineers,
+                    ossuaryKey: !!actionUpgrades[a.id]?.ossuaryKey,
                   })
                 }
               >

@@ -9,6 +9,7 @@ import {
   type TableState,
 } from './model.ts'
 import { ARMOURY, assert, entry, integer, STAGES, unit } from './rules.ts'
+import { scarHasOnceUse } from './campaign-upgrades.ts'
 export function createTable(s: State, mission: string, ctx: Context): TableState {
   const stage = STAGES[s.stage],
     l = ['WAR', 'PACT'].includes(mission) ? 60 : stage.l,
@@ -428,7 +429,22 @@ export function tableCommand(s: State, c: Command, ctx: Context) {
       const pick = b.muster[side]!.picks.find((v) => v.id === p.actor),
         id = String(p.item)
       assert(pick, 'Нет committed actor')
+      assert(
+        !(pick.reserve || pick.role === 'pool') || t.records[`entered:${pick.id}`],
+        'Actor ещё не прибыл',
+      )
+      assert(
+        ![
+          'field_engineers',
+          'operational_mastery',
+          'black_spear_veteran',
+          'secure_and_extract',
+          'key',
+        ].includes(id),
+        'Это улучшение отмечается при выполнении Action',
+      )
       const u = unit(s, pick.id)
+      const scar = /^scar:(\d+)$/.exec(id)
       if (pick.armoury && u.armoury === id)
         assert(
           !u.scars.some((v) => side === 'deathwatch' && v.id === 4) &&
@@ -438,7 +454,10 @@ export function tableCommand(s: State, c: Command, ctx: Context) {
       assert(
         pick.honours.includes(id) ||
           (pick.armoury && u.armoury === id) ||
-          (pick.relic && u.relic === id),
+          (pick.relic && u.relic === id) ||
+          (scar &&
+            scarHasOnceUse(side, Number(scar[1])) &&
+            u.scars.some((sc) => sc.id === Number(scar[1]))),
         'Улучшение не активно',
       )
       assert(once(t, `use:${side}:${pick.id}:${id}`), 'Использование уже потрачено')
@@ -603,14 +622,30 @@ function startAction(s: State, p: Record<string, unknown>, ctx: Context) {
   assert(p.eligible === true && p.inRange === true, 'Проверьте core eligibility и range')
   const core = ['CLAIM', 'OVERRIDE ENGINE', 'PRIME ENGINE'].includes(kind)
   if (p.advanced === true || p.actionShoot === true) {
-    assert(!core, 'CORE запрещает ускорения')
-    const required = p.advanced === true ? 'secure_and_extract' : 'operational_mastery'
     assert(
-      pick.honours.includes(required) ||
-        (p.actionShoot === true && pick.honours.includes('black_spear_veteran')),
+      !(p.advanced === true && p.actionShoot === true),
+      'Action после Advance не разрешает Shoot',
+    )
+    assert(!core, 'CORE запрещает ускорения')
+    const required = String(
+      p.actionHonour ??
+        (p.advanced === true
+          ? 'secure_and_extract'
+          : pick.honours.includes('operational_mastery')
+            ? 'operational_mastery'
+            : 'black_spear_veteran'),
+    )
+    assert(
+      pick.honours.includes(required) &&
+        (p.advanced === true
+          ? required === 'secure_and_extract'
+          : ['operational_mastery', 'black_spear_veteran'].includes(required)),
       'Нет кампанийного разрешения',
     )
-    assert(once(t, `honour:${u.id}:${required}`), 'Honour уже израсходовано')
+    assert(
+      !t.records[`honour:${u.id}:${required}`] && once(t, `use:${side}:${u.id}:${required}`),
+      'Honour уже израсходовано',
+    )
   }
   assert(
     pick.role === 'pool' || pick.reserve ? t.records[`entered:${pick.id}`] : true,
@@ -1085,7 +1120,11 @@ function completeAction(s: State, p: Record<string, unknown>, ctx: Context) {
       if (first) addVP(t, side, n)
     }
   const relicPick = b.muster[side]!.picks.find((v) => v.id === a.actor)!
-  if (relicPick.honours.includes('field_engineers')) {
+  if (
+    relicPick.honours.includes('field_engineers') &&
+    p.fieldEngineers !== false &&
+    once(t, `use:${side}:${a.actor}:field_engineers`)
+  ) {
     t.records[`jamOwner:${o.id}`] = side
     t.records[`jamUntil:${o.id}`] = t.round + 1
   }
@@ -1093,7 +1132,9 @@ function completeAction(s: State, p: Record<string, unknown>, ctx: Context) {
     unit(s, a.actor).relic === 'key' &&
     relicPick.relic &&
     code !== 'PACT' &&
-    !['CLAIM', 'OVERRIDE ENGINE', 'PRIME ENGINE'].includes(a.kind)
+    !['CLAIM', 'OVERRIDE ENGINE', 'PRIME ENGINE'].includes(a.kind) &&
+    p.ossuaryKey !== false &&
+    once(t, `use:${side}:${a.actor}:key`)
   )
     addVP(t, side, 1)
   if (['BREACH', 'OVERLOAD', 'DEMOLISH', 'DISABLE', 'SHUTDOWN', 'DESTROY'].includes(a.kind)) {

@@ -227,6 +227,12 @@ export const RELICS: Record<string, { name: string; tier: string; formation: boo
   crown: { name: 'Mnemonic Crown', tier: 'Minor', formation: false },
   anchor: { name: 'Anchor Fragment', tier: 'Major', formation: true },
 }
+export function armouryBlocked(s: State, u: Unit): boolean {
+  return (
+    u.scars.some((v) => u.side === 'deathwatch' && v.id === 4) ||
+    !!s.battle?.effects.some((e) => e.code === '41' && e.side === u.side && e.data.unit === u.id)
+  )
+}
 export function surcharge(s: State, u: Unit, p: Pick, picks: Pick[]): number {
   const total = picks
     .filter((v) => v.formation === p.formation)
@@ -237,10 +243,7 @@ export function surcharge(s: State, u: Unit, p: Pick, picks: Pick[]): number {
     assert(h && u.honours.includes(id), 'Неизвестное Honour')
     cr += effectPrice(h.tier, h.formation, u.rc, total)
   }
-  const armouryBlocked =
-    u.scars.some((v) => u.side === 'deathwatch' && v.id === 4) ||
-    s.battle?.effects.some((e) => e.code === '41' && e.side === u.side && e.data.unit === u.id)
-  if (p.armoury && u.armoury && !armouryBlocked) {
+  if (p.armoury && u.armoury && !armouryBlocked(s, u)) {
     const a = ARMOURY[u.armoury]
     if (a.tier) cr += effectPrice(a.tier, a.formation, u.rc, total)
   }

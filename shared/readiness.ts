@@ -1,4 +1,5 @@
 import { HONOURS } from './rules.generated.ts'
+import { honourEligible } from './campaign-upgrades.ts'
 import type { Battle, Muster, Pick, Side, State, Unit } from './model.ts'
 import { available, entry, STAGES, surcharge, effectPrice, ARMOURY, RELICS } from './rules.ts'
 import { validateMuster } from './muster.ts'
@@ -110,7 +111,9 @@ export function maximumReady(source: State, side: Side): number {
           const hs = u.honours.filter((id) => {
             const h = HONOURS.find((h) => h.id === id)!
             return (
-              (!h.character || cat.character) &&
+              honourEligible(id, cat) &&
+              (id !== 'pathfinders' ||
+                picks.filter((v) => v.formation === p.formation).length === 1) &&
               (!h.side || h.side === side) &&
               !cat.epic &&
               (h.tier !== 'Signature' || u.xp >= 18)

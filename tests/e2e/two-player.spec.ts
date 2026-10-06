@@ -97,6 +97,26 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
     expect((await load(0)).players.necrons.enhancements).toEqual({})
     await a.reload()
     await expect(a.getByLabel(`Улучшение: ${bearer.name}`, { exact: true })).toHaveValue(veil.id)
+    const hand = initial.snapshot.detachments.find((d) => d.name === 'Hand of the Dynasty')!
+    await a.getByLabel('Стартовый detachment', { exact: true }).selectOption(hand.id)
+    await expect(a.locator('.package-impact')).toContainText('refund 20 очков Effective')
+    await expect(a.getByLabel('Бюджет стартовой армии')).toContainText('495')
+    expect((await load(0)).players.necrons.package).toEqual([veil.detachment])
+    await a.getByRole('button', { name: 'Применить detachment', exact: true }).click()
+    await expect.poll(async () => (await load(0)).players.necrons.package).toEqual([hand.id])
+    expect((await load(0)).players.necrons.startingEnhancements).toEqual({})
+    expect((await load(0)).players.necrons.supply).toBe(initial.players.necrons.supply)
+    await expect(a.getByLabel('Бюджет стартовой армии')).toContainText('475')
+    await a.getByLabel('Стартовый detachment', { exact: true }).selectOption(veil.detachment)
+    await a.getByRole('button', { name: 'Применить detachment', exact: true }).click()
+    await expect
+      .poll(async () => (await load(0)).players.necrons.package)
+      .toEqual([veil.detachment])
+    await expect(a.getByLabel(`Улучшение: ${bearer.name}`, { exact: true })).toHaveValue('')
+    await a.getByLabel(`Улучшение: ${bearer.name}`, { exact: true }).selectOption(veil.id)
+    await expect
+      .poll(async () => (await load(0)).players.necrons.startingEnhancements?.[bearer.id])
+      .toBe(veil.id)
     await refresh(b)
     // Concurrent UI clicks use two sessions and the same initial version. A conflict is a valid outcome.
     await Promise.all(

@@ -51,17 +51,19 @@ export function Options({
   change,
   items,
   label,
+  emptyLabel = 'Выберите…',
 }: {
   value: string
   change: (v: string) => void
   items: { id: string; name: string }[]
   label: string
+  emptyLabel?: string
 }) {
   return (
     <label>
       {label}
       <select aria-label={label} value={value} onChange={(e) => change(e.target.value)}>
-        <option value="">Выберите…</option>
+        <option value="">{emptyLabel}</option>
         {items.map((i) => (
           <option key={i.id} value={i.id}>
             {i.name}

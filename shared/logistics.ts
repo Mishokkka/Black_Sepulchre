@@ -1,4 +1,5 @@
 import { HONOURS } from './rules.generated.ts'
+import { honourEligible } from './campaign-upgrades.ts'
 import { enhancementEligible, enhancementBearers, bindEnhancement } from './enhancements.ts'
 import { SIDES, type Command, type Context, type State } from './model.ts'
 import {
@@ -220,8 +221,13 @@ export function logistics(s: State, c: Command, ctx: Context) {
         p.flags.discountHomeLogistics = true
       }
       if (c.payload.cache === true) {
-        assert(u.armoury === 'cache' || p.inventory.includes('cache'), 'Нет Recovery Cache')
-        if (u.armoury === 'cache') u.armoury = null
+        const equippedCache =
+          u.armoury === 'cache' && !u.scars.some((sc) => side === 'deathwatch' && sc.id === 4)
+        assert(
+          equippedCache || p.inventory.includes('cache'),
+          'Нет доступного Recovery Cache / Armoury slot закрыт',
+        )
+        if (equippedCache) u.armoury = null
         else p.inventory.splice(p.inventory.indexOf('cache'), 1)
         cost = Math.max(0, cost - 30)
       }
@@ -291,14 +297,7 @@ export function logistics(s: State, c: Command, ctx: Context) {
       const cat = entry(s, u),
         h = HONOURS.find((h) => h.id === c.payload.honour)
       assert(!u.retiredCatalog, 'Сначала выберите Successor исчезнувшего datasheet')
-      assert(
-        h &&
-          !cat.epic &&
-          !u.honours.includes(h.id) &&
-          (!h.side || h.side === side) &&
-          (!h.character || cat.character),
-        'Honour неприменимо',
-      )
+      assert(h && honourEligible(h.id, cat) && !u.honours.includes(h.id), 'Honour неприменимо')
       const pending = String(u.flags.pendingHonours ?? '')
         .split(',')
         .filter(Boolean)
@@ -341,6 +340,7 @@ export function logistics(s: State, c: Command, ctx: Context) {
         )
         spend(s, side, a.cost)
         u.armoury = item
+        u.flags.damagedArmoury = false
       } else {
         assert(
           a.consumable &&
@@ -367,6 +367,7 @@ export function logistics(s: State, c: Command, ctx: Context) {
       )
       p.inventory.splice(p.inventory.indexOf(item), 1)
       u.armoury = item
+      u.flags.damagedArmoury = false
       return
     }
     case 'discard_armoury': {
@@ -489,6 +490,7 @@ export function logistics(s: State, c: Command, ctx: Context) {
         enhancement &&
           bearers.includes(String(from)) &&
           !bearers.includes(to.id) &&
+          p.package.includes(enhancement.detachment) &&
           enhancementEligible(enhancement, entry(s, to)),
         'Enhancement не закреплено / target',
       )

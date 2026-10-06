@@ -4,6 +4,7 @@ import { isMusterDraft } from '../lib/drafts'
 import type { Muster, Pick } from '../../shared/model'
 import { ARMOURY, RELICS, STAGES, entry, unit } from '../../shared/rules'
 import { enhancementChoices, preferredEnhancement } from '../../shared/enhancements'
+import { defaultActiveHonours, honourEligible } from '../../shared/campaign-upgrades'
 import { EnhancementChoice } from './EnhancementChoice'
 import { rosterUnits } from '../../shared/roster'
 import { musterPreview, musterCandidateReason, battleCommandError } from '../../shared/battle-ui'
@@ -12,6 +13,7 @@ import { StatusBadge } from './StatusBadge'
 import { MusterBudget } from './MusterBudget'
 import { ConfirmDialog } from './ConfirmDialog'
 import { RuleHelp } from './RulesContext'
+import { HONOURS } from '../../shared/rules.generated'
 export function MusterView({ s, side, send }: Props) {
   const b = s.battle!,
     p = s.players[side],
@@ -33,6 +35,11 @@ export function MusterView({ s, side, send }: Props) {
       detachments: v,
       picks: m.picks.map((pick) => ({
         ...pick,
+        paidOptions: (pick.paidOptions ?? []).filter((name) =>
+          entry(s, unit(s, pick.id), b.snapshot).packageCosts?.some(
+            (o) => o.optional && o.name === name && o.detachments.some((id) => v.includes(id)),
+          ),
+        ),
         enhancement: enhancementChoices(s, side, pick.id, b.snapshot, v, b.stage).some(
           (e) => e.id === pick.enhancement,
         )
@@ -138,7 +145,7 @@ export function MusterView({ s, side, send }: Props) {
                                 b.stage,
                               ),
                               paidOptions: [],
-                              honours: [...u.honours],
+                              honours: defaultActiveHonours(u, cat),
                               armoury: !!u.armoury,
                               relic: !!u.relic,
                               redemption: null,
@@ -227,20 +234,22 @@ export function MusterView({ s, side, send }: Props) {
                       <div className="muster-settings-grid">
                         {pick && (
                           <>
-                            {u.honours.map((id) => (
-                              <Check
-                                key={id}
-                                label={id}
-                                value={pick.honours.includes(id)}
-                                change={(v) =>
-                                  edit(u.id, {
-                                    honours: v
-                                      ? [...pick.honours, id]
-                                      : pick.honours.filter((h) => h !== id),
-                                  })
-                                }
-                              />
-                            ))}
+                            {u.honours
+                              .filter((id) => honourEligible(id, cat))
+                              .map((id) => (
+                                <Check
+                                  key={id}
+                                  label={HONOURS.find((h) => h.id === id)?.name ?? id}
+                                  value={pick.honours.includes(id)}
+                                  change={(v) =>
+                                    edit(u.id, {
+                                      honours: v
+                                        ? [...pick.honours, id]
+                                        : pick.honours.filter((h) => h !== id),
+                                    })
+                                  }
+                                />
+                              ))}
                             {u.armoury && (
                               <Check
                                 label={ARMOURY[u.armoury].name}
@@ -363,22 +372,13 @@ export function MusterView({ s, side, send }: Props) {
               change={(v) => {
                 const next = v ? [...detachments, id] : detachments.filter((d) => d !== id)
                 setDetachments(next)
-                setPicks(
-                  picks.map((pick) => ({
-                    ...pick,
-                    paidOptions: (pick.paidOptions ?? []).filter((name) =>
-                      entry(s, unit(s, pick.id), b.snapshot).packageCosts?.some(
-                        (o) =>
-                          o.optional &&
-                          o.name === name &&
-                          o.detachments.some((d) => next.includes(d)),
-                      ),
-                    ),
-                  })),
-                )
               }}
             />
           ))}
+          <p className="muted">
+            Отключение detachment снимает его улучшения из этого состава и освобождает очки.
+            Назначения Stage сохраняются до смены Package в Logistics или Doctrine Refit.
+          </p>
         </div>
         <div>
           {(b.snapshot.dispositions ?? [])
