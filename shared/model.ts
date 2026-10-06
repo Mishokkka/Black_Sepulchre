@@ -279,16 +279,22 @@ export interface Battle {
   aftermathApplied: boolean
   hiddenSignal: string
   decoys: Partial<Record<Side, string>>
+  journal?: import('./table-journal.ts').BattleEvent[]
+  replay?: import('./table-journal.ts').TableReplay
+  reconciliation?: import('./table-journal.ts').TableProposal | null
 }
 export interface TableState {
   round: number
   turn: Side
   first: Side
+  firstConfirmed?: boolean
   step:
     | 'start'
     | 'command'
     | 'movement'
     | 'shooting'
+    | 'charge'
+    | 'fight'
     | 'end_turn'
     | 'end_round'
     | 'hazards'

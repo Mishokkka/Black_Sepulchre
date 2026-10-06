@@ -3,17 +3,9 @@ import { command } from './engine.ts'
 import { musterCosts, validateMuster } from './muster.ts'
 import { entry, garrisonLegal, present, STAGES, surcharge, unit } from './rules.ts'
 import { availabilityReasons } from './roster.ts'
+import { TABLE_STEP_LABELS } from './table-checks.ts'
 
-export const TABLE_STEPS: Record<Battle['table']['step'], string> = {
-  start: 'Начало боя',
-  command: 'Командная фаза',
-  movement: 'Движение',
-  shooting: 'Стрельба',
-  end_turn: 'Конец хода',
-  end_round: 'Конец раунда',
-  hazards: 'Опасности миссии',
-  finished: 'Бой завершён',
-}
+export const TABLE_STEPS = TABLE_STEP_LABELS
 export const musterLimit = (b: Battle, side: Side) =>
   b.type === 'PACT' || b.forces?.[side] === 'stf' ? b.al / 2 : b.al
 
@@ -189,7 +181,7 @@ export function battleProgress(s: State) {
 export function battleCommandError(
   s: State,
   side: Side,
-  type: 'commit_muster' | 'submit_result' | 'request_correction',
+  type: 'commit_muster' | 'submit_result' | 'request_correction' | 'table_action',
   payload: Record<string, unknown>,
 ) {
   try {

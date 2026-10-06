@@ -5,11 +5,14 @@ import { ConfirmDialog } from './ConfirmDialog'
 import { ReportView } from './ReportView'
 export { ReportView } from './ReportView'
 import { AftermathSummary } from './AftermathSummary'
-import { TABLE_STEPS } from '../../shared/battle-ui'
+import { battleCommandError, TABLE_STEPS } from '../../shared/battle-ui'
 import { nextStep } from '../../shared/next-step'
 import { StatusBadge } from './StatusBadge'
 import { BattlePacket } from './BattlePacket'
 import { TableExtras, MissionFacts } from './TableExtras'
+import { FirstPlayer, TableAdvance } from './TableAdvance'
+import { BattleJournal } from './BattleJournal'
+import { completionReady } from '../../shared/table-checks'
 import { useState } from 'react'
 import Markdown from 'react-markdown'
 import { MissionBrief } from './MissionBrief'
@@ -163,8 +166,14 @@ export function BattleView({ s, side, send }: Props) {
       {['battle', 'result', 'aftermath'].includes(s.phase) && (
         <BattlePacket s={s} side={side} send={send} />
       )}{' '}
-      {s.phase === 'battle' && <TableView s={s} side={side} send={send} />}
-      {s.phase === 'result' && <ResultView s={s} side={side} send={send} />}
+      {s.phase === 'battle' && !b.reconciliation && <TableView s={s} side={side} send={send} />}
+      {['battle', 'result', 'aftermath'].includes(s.phase) && (
+        <BattleJournal s={s} side={side} send={send} />
+      )}
+      {s.phase === 'battle' && b.table.step === 'finished' && !b.reconciliation && (
+        <ReportView s={s} side={side} send={send} />
+      )}
+      {s.phase === 'result' && !b.reconciliation && <ResultView s={s} side={side} send={send} />}
       {s.phase === 'ending' && <Endings s={s} side={side} send={send} />}
       {s.phase === 'aftermath' && <AftermathView s={s} side={side} send={send} />}
       {b.mission && s.phase !== 'battle' && (
@@ -357,13 +366,28 @@ function TableView({ s, side, send }: Props) {
     [die, setDie] = useState(3),
     [ack, setAck] = useState(false),
     [ruinsBonus, setRuinsBonus] = useState(false),
+    [completionAck, setCompletionAck] = useState<Record<string, boolean>>({}),
     [actionUpgrades, setActionUpgrades] = useState<
       Record<string, { fieldEngineers?: boolean; ossuaryKey?: boolean }>
     >({})
   const o = t.objects.find((o) => o.id === object),
     options = o ? actionsFor(s, o) : []
   const n = nextStep(s, side)
-  const advanceAllowed = !n.waiting && t.step !== 'finished'
+  const startPayload = {
+    actor,
+    object,
+    kind,
+    eligible: true,
+    inRange: true,
+    deliveryEligible: true,
+    advanced: actionHonour === 'secure_and_extract',
+    actionShoot: ['operational_mastery', 'black_spear_veteran'].includes(actionHonour),
+    actionHonour: actionHonour || undefined,
+  }
+  const startError =
+    actor && object && kind && t.step === 'movement'
+      ? battleCommandError(s, side, 'table_action', startPayload)
+      : ''
   const selectObject = (id: string) => {
     const target = t.objects.find((o) => o.id === id)
     if (!target || target.disabled) return
@@ -392,14 +416,7 @@ function TableView({ s, side, send }: Props) {
             ))}
           </aside>
           <div className="battle-board">
-            {t.round === 1 && t.step === 'start' && (
-              <Options
-                label="Первый игрок по tabletop roll-off"
-                value={t.first}
-                change={(side) => send('table_first', { side })}
-                items={SIDES.map((id) => ({ id, name: labels[id] }))}
-              />
-            )}
+            {t.round === 1 && t.step === 'start' && <FirstPlayer s={s} side={side} send={send} />}
             <div className="table-map">
               <svg
                 viewBox={`-2 -2 ${dimensions.l + 4} ${dimensions.w + 4}`}
@@ -488,16 +505,7 @@ function TableView({ s, side, send }: Props) {
             <p>{n.text}</p>
             <StatusBadge tone={n.waiting ? 'info' : 'ready'}>Ход {labels[t.turn]}</StatusBadge>
             {t.step !== 'finished' && (
-              <>
-                <button
-                  className="primary"
-                  disabled={!advanceAllowed}
-                  onClick={() => send('table_advance')}
-                >
-                  Завершить шаг
-                </button>
-                {n.waiting && <p className="muted">Шаг завершает другой командир.</p>}
-              </>
+              <TableAdvance key={s.version} s={s} side={side} send={send} />
             )}
             {object && (
               <p className="board-selection">
@@ -525,12 +533,14 @@ function TableView({ s, side, send }: Props) {
                 </small>
                 <Options
                   label="Физический контроль"
+                  disabled={o.disabled || t.step === 'finished'}
                   value={o.control ?? ''}
                   change={(who) =>
                     send('table_controls', { controls: [{ id: o.id, side: who || null }] })
                   }
                   items={SIDES.map((id) => ({ id, name: labels[id] }))}
                 />
+                {o.disabled && <small>Отключённый объект не может менять контроль.</small>}
                 <small>
                   Tag: {o.tag ? labels[o.tag] : '—'}
                   {o.keys.length ? ` · Keys ${o.keys.join(' + ')}` : ''}
@@ -544,6 +554,7 @@ function TableView({ s, side, send }: Props) {
                       min="0"
                       max="10"
                       value={t.echoes[Number(o.id) - 1].wounds}
+                      disabled={t.step === 'finished'}
                       onChange={(e) =>
                         send('echo_wounds', {
                           index: Number(o.id) - 1,
@@ -565,7 +576,7 @@ function TableView({ s, side, send }: Props) {
           </div>
         )}
       </section>
-      {t.step === 'movement' && (
+      {t.step === 'movement' && t.turn === side && (
         <section className="panel">
           <h3>Старт Named Action</h3>
           <div className="form-grid">
@@ -576,7 +587,9 @@ function TableView({ s, side, send }: Props) {
                 setActor(id)
                 setActionHonour('')
               }}
-              items={b.muster[side]!.picks.map((p) => ({ id: p.id, name: unit(s, p.id).name }))}
+              items={b.muster[side]!.picks.filter(
+                (p) => !(p.reserve || p.role === 'pool') || t.records[`entered:${p.id}`],
+              ).map((p) => ({ id: p.id, name: unit(s, p.id).name }))}
             />
             <Options
               label="Объект"
@@ -627,23 +640,12 @@ function TableView({ s, side, send }: Props) {
             change={setAck}
           />
           <button
-            disabled={!ack || !actor || !object || !kind}
-            onClick={() =>
-              send('table_action', {
-                actor,
-                object,
-                kind,
-                eligible: true,
-                inRange: true,
-                deliveryEligible: true,
-                advanced: actionHonour === 'secure_and_extract',
-                actionShoot: ['operational_mastery', 'black_spear_veteran'].includes(actionHonour),
-                actionHonour: actionHonour || undefined,
-              })
-            }
+            disabled={!ack || !actor || !object || !kind || !!startError}
+            onClick={() => send('table_action', startPayload)}
           >
             Начать Action
           </button>
+          {startError && <p className="validation">{startError}</p>}
         </section>
       )}
       {t.actions
@@ -657,6 +659,18 @@ function TableView({ s, side, send }: Props) {
               Успех требует живого, не Battle-shocked, стационарного actor в range. Если нужен
               контроль, он сохранён. ENCODE проверяет мёртвую Echo сейчас.
             </p>
+            {!completionReady(t, a) ? (
+              <p className="muted">
+                Завершение доступно в {a.kind === 'COMMUNE' ? 'конце раунда' : 'конце своего хода'},
+                после Charge и Fight.
+              </p>
+            ) : (
+              <Check
+                label="Условия успешного завершения проверены за столом"
+                value={!!completionAck[a.id]}
+                change={(v) => setCompletionAck({ ...completionAck, [a.id]: v })}
+              />
+            )}
             {s.sectors.B.owner === side && !t.records[`ruinsBonus:${side}`] && (
               <Check
                 label="B: actor в Ruins, применить одноразовый +1 к последствиям D6"
@@ -707,6 +721,7 @@ function TableView({ s, side, send }: Props) {
               )}
             <div className="buttons">
               <button
+                disabled={!completionReady(t, a) || !completionAck[a.id]}
                 onClick={() =>
                   send('table_complete', {
                     id: a.id,
@@ -727,6 +742,7 @@ function TableView({ s, side, send }: Props) {
               </button>
               <button
                 className="quiet"
+                disabled={!completionReady(t, a)}
                 onClick={() => send('table_complete', { id: a.id, success: false })}
               >
                 Action сорван
@@ -734,9 +750,12 @@ function TableView({ s, side, send }: Props) {
             </div>
           </section>
         ))}
-      <TableExtras s={s} side={side} send={send} />
-      <MissionFacts s={s} side={side} send={send} />
-      {t.step === 'finished' && <ReportView s={s} side={side} send={send} />}
+      {t.step !== 'finished' && (
+        <>
+          <TableExtras s={s} side={side} send={send} />
+          <MissionFacts s={s} side={side} send={send} />
+        </>
+      )}
     </>
   )
 }

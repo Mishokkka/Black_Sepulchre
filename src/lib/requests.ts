@@ -8,6 +8,27 @@ export interface PendingRequest {
 }
 export const pendingKey = (user: string, campaign: string) =>
   `black-sepulchre:pending:1:${user}:${campaign}`
+export function restorePending(
+  persistent: Storage,
+  legacy: Storage,
+  user: string,
+  campaign: string,
+) {
+  const receipt = readPending(persistent, user, campaign) ?? readPending(legacy, user, campaign)
+  if (receipt) {
+    try {
+      persistent.setItem(pendingKey(user, campaign), JSON.stringify(receipt))
+      legacy.removeItem(pendingKey(user, campaign))
+    } catch {
+      /* Keep the exact in-memory receipt if persistent storage is unavailable. */
+    }
+  }
+  return receipt
+}
+export function clearPending(persistent: Storage, legacy: Storage, key: string) {
+  persistent.removeItem(key)
+  legacy.removeItem(key)
+}
 export function readPending(
   storage: Pick<Storage, 'getItem'>,
   user: string,

@@ -52,17 +52,24 @@ export function Options({
   items,
   label,
   emptyLabel = 'Выберите…',
+  disabled = false,
 }: {
   value: string
   change: (v: string) => void
   items: { id: string; name: string }[]
   label: string
   emptyLabel?: string
+  disabled?: boolean
 }) {
   return (
     <label>
       {label}
-      <select aria-label={label} value={value} onChange={(e) => change(e.target.value)}>
+      <select
+        aria-label={label}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => change(e.target.value)}
+      >
         <option value="">{emptyLabel}</option>
         {items.map((i) => (
           <option key={i.id} value={i.id}>

@@ -14,6 +14,17 @@ const run = (
   side: Side = 'deathwatch',
   die = 4,
 ) => command(s, { type, payload }, context(side, die))
+function advance(s: State) {
+  const side = s.battle!.table.turn
+  if (
+    s.battle!.table.round === 1 &&
+    s.battle!.table.step === 'start' &&
+    !s.battle!.table.firstConfirmed
+  )
+    s = run(s, 'table_first', { side }, side)
+  if (s.battle!.table.step === 'hazards') s = run(s, 'table_hazard_ack', {}, side)
+  return run(s, 'table_advance', { reviewed: true }, side)
+}
 function muster(s: State, side: Side): Muster {
   const us = s.units.filter(
     (u) =>
@@ -230,8 +241,7 @@ test('Command scoring executes once with R5 last-turn compensation', () => {
     controls: s.battle!.table.objects.map((o) => ({ id: o.id, side: 'deathwatch' })),
   })
   let guard = 0
-  while (s.battle!.table.step !== 'finished' && guard++ < 100)
-    s = run(s, 'table_advance', {}, s.battle!.table.turn)
+  while (s.battle!.table.step !== 'finished' && guard++ < 100) s = advance(s)
   assert.equal(s.battle!.table.vp.deathwatch, 36)
   assert.equal(s.battle!.table.round, 5)
   assert.equal(guard < 100, true)
@@ -241,12 +251,11 @@ test('PACT ENCODE can start with live Echo but needs dead Echo at completion', (
   s.battle!.type = 'PACT'
   s.battle!.mission = 'PACT'
   s.battle!.table = createTable(s, 'PACT', context())
-  let x = run(s, 'table_advance')
-  x = run(x, 'table_advance')
+  let x = advance(s)
+  x = advance(x)
   const actor = x.battle!.muster.deathwatch!.picks[0].id
   x = run(x, 'table_action', { actor, object: '1', kind: 'ENCODE', eligible: true, inRange: true })
-  x = run(x, 'table_advance')
-  x = run(x, 'table_advance')
+  while (x.battle!.table.step !== 'end_turn') x = advance(x)
   const id = x.battle!.table.actions[0].id
   assert.throws(
     () =>
@@ -277,8 +286,7 @@ test('Idle PACT reaches immediate Instability defeat after round four', () => {
   s.battle!.mission = 'PACT'
   s.battle!.table = createTable(s, 'PACT', context())
   let guard = 0
-  while (s.battle!.table.step !== 'finished' && guard++ < 100)
-    s = run(s, 'table_advance', {}, s.battle!.table.turn)
+  while (s.battle!.table.step !== 'finished' && guard++ < 100) s = advance(s)
   assert.equal(s.battle!.table.round, 4)
   assert.equal(s.battle!.table.instability, 12)
   assert(s.battle!.table.records.immediateFailure)

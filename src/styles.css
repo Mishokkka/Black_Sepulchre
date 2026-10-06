@@ -1,4 +1,48 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Oswald:wght@400;500;600&display=swap');
+.table-checkpoint ul {
+  margin: 12px 0;
+  padding-left: 18px;
+  font-size: 0.9rem;
+}
+.table-rolloff {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.battle-journal > details {
+  margin-top: 16px;
+}
+.battle-event-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.battle-event-list > li {
+  border-left: 2px solid var(--border-strong);
+  padding: 8px 12px;
+  overflow-wrap: anywhere;
+}
+.battle-event-list > li > strong,
+.battle-event-list > li > small {
+  display: block;
+}
+.battle-event-list p:empty {
+  display: none;
+}
+.battle-event-list p {
+  margin: 4px 0;
+}
+.journal-correction {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin: 16px 0;
+}
+.journal-correction textarea {
+  width: 100%;
+  min-height: 80px;
+}
 :root {
   font-family: 'IBM Plex Sans', system-ui, sans-serif;
   color: #e5e6de;
