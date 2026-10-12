@@ -352,7 +352,8 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
         .getByLabel('Купить отряд', { exact: true })
         .locator('option')
         .filter({ hasText: hero.datasheet })
-      await expect(option).toBeDisabled()
+      // Native <option> uses its disabled property; Playwright's ARIA matcher treats it as enabled.
+      await expect(option).toHaveJSProperty('disabled', true)
       const failed = await accounts[i].api.functions.invoke('campaign-engine', {
         body: {
           campaignId: id,
