@@ -51,7 +51,7 @@ export function PackageEditor({ s, side, send, setup = false }: Props & { setup?
         choices.map((d) => (
           <Check
             key={d.id}
-            label={`${d.name} · ${d.dp} DP`}
+            label={`${d.name} · ${d.dp} DP${d.uniqueGroup ? ` · UNIQUE: ${d.uniqueGroup}` : ''}`}
             value={next.includes(d.id)}
             change={(v) => setNext(v ? [...next, d.id] : next.filter((id) => id !== d.id))}
           />

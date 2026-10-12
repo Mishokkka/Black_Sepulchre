@@ -30,7 +30,7 @@ test('reference candidates allow external equipment; enrichment preserves existi
   const reference = JSON.parse(
     readFileSync(new URL('../public/data/wahapedia.reference.json', import.meta.url), 'utf8'),
   ) as ReferenceLibrary
-  assert.equal(reference.datasheets.length, 142)
+  assert.equal(reference.datasheets.length, 128)
   for (const d of reference.datasheets) {
     const source = referenceImport(d),
       c = draftCatalog(source, source.units[0], 'draft')

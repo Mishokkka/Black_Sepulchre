@@ -4,6 +4,7 @@ import { loadoutSignature, sameDatasheet } from './datasheets.ts'
 import { inLogistics, logisticsForce } from './logistics.ts'
 import { pruneStartingEnhancements, removePackageEnhancements } from './enhancements.ts'
 import { honourEligible } from './campaign-upgrades.ts'
+import { applyMarinePrices, MARINE_SOURCE } from './marine-prices.ts'
 
 export const SITE_RULES_SOURCE =
   'Правила и цены сайта Black Sepulchre · 2.2.1 · приняты для дружеской кампании'
@@ -38,9 +39,11 @@ export function snapshotCommand(
     const snapshot =
       c.type === 'approve_snapshot'
         ? s.snapshotProposal?.snapshot
-        : (c.payload.snapshot as Snapshot)
+        : structuredClone(c.payload.snapshot as Snapshot)
     if (!snapshot && c.type === 'approve_snapshot') return
     assert(snapshot, 'Нет каталога для сохранения')
+    if (snapshot.sources.includes(MARINE_SOURCE))
+      snapshot.catalog = snapshot.catalog.map(applyMarinePrices)
     validate(snapshot)
     if (s.battles > 0 || s.phase !== 'setup')
       for (const old of s.snapshot.catalog) {

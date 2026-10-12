@@ -37,7 +37,7 @@ export interface SourceInfo {
   catalogueName: string
   generator: string
   hash?: string
-  provider?: 'New Recruit' | 'Wahapedia'
+  provider?: 'New Recruit' | 'Wahapedia' | 'BSData'
   url?: string
 }
 export interface ImportedUnit {

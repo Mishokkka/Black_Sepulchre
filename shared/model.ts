@@ -66,6 +66,8 @@ export interface Detachment {
   dp: number
   requiredKeywords: string[]
   side?: Side
+  uniqueGroup?: string
+  dispositions?: string[]
 }
 export interface Snapshot {
   id: string

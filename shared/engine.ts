@@ -24,6 +24,7 @@ import { inLogistics, logistics } from './logistics.ts'
 import { acceptSiteRules, snapshotCommand } from './snapshot.ts'
 import { validateCard, validateTransportRule } from './datasheets.ts'
 import { expandStartingCatalogue, starterUnavailable } from './starting-catalogue.ts'
+import { updatedMarineSnapshot } from './marine-update.ts'
 import {
   enhancementEligible,
   pruneStartingEnhancements,
@@ -107,6 +108,16 @@ export function command(state: State, c: Command, context: Context): State {
   )
   if (c.type === 'accept_site_rules') {
     // The agreement was supplied by the campaign owner; no game resources change.
+  } else if (c.type === 'update_space_marines') {
+    const snapshot = updatedMarineSnapshot(s)
+    snapshotCommand(s, { type: 'save_catalog', payload: { snapshot } }, ctx, validateSnapshot)
+    s.units = s.units.map((u) =>
+      u.side === 'necrons' ? structuredClone(state.units.find((old) => old.id === u.id)!) : u,
+    )
+    s.players.necrons = structuredClone(state.players.necrons)
+    if (s.players.deathwatch.package.length === state.players.deathwatch.package.length)
+      s.players.deathwatch.packageStage = state.players.deathwatch.packageStage
+    s.setupApproved = s.setupApproved.filter((side) => side !== 'deathwatch')
   } else if (c.type === 'expand_starting_catalogue') {
     assert(
       !s.battle && ['setup', 'strategy', 'logistics'].includes(s.phase),

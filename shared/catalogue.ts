@@ -1,5 +1,6 @@
 import type { CatalogUnit, Snapshot } from './model.ts'
 import { SITE_RULES_SOURCE } from './snapshot.ts'
+import { applyMarinePrices, MARINE_SOURCE } from './marine-prices.ts'
 import {
   cardFromImport,
   keyword,
@@ -54,7 +55,7 @@ export function referenceImport(d: ReferenceSheet): SourceImport {
         sourceId: `${d.id}:m${i}`,
         name: p.name,
         type: 'Unit',
-        values: { ...p.values, Base: p.base },
+        values: { ...p.values, Base: p.base ?? '' },
       }),
   )
   d.weaponProfiles.forEach(
@@ -199,6 +200,7 @@ export function snapshotWithCatalog(
   date: string,
   id: string,
 ): Snapshot {
+  if (snapshot.sources.includes(MARINE_SOURCE)) c = applyMarinePrices(c)
   if (!c.card) throw Error('Нет карточки выбранного состава')
   validateCard(c.card, c.models)
   const next = structuredClone(snapshot)
