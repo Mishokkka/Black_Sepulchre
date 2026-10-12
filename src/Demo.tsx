@@ -27,7 +27,7 @@ import { ScreenLoading } from './views/ScreenLoading'
 import { commandReceipt, type CommandReceipt } from './lib/command-receipt'
 import { errorHelp, type PendingRequest } from './lib/requests'
 import { initialSync } from './lib/sync'
-import { STAGES } from '../shared/rules'
+import { STAGES, stageFor } from '../shared/rules'
 import { ResultCorrection } from './views/ResultCorrection'
 
 type PreviewTransport = 'normal' | 'offline' | 'slow' | 'lost' | 'conflict' | 'fallback'
@@ -208,6 +208,13 @@ export default function Demo() {
       own[2].flags.commission = true
       own[2].xp = 8
     }
+    if (mode === 'epic-heroes') {
+      next.battles = 4
+      next.stage = stageFor(4)
+      next = command(next, { type: 'end_strategy', payload: {} }, context())
+      next.activation!.logistics = ['deathwatch', 'necrons']
+      for (const who of SIDES) next.players[who].supply = 1000
+    }
     if (['live', 'live-start', 'result', 'aftermath', 'chronicle'].includes(mode)) {
       const live = mode === 'live' || mode === 'live-start'
       next.players.deathwatch.mf = 'D'
@@ -337,7 +344,7 @@ export default function Demo() {
               'pact',
             ].includes(mode)
           ? 'battle'
-          : mode === 'logistics'
+          : ['logistics', 'epic-heroes'].includes(mode)
             ? 'logistics'
             : 'strategy',
     )
@@ -525,6 +532,7 @@ export default function Demo() {
                 'live',
                 'live-start',
                 'logistics',
+                'epic-heroes',
                 'result',
                 'aftermath',
                 'chronicle',

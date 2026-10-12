@@ -233,6 +233,7 @@ export function LogisticsView({ s, side, send }: Props) {
                 catalog={s.snapshot.catalog}
                 value={catalog}
                 change={setCatalog}
+                purchaseBattles={s.battles}
                 search
               />
               <label>

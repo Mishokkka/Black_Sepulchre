@@ -26,6 +26,7 @@ import {
 import { newUnit } from './state.ts'
 import { setPackage } from './strategy.ts'
 import { sameDatasheet } from './datasheets.ts'
+import { epicHeroPurchaseReason } from './epic-heroes.ts'
 export function inLogistics(s: State, side: Context['actor']) {
   assert(
     s.phase === 'logistics' &&
@@ -91,6 +92,8 @@ export function logistics(s: State, c: Command, ctx: Context) {
       const u = newUnit(s, side, str(c.payload.catalogId, 250), str(c.payload.name), ctx),
         cat = entry(s, u),
         amount = integer(c.payload.local ?? 0)
+      const epicReason = epicHeroPurchaseReason(s.battles, cat)
+      assert(!epicReason, epicReason ?? '')
       u.location = location as typeof u.location
       u.sector = location === 'garrison' ? at : null
       assert(!SECTORS[at].home || amount === 0, 'В Home нет Local')
