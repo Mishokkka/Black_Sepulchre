@@ -56,7 +56,7 @@ export function Options({
 }: {
   value: string
   change: (v: string) => void
-  items: { id: string; name: string }[]
+  items: { id: string; name: string; disabled?: boolean }[]
   label: string
   emptyLabel?: string
   disabled?: boolean
@@ -72,7 +72,7 @@ export function Options({
       >
         <option value="">{emptyLabel}</option>
         {items.map((i) => (
-          <option key={i.id} value={i.id}>
+          <option key={i.id} value={i.id} disabled={i.disabled}>
             {i.name}
           </option>
         ))}

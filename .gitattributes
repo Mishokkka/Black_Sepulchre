@@ -1,0 +1,2 @@
+# PDF xref offsets depend on exact bytes; prevent Windows newline conversion.
+*.pdf binary

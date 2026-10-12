@@ -75,7 +75,7 @@ export function expandStartingEnhancements(s: State) {
 /** Campaign small-format rules: individual RC <=40% AL, no Epic/Titanic, one copy. */
 export function starterUnavailable(s: State, side: Side, c: CatalogUnit): string | null {
   if (c.side !== side) return 'Другая фракция'
-  if (c.epic) return 'Epic Hero доступен с 1000 очков'
+  if (c.epic) return 'Epic Heroes нельзя брать на старте; покупка открывается после четвёртого боя'
   if (c.keywords.includes('TITANIC')) return 'TITANIC доступен с 1000 очков'
   if (c.rc > 200) return 'Один отряд на старте может стоить не более 200 RC'
   const existing = s.units

@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { declareBattle } from '../../shared/battle'
 import { command } from '../../shared/engine'
 import { createTable } from '../../shared/table'
+import { stageFor } from '../../shared/rules'
 import type { Side, State } from '../../shared/model'
 
 const url = process.env.E2E_SUPABASE_URL!,
@@ -27,6 +28,7 @@ const stateResponse = (p: Page) =>
 test('Two real Auth accounts create/join, submit sealed choices, resolve a race and reload one shared version', async ({
   browser,
 }) => {
+  test.setTimeout(180000)
   const contexts = await Promise.all([browser.newContext(), browser.newContext()])
   const pages = await Promise.all(contexts.map((c) => c.newPage()))
   const accounts: {
@@ -313,6 +315,89 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
     await expect(b.getByLabel('Deathwatch 5 VP, Necrons 0 VP', { exact: true })).toBeVisible()
     expect((await load(0)).battle!.table.objects[0].tag).toBe('deathwatch')
     expect((await load(1)).battle!.table.actions.filter((action) => action.success)).toHaveLength(1)
+
+    // Seed 3 completed battles in this disposable campaign; purchases use the real Edge guard.
+    const priorLogistics = await load(0),
+      lockedHeroes = structuredClone(priorLogistics)
+    lockedHeroes.battle = null
+    lockedHeroes.phase = 'logistics'
+    lockedHeroes.battles = 3
+    lockedHeroes.stage = stageFor(3)
+    lockedHeroes.activation!.logistics = ['deathwatch', 'necrons']
+    for (const side of ['deathwatch', 'necrons'] as Side[]) lockedHeroes.players[side].supply = 1000
+    const seedLogistics = async (state: State, previous: State) => {
+      state.version = previous.version + 1
+      const seeded = await admin.rpc('v221_commit', {
+        p_campaign: id,
+        p_actor: accounts[0].id,
+        p_expected: previous.version,
+        p_request: randomUUID(),
+        p_fingerprint: 'test-epic-fixture-only',
+        p_command: 'e2e_epic_fixture',
+        p_state: state,
+      })
+      if (seeded.error) throw seeded.error
+    }
+    await seedLogistics(lockedHeroes, priorLogistics)
+    for (const i of [0, 1]) {
+      const side: Side = i === 0 ? 'necrons' : 'deathwatch'
+      const hero = lockedHeroes.snapshot.catalog.find((c) => c.side === side && c.epic)!
+      const p = pages[i]
+      await refresh(p)
+      await p.getByRole('button', { name: 'Logistics', exact: true }).click()
+      await p.getByText('Приобрести новый отряд', { exact: true }).click()
+      await p.getByLabel('Показать только Epic Heroes', { exact: true }).check()
+      await expect(p.getByLabel('Доступ Epic Heroes', { exact: true })).toContainText('3/4')
+      const option = p
+        .getByLabel('Купить отряд', { exact: true })
+        .locator('option')
+        .filter({ hasText: hero.datasheet })
+      // Native <option> uses its disabled property; Playwright's ARIA matcher treats it as enabled.
+      await expect(option).toHaveJSProperty('disabled', true)
+      const failed = await accounts[i].api.functions.invoke('campaign-engine', {
+        body: {
+          campaignId: id,
+          requestId: randomUUID(),
+          expectedVersion: lockedHeroes.version,
+          command: {
+            type: 'buy_unit',
+            payload: {
+              catalogId: hero.id,
+              name: hero.datasheet,
+              location: 'field',
+              sector: lockedHeroes.players[side].mf,
+            },
+          },
+        },
+      })
+      expect(failed.error).toBeTruthy()
+      const message = await failed.error!.context.json()
+      expect(message.error).toContain('после четвёртого завершённого боя')
+      expect((await load(i)).version).toBe(lockedHeroes.version)
+      expect((await load(i)).players[side].supply).toBe(1000)
+    }
+    const unlockedHeroes = structuredClone(lockedHeroes)
+    unlockedHeroes.battles = 4
+    unlockedHeroes.stage = stageFor(4)
+    await seedLogistics(unlockedHeroes, lockedHeroes)
+    for (const i of [0, 1]) {
+      const side: Side = i === 0 ? 'necrons' : 'deathwatch',
+        p = pages[i]
+      const hero = unlockedHeroes.snapshot.catalog.find((c) => c.side === side && c.epic)!
+      await refresh(p)
+      await expect(p.getByLabel('Доступ Epic Heroes', { exact: true })).toContainText(
+        'открыты для покупки',
+      )
+      await p
+        .getByLabel('Купить отряд', { exact: true })
+        .selectOption({ label: `${hero.datasheet} · Epic Hero` })
+      await expect(p.getByRole('button', { name: 'Купить отряд', exact: true })).toBeEnabled()
+      await p.getByRole('button', { name: 'Купить отряд', exact: true }).click()
+      await expect
+        .poll(async () => (await load(i)).units.filter((u) => u.catalogId === hero.id).length)
+        .toBe(1)
+      expect((await load(i)).players[side].supply).toBe(1000 - hero.rc)
+    }
     expect(errors).toEqual([])
   } finally {
     await Promise.allSettled(contexts.map((c) => c.close()))
