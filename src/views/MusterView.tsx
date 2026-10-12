@@ -4,6 +4,7 @@ import { isMusterDraft } from '../lib/drafts'
 import type { Muster, Pick } from '../../shared/model'
 import { ARMOURY, RELICS, STAGES, entry, unit } from '../../shared/rules'
 import { enhancementChoices, preferredEnhancement } from '../../shared/enhancements'
+import { dispositionChoices } from '../../shared/detachments'
 import { defaultActiveHonours, honourEligible } from '../../shared/campaign-upgrades'
 import { EnhancementChoice } from './EnhancementChoice'
 import { rosterUnits } from '../../shared/roster'
@@ -33,6 +34,9 @@ export function MusterView({ s, side, send }: Props) {
     draft.update((m) => ({
       ...m,
       detachments: v,
+      dispositions: m.dispositions.filter((id) =>
+        dispositionChoices(b.snapshot, side, v).some((d) => d.id === id),
+      ),
       picks: m.picks.map((pick) => ({
         ...pick,
         paidOptions: (pick.paidOptions ?? []).filter((name) =>
@@ -381,20 +385,18 @@ export function MusterView({ s, side, send }: Props) {
           </p>
         </div>
         <div>
-          {(b.snapshot.dispositions ?? [])
-            .filter((d) => d.side === side)
-            .map((d) => (
-              <Check
-                key={d.id}
-                label={d.name}
-                value={dispositions.includes(d.id)}
-                change={(v) =>
-                  setDispositions(
-                    v ? [...dispositions, d.id] : dispositions.filter((id) => id !== d.id),
-                  )
-                }
-              />
-            ))}
+          {dispositionChoices(b.snapshot, side, detachments).map((d) => (
+            <Check
+              key={d.id}
+              label={d.name}
+              value={dispositions.includes(d.id)}
+              change={(v) =>
+                setDispositions(
+                  v ? [...dispositions, d.id] : dispositions.filter((id) => id !== d.id),
+                )
+              }
+            />
+          ))}
         </div>
         <Options
           label="Warlord / Garrison Commander"

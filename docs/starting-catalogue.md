@@ -1,5 +1,10 @@
 # Ready army choices
 
+The October 12 updates supersede the original counts and C'tan import limitation
+below: see [Space Marines](space-marines-2026-10.md) and
+[Necrons](necrons-2026-10.md). Current libraries contain 161 Deathwatch and 97 Necron
+variants. Run both faction update generators after rebuilding a legacy baseline.
+
 `shared/stock.generated.ts` contains factual ready variants: 93 Necrons and 131 Deathwatch, plus the 12/17 detachment choices from the supplied New Recruit exports. Existing campaign entries and price curves take precedence for the same datasheet and size. Adding the library changes no roster, wallet, ID, package selection or readiness.
 
 The setup screen selects exactly one detachment and searches datasheet names. Campaign selectors choose the datasheet first and model count second. Free weapon permutations are grouped by `shared/unit-choices.ts` and are determined by the actual army in external New Recruit. Existing campaign IDs, source cards, prices and historical records are retained. Paid loadouts with different RC/copy-price curves appear as a separate choice after the size; setup, purchases, refit and successor selection use the same grouping. Starter additions are filtered by the campaign's 500-point limits. Copy limits group different sizes/loadouts and the singular legacy Lokhust Heavy Destroyer name as one datasheet. Readiness is still checked on the server against 470–500 Effective, CHARACTER, copies and individual RC limits.

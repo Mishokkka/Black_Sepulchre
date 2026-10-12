@@ -25,6 +25,7 @@ import { acceptSiteRules, snapshotCommand } from './snapshot.ts'
 import { validateCard, validateTransportRule } from './datasheets.ts'
 import { expandStartingCatalogue, starterUnavailable } from './starting-catalogue.ts'
 import { updatedMarineSnapshot } from './marine-update.ts'
+import { updatedNecronSnapshot } from './necron-update.ts'
 import {
   enhancementEligible,
   pruneStartingEnhancements,
@@ -118,6 +119,16 @@ export function command(state: State, c: Command, context: Context): State {
     if (s.players.deathwatch.package.length === state.players.deathwatch.package.length)
       s.players.deathwatch.packageStage = state.players.deathwatch.packageStage
     s.setupApproved = s.setupApproved.filter((side) => side !== 'deathwatch')
+  } else if (c.type === 'update_necrons') {
+    const snapshot = updatedNecronSnapshot(s)
+    snapshotCommand(s, { type: 'save_catalog', payload: { snapshot } }, ctx, validateSnapshot)
+    s.units = s.units.map((u) => {
+      const old = structuredClone(state.units.find((old) => old.id === u.id)!)
+      return u.side === 'deathwatch' || u.status === 'archived' ? old : { ...old, rc: u.rc }
+    })
+    s.players.deathwatch = structuredClone(state.players.deathwatch)
+    s.players.necrons.packageStage = state.players.necrons.packageStage
+    s.setupApproved = s.setupApproved.filter((side) => side !== 'necrons')
   } else if (c.type === 'expand_starting_catalogue') {
     assert(
       !s.battle && ['setup', 'strategy', 'logistics'].includes(s.phase),
@@ -405,6 +416,7 @@ function validateSnapshot(s: Snapshot) {
             e.eligibleAny.length <= 10 &&
             e.eligibleAny.every(strings))) &&
         (!e.excluded || strings(e.excluded)) &&
+        (!e.supportFor || strings(e.supportFor)) &&
         (!e.datasheets || (strings(e.datasheets) && e.datasheets.length > 0)) &&
         (e.upgrade === undefined || typeof e.upgrade === 'boolean') &&
         (e.unitEligible === undefined || typeof e.unitEligible === 'boolean') &&

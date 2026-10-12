@@ -5,6 +5,8 @@ import { inLogistics, logisticsForce } from './logistics.ts'
 import { pruneStartingEnhancements, removePackageEnhancements } from './enhancements.ts'
 import { honourEligible } from './campaign-upgrades.ts'
 import { applyMarinePrices, MARINE_SOURCE } from './marine-prices.ts'
+import { NECRON_SOURCE } from './necron-prices.ts'
+import { normalizeNecronSnapshot } from './necron-update.ts'
 
 export const SITE_RULES_SOURCE =
   'Правила и цены сайта Black Sepulchre · 2.2.1 · приняты для дружеской кампании'
@@ -42,6 +44,9 @@ export function snapshotCommand(
         : structuredClone(c.payload.snapshot as Snapshot)
     if (!snapshot && c.type === 'approve_snapshot') return
     assert(snapshot, 'Нет каталога для сохранения')
+    if (s.snapshot.sources.includes(NECRON_SOURCE) && !snapshot.sources.includes(NECRON_SOURCE))
+      snapshot.sources = [...snapshot.sources, NECRON_SOURCE].slice(-30)
+    if (snapshot.sources.includes(NECRON_SOURCE)) normalizeNecronSnapshot(snapshot)
     if (snapshot.sources.includes(MARINE_SOURCE))
       snapshot.catalog = snapshot.catalog.map(applyMarinePrices)
     validate(snapshot)

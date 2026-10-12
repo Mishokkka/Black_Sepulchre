@@ -8,6 +8,7 @@ import {
   enhancementEligible,
   enhancementBindingAllowed,
   enhancementBearers,
+  attachmentTargets,
 } from './enhancements.ts'
 
 // Search legal Field subsets, leader layouts and optional campaign loadouts. Caps
@@ -79,11 +80,28 @@ export function maximumReady(source: State, side: Side): number {
         for (const body of bodies) {
           const cat = entry(s, leader),
             target = entry(s, body).datasheet
-          if (![...cat.leaderFor, ...(cat.supportFor ?? [])].some((n) => sameDatasheet(n, target)))
-            continue
-          const next = structuredClone(picks)
-          next.find((p) => p.id === leader.id)!.formation = body.id
-          layout(i + 1, next)
+          const fits = (enhancement: string | null) => {
+            const targets = attachmentTargets(cat, b.snapshot, enhancement, s.players[side].package)
+            return [...targets.leader, ...targets.support].some((n) => sameDatasheet(n, target))
+          }
+          const options: (string | null)[] = fits(null)
+            ? [null]
+            : b.snapshot.enhancements
+                .filter(
+                  (e) =>
+                    e.supportFor?.length &&
+                    fits(e.id) &&
+                    enhancementBindingAllowed(s.players[side], e, leader.id, s.stage),
+                )
+                .map((e) => e.id)
+          for (const enhancement of options) {
+            const next = structuredClone(picks)
+            Object.assign(
+              next.find((p) => p.id === leader.id)!,
+              { formation: body.id, enhancement },
+            )
+            layout(i + 1, next)
+          }
         }
         return
       }
@@ -128,17 +146,19 @@ export function maximumReady(source: State, side: Side): number {
               ids.filter((id) => HONOURS.find((h) => h.id === id)!.tier === 'Major').length <=
                 (u.xp >= 18 ? 2 : 1),
           )
-          const enhancements = [
-            null,
-            ...b.snapshot.enhancements
-              .filter(
-                (e) =>
-                  detachments.includes(e.detachment) &&
-                  enhancementEligible(e, cat) &&
-                  enhancementBindingAllowed(s.players[side], e, u.id, s.stage),
-              )
-              .map((e) => e.id),
-          ]
+          const enhancements = p.enhancement
+            ? [p.enhancement]
+            : [
+                null,
+                ...b.snapshot.enhancements
+                  .filter(
+                    (e) =>
+                      detachments.includes(e.detachment) &&
+                      enhancementEligible(e, cat) &&
+                      enhancementBindingAllowed(s.players[side], e, u.id, s.stage),
+                  )
+                  .map((e) => e.id),
+              ]
           const paidCosts = new Set([0])
           for (const o of cat.packageCosts ?? [])
             if (o.optional && o.detachments.some((id) => detachments.includes(id)))
@@ -151,7 +171,10 @@ export function maximumReady(source: State, side: Side): number {
                   for (const paidCost of paidCosts) {
                     const v = { ...p, honours, armoury, relic, enhancement }
                     const cost =
-                      costs[p.id] +
+                      costs[p.id] -
+                      (p.enhancement
+                        ? b.snapshot.enhancements.find((e) => e.id === p.enhancement)!.cost
+                        : 0) +
                       paidCost +
                       surcharge(s, u, v, picks) +
                       (enhancement

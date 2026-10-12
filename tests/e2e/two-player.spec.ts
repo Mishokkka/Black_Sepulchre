@@ -121,18 +121,40 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
       .poll(async () => (await load(0)).players.necrons.startingEnhancements?.[bearer.id])
       .toBe(veil.id)
     await refresh(b)
+    const readyVersion = (await load(0)).version
+    for (const p of pages)
+      await expect(p.getByLabel('Связь и синхронизация')).toContainText(
+        `Версия состояния: ${readyVersion}`,
+      )
     // Concurrent UI clicks use two sessions and the same initial version. A conflict is a valid outcome.
+    const readyResponses = pages.map((p) =>
+      p.waitForResponse(
+        (r) =>
+          r.url().endsWith('/functions/v1/campaign-engine') &&
+          r.request().method() === 'POST' &&
+          r.request().postDataJSON()?.command?.type === 'ready_army',
+      ),
+    )
     await Promise.all(
       pages.map((p) => p.getByRole('button', { name: 'Армия готова', exact: true }).click()),
     )
+    for (const response of await Promise.all(readyResponses))
+      expect([200, 409]).toContain(response.status())
     await expect.poll(async () => (await load(0)).setupApproved.length).toBeGreaterThanOrEqual(1)
-    for (const p of pages) {
+    for (const [i, p] of pages.entries()) {
+      const side: Side = i === 0 ? 'necrons' : 'deathwatch'
+      const current = await load(i)
+      if (current.setupApproved.includes(side)) continue
       await refresh(p)
+      // A refresh click does not await its response or React's state update. Retrying earlier
+      // can send the losing session's previous version and cause a second legitimate conflict.
+      await expect(p.getByLabel('Связь и синхронизация')).toContainText(
+        `Версия состояния: ${current.version}`,
+      )
       const retry = p.getByRole('button', { name: 'Армия готова', exact: true })
-      if (await retry.isVisible()) {
-        await expect(retry).toBeEnabled()
-        await retry.click()
-      }
+      await expect(retry).toBeEnabled()
+      await retry.click()
+      await expect.poll(async () => (await load(i)).setupApproved).toContain(side)
     }
     await expect.poll(async () => (await load(0)).phase).toBe('strategy')
 

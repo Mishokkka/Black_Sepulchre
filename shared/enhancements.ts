@@ -14,6 +14,18 @@ export function enhancementEligible(e: Enhancement, c: CatalogUnit): boolean {
   )
 }
 
+export function attachmentTargets(
+  c: CatalogUnit,
+  snapshot: Snapshot,
+  enhancement: string | null,
+  detachments: string[],
+) {
+  const e = snapshot.enhancements.find((e) => e.id === enhancement)
+  const extra =
+    e && detachments.includes(e.detachment) && enhancementEligible(e, c) ? (e.supportFor ?? []) : []
+  return { leader: c.leaderFor, support: [...new Set([...(c.supportFor ?? []), ...extra])] }
+}
+
 export function enhancementBearers(p: Player, id: string): string[] {
   return [
     ...new Set([

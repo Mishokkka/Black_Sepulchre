@@ -25,7 +25,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -145,12 +147,9 @@
       "pointTiers": [
         {
           "models": 1,
-          "points": 95,
+          "points": 100,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            62
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -187,7 +186,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -294,12 +295,9 @@
       "pointTiers": [
         {
           "models": 1,
-          "points": 140,
+          "points": 130,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            58
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -334,7 +332,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -449,10 +449,7 @@
           "models": 5,
           "points": 70,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            64
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -493,7 +490,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -577,10 +576,7 @@
           "models": 1,
           "points": 75,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            53
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -615,7 +611,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -684,19 +682,13 @@
           "models": 3,
           "points": 40,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            50
-          ]
+          "copyTo": null
         },
         {
           "models": 6,
           "points": 80,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            51
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -732,7 +724,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -815,19 +809,13 @@
           "models": 1,
           "points": 65,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            60
-          ]
+          "copyTo": null
         },
         {
           "models": 2,
           "points": 110,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            61
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -868,7 +856,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -965,12 +955,9 @@
       "pointTiers": [
         {
           "models": 2,
-          "points": 50,
+          "points": 60,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            60
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -1007,7 +994,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -1117,37 +1106,25 @@
           "models": 3,
           "points": 95,
           "copyFrom": 1,
-          "copyTo": 1,
-          "sourceLines": [
-            65
-          ]
+          "copyTo": 1
         },
         {
           "models": 6,
           "points": 220,
           "copyFrom": 1,
-          "copyTo": 1,
-          "sourceLines": [
-            66
-          ]
+          "copyTo": 1
         },
         {
           "models": 3,
           "points": 115,
           "copyFrom": 2,
-          "copyTo": null,
-          "sourceLines": [
-            68
-          ]
+          "copyTo": null
         },
         {
           "models": 6,
           "points": 240,
           "copyFrom": 2,
-          "copyTo": null,
-          "sourceLines": [
-            69
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -1187,7 +1164,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -1319,10 +1298,7 @@
           "models": 1,
           "points": 120,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            72
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -1363,7 +1339,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -1446,19 +1424,13 @@
           "models": 1,
           "points": 70,
           "copyFrom": 1,
-          "copyTo": 1,
-          "sourceLines": [
-            61
-          ]
+          "copyTo": 1
         },
         {
           "models": 1,
           "points": 80,
           "copyFrom": 2,
-          "copyTo": null,
-          "sourceLines": [
-            63
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -1497,7 +1469,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -1564,28 +1538,19 @@
           "models": 1,
           "points": 60,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            55
-          ]
+          "copyTo": null
         },
         {
           "models": 2,
           "points": 120,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            56
-          ]
+          "copyTo": null
         },
         {
           "models": 3,
           "points": 180,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            57
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -1622,7 +1587,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -1704,10 +1671,7 @@
           "models": 2,
           "points": 60,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            53
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -1743,7 +1707,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -1833,10 +1799,7 @@
           "models": 1,
           "points": 330,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            61
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -1872,7 +1835,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -1973,10 +1938,7 @@
           "models": 1,
           "points": 360,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            63
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -2012,7 +1974,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -2150,10 +2114,7 @@
           "models": 1,
           "points": 345,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            67
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -2189,7 +2150,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -2274,37 +2237,25 @@
           "models": 5,
           "points": 60,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            51
-          ]
+          "copyTo": 2
         },
         {
           "models": 10,
           "points": 120,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            52
-          ]
+          "copyTo": 2
         },
         {
           "models": 5,
           "points": 70,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            54
-          ]
+          "copyTo": null
         },
         {
           "models": 10,
           "points": 130,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            55
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -2339,7 +2290,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -2445,10 +2398,7 @@
           "models": 1,
           "points": 200,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            56
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -2483,7 +2433,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -2589,21 +2541,15 @@
       "pointTiers": [
         {
           "models": 1,
-          "points": 210,
+          "points": 200,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            58
-          ]
+          "copyTo": 2
         },
         {
           "models": 1,
           "points": 230,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            60
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -2638,7 +2584,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -2706,19 +2654,13 @@
           "models": 5,
           "points": 55,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            50
-          ]
+          "copyTo": null
         },
         {
           "models": 10,
           "points": 100,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            51
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -2753,7 +2695,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -2851,10 +2795,7 @@
           "models": 1,
           "points": 75,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            58
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -2894,7 +2835,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -2984,10 +2927,7 @@
           "models": 1,
           "points": 100,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            59
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -3022,7 +2962,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -3109,10 +3051,7 @@
           "models": 1,
           "points": 75,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            52
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -3148,7 +3087,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -3253,10 +3194,7 @@
           "models": 1,
           "points": 175,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            61
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -3293,7 +3231,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -3392,21 +3332,15 @@
       "pointTiers": [
         {
           "models": 5,
-          "points": 70,
+          "points": 65,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            57
-          ]
+          "copyTo": null
         },
         {
           "models": 10,
-          "points": 140,
+          "points": 130,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            58
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -3443,7 +3377,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -3547,10 +3483,7 @@
           "models": 1,
           "points": 100,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            59
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -3590,7 +3523,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -3676,73 +3611,49 @@
           "models": 1,
           "points": 40,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            50
-          ]
+          "copyTo": 2
         },
         {
           "models": 2,
           "points": 55,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            51
-          ]
+          "copyTo": 2
         },
         {
           "models": 3,
           "points": 80,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            52
-          ]
+          "copyTo": 2
         },
         {
           "models": 6,
-          "points": 175,
+          "points": 190,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            53
-          ]
+          "copyTo": 2
         },
         {
           "models": 1,
           "points": 70,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            55
-          ]
+          "copyTo": null
         },
         {
           "models": 2,
           "points": 85,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            56
-          ]
+          "copyTo": null
         },
         {
           "models": 3,
           "points": 110,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            57
-          ]
+          "copyTo": null
         },
         {
           "models": 6,
-          "points": 205,
+          "points": 220,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            58
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -3777,7 +3688,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -3881,55 +3794,37 @@
           "models": 1,
           "points": 50,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            56
-          ]
+          "copyTo": 2
         },
         {
           "models": 2,
           "points": 100,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            57
-          ]
+          "copyTo": 2
         },
         {
           "models": 3,
           "points": 165,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            58
-          ]
+          "copyTo": 2
         },
         {
           "models": 1,
           "points": 60,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            60
-          ]
+          "copyTo": null
         },
         {
           "models": 2,
           "points": 110,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            61
-          ]
+          "copyTo": null
         },
         {
           "models": 3,
           "points": 175,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            62
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -3966,7 +3861,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -4063,10 +3960,7 @@
           "models": 1,
           "points": 80,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            71
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -4112,7 +4006,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -4192,19 +4088,13 @@
           "models": 5,
           "points": 80,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            56
-          ]
+          "copyTo": null
         },
         {
           "models": 10,
           "points": 160,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            57
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -4242,7 +4132,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -4366,19 +4258,13 @@
           "models": 1,
           "points": 420,
           "copyFrom": 1,
-          "copyTo": 1,
-          "sourceLines": [
-            59
-          ]
+          "copyTo": 1
         },
         {
           "models": 1,
           "points": 440,
           "copyFrom": 2,
-          "copyTo": null,
-          "sourceLines": [
-            61
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -4415,7 +4301,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -4516,19 +4404,13 @@
           "models": 10,
           "points": 85,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            57
-          ]
+          "copyTo": null
         },
         {
           "models": 20,
           "points": 190,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            58
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -4565,7 +4447,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -4676,12 +4560,9 @@
       "pointTiers": [
         {
           "models": 1,
-          "points": 185,
+          "points": 195,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            61
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -4719,7 +4600,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -4806,10 +4689,7 @@
           "models": 1,
           "points": 125,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            57
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -4845,7 +4725,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -4934,19 +4816,13 @@
           "models": 1,
           "points": 280,
           "copyFrom": 1,
-          "copyTo": 1,
-          "sourceLines": [
-            51
-          ]
+          "copyTo": 1
         },
         {
           "models": 1,
           "points": 310,
           "copyFrom": 2,
-          "copyTo": null,
-          "sourceLines": [
-            53
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -4981,7 +4857,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -5047,37 +4925,25 @@
           "models": 3,
           "points": 80,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            58
-          ]
+          "copyTo": 2
         },
         {
           "models": 6,
           "points": 150,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            59
-          ]
+          "copyTo": 2
         },
         {
           "models": 3,
           "points": 90,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            61
-          ]
+          "copyTo": null
         },
         {
           "models": 6,
           "points": 160,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            62
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -5116,7 +4982,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -5188,10 +5056,7 @@
           "models": 1,
           "points": 90,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            55
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -5230,7 +5095,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -5358,10 +5225,7 @@
           "models": 1,
           "points": 90,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            75
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -5407,7 +5271,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -5482,10 +5348,7 @@
           "models": 1,
           "points": 90,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            58
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -5526,7 +5389,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -5610,10 +5475,7 @@
           "models": 1,
           "points": 60,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            54
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -5652,7 +5514,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -5734,12 +5598,9 @@
       "pointTiers": [
         {
           "models": 1,
-          "points": 55,
+          "points": 65,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            54
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -5778,7 +5639,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -5864,10 +5727,7 @@
           "models": 1,
           "points": 50,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            54
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -5906,7 +5766,9 @@
           "Faction Pack. Necrons (Forge World) (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -6036,19 +5898,13 @@
           "models": 1,
           "points": 540,
           "copyFrom": 1,
-          "copyTo": 1,
-          "sourceLines": [
-            65
-          ]
+          "copyTo": 1
         },
         {
           "models": 1,
           "points": 570,
           "copyFrom": 2,
-          "copyTo": null,
-          "sourceLines": [
-            67
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -6085,7 +5941,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -6151,37 +6009,25 @@
           "models": 3,
           "points": 85,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            54
-          ]
+          "copyTo": 2
         },
         {
           "models": 6,
           "points": 170,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            55
-          ]
+          "copyTo": 2
         },
         {
           "models": 3,
           "points": 95,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            57
-          ]
+          "copyTo": null
         },
         {
           "models": 6,
           "points": 180,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            58
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -6220,7 +6066,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -6324,19 +6172,13 @@
           "models": 1,
           "points": 95,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            59
-          ]
+          "copyTo": 2
         },
         {
           "models": 1,
           "points": 105,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            61
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -6374,7 +6216,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -6455,19 +6299,13 @@
           "models": 1,
           "points": 80,
           "copyFrom": 1,
-          "copyTo": 1,
-          "sourceLines": [
-            54
-          ]
+          "copyTo": 1
         },
         {
           "models": 1,
           "points": 90,
           "copyFrom": 2,
-          "copyTo": null,
-          "sourceLines": [
-            56
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -6507,7 +6345,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -6650,19 +6490,13 @@
           "models": 1,
           "points": 465,
           "copyFrom": 1,
-          "copyTo": 1,
-          "sourceLines": [
-            61
-          ]
+          "copyTo": 1
         },
         {
           "models": 1,
-          "points": 485,
+          "points": 505,
           "copyFrom": 2,
-          "copyTo": null,
-          "sourceLines": [
-            63
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -6697,7 +6531,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -6861,10 +6697,7 @@
           "models": 3,
           "points": 420,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            86
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -6905,7 +6738,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -7024,37 +6859,25 @@
           "models": 3,
           "points": 70,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            70
-          ]
+          "copyTo": 2
         },
         {
           "models": 6,
           "points": 140,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            71
-          ]
+          "copyTo": 2
         },
         {
           "models": 3,
           "points": 80,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            73
-          ]
+          "copyTo": null
         },
         {
           "models": 6,
           "points": 150,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            74
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -7100,7 +6923,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -7190,19 +7015,13 @@
           "models": 1,
           "points": 340,
           "copyFrom": 1,
-          "copyTo": 1,
-          "sourceLines": [
-            69
-          ]
+          "copyTo": 1
         },
         {
           "models": 1,
           "points": 360,
           "copyFrom": 2,
-          "copyTo": null,
-          "sourceLines": [
-            71
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -7238,7 +7057,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -7307,12 +7128,9 @@
       "pointTiers": [
         {
           "models": 1,
-          "points": 65,
+          "points": 60,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            54
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -7352,7 +7170,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -7461,19 +7281,13 @@
           "models": 5,
           "points": 80,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            60
-          ]
+          "copyTo": null
         },
         {
           "models": 10,
           "points": 160,
           "copyFrom": 1,
-          "copyTo": null,
-          "sourceLines": [
-            61
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,
@@ -7510,7 +7324,9 @@
           "Faction Pack. Necrons (11th edition, version 1.2)"
         ],
         "observedAt": "2026-10-03",
-        "officialCurrencyVerified": false
+        "officialCurrencyVerified": false,
+        "pointsSource": "https://mfm.warhammer-community.com/en/necrons",
+        "pointsVerifiedAt": "2026-10-12"
       },
       "modelProfiles": [
         {
@@ -7645,19 +7461,13 @@
           "models": 1,
           "points": 110,
           "copyFrom": 1,
-          "copyTo": 2,
-          "sourceLines": [
-            67
-          ]
+          "copyTo": 2
         },
         {
           "models": 1,
           "points": 120,
           "copyFrom": 3,
-          "copyTo": null,
-          "sourceLines": [
-            69
-          ]
+          "copyTo": null
         }
       ],
       "priceContextResolved": true,

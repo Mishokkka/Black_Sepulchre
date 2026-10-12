@@ -1,6 +1,8 @@
 import type { CatalogUnit, Snapshot } from './model.ts'
 import { SITE_RULES_SOURCE } from './snapshot.ts'
 import { applyMarinePrices, MARINE_SOURCE } from './marine-prices.ts'
+import { applyNecronPrices, NECRON_SOURCE } from './necron-prices.ts'
+import { normalizeNecronSnapshot } from './necron-update.ts'
 import {
   cardFromImport,
   keyword,
@@ -201,6 +203,7 @@ export function snapshotWithCatalog(
   id: string,
 ): Snapshot {
   if (snapshot.sources.includes(MARINE_SOURCE)) c = applyMarinePrices(c)
+  if (snapshot.sources.includes(NECRON_SOURCE)) c = applyNecronPrices(c)
   if (!c.card) throw Error('Нет карточки выбранного состава')
   validateCard(c.card, c.models)
   const next = structuredClone(snapshot)
@@ -217,6 +220,7 @@ export function snapshotWithCatalog(
     next.catalog.push(structuredClone(c))
   }
   next.id = id
+  if (next.sources.includes(NECRON_SOURCE)) normalizeNecronSnapshot(next)
   next.date = date
   next.approved = []
   const note =
