@@ -44,6 +44,11 @@ export function validateMuster(
     'RESTING пересекается с commitment',
   )
   const dp = m.detachments.map((id) => b.snapshot.detachments.find((d) => d.id === id))
+  const uniqueGroups = dp.flatMap((d) => (d?.uniqueGroup ? [d.uniqueGroup] : []))
+  assert(
+    new Set(uniqueGroups).size === uniqueGroups.length,
+    'В одном бою нельзя сочетать Detachments с одинаковым UNIQUE',
+  )
   assert(
     dp.every(Boolean) &&
       dp.length > 0 &&

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { BookOpen, Search, Upload, X } from 'lucide-react'
 import { ScreenLoading } from './ScreenLoading'
 import type { CatalogUnit, Snapshot } from '../../shared/model'
+import { applyMarinePrices, marinePrices, MARINE_SOURCE } from '../../shared/marine-prices'
 import {
   cardFromImport,
   MAX_IMPORT_BYTES,
@@ -645,20 +646,22 @@ function TemplateEditor({
           min: reference.composition.reduce((n, g) => n + g.min, 0),
           max: reference.composition.reduce((n, g) => n + g.max, 0),
         }
-      return c
+      return snapshot.sources.includes(MARINE_SOURCE) ? applyMarinePrices(c) : c
     }),
     [target, setTarget] = useState(''),
     [error, setError] = useState(''),
     [json, setJson] = useState('')
   const card = c.card!,
     update = (patch: Partial<CatalogUnit>) => {
-      setC({ ...c, ...patch })
+      const next = { ...c, ...patch }
+      setC(snapshot.sources.includes(MARINE_SOURCE) ? applyMarinePrices(next) : next)
     },
     editCard = (f: (v: DatasheetCard) => void) => {
       const next = structuredClone(card)
       f(next)
       update({ card: next, models: modelCount(next) })
     }
+  const automaticPrice = snapshot.sources.includes(MARINE_SOURCE) && marinePrices(c)
   const peers = source.units.filter((v) => sameDatasheet(v.datasheet, u.datasheet)),
     allowed = new Set(
       peers.flatMap((v) => [
@@ -745,14 +748,22 @@ function TemplateEditor({
             min={5}
             max={3000}
             value={c.rc}
+            readOnly={!!automaticPrice}
             onChange={(e) => update({ rc: Number(e.target.value) })}
           />
         </label>
-        <ListInput
-          label="OBC копий №1, 2, 3… (через запятую)"
-          values={c.copyPrices.map(String)}
-          change={(v) => update({ copyPrices: v.map(Number) })}
-        />
+        {automaticPrice ? (
+          <p className="muted">
+            MFM v1.5: цена рассчитывается по размеру и платному вооружению. Копии №1–6:{' '}
+            {c.copyPrices.join(', ')}.
+          </p>
+        ) : (
+          <ListInput
+            label="OBC копий №1, 2, 3… (через запятую)"
+            values={c.copyPrices.map(String)}
+            change={(v) => update({ copyPrices: v.map(Number) })}
+          />
+        )}
         <label>
           Гарнизон
           <select

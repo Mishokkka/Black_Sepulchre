@@ -33,7 +33,7 @@ const ownCharacter = (s: State) =>
 
 test('Accepted detachment library is complete, maps default IDs and preserves owner choices and prices', () => {
   const s = setup()
-  assert.equal(s.snapshot.enhancements.length, 100)
+  assert.equal(s.snapshot.enhancements.length, 74)
   for (const d of s.snapshot.detachments) {
     const optional = s.snapshot.enhancements.filter((e) => e.detachment === d.id)
     assert(
@@ -138,11 +138,13 @@ test('Server rejects wrong ownership, detachment, non-character, duplicates and 
 test('Keyword AND/OR, exclusions and specific unit exceptions match the accepted source', () => {
   const s = setup()
   const cat = (name: string) => s.snapshot.catalog.find((c) => c.datasheet === name)!
-  assert(enhancementEligible(enhancement(s, 'Osseus Key'), cat('Watch Master')))
-  assert(enhancementEligible(enhancement(s, 'Osseus Key'), cat('Techmarine')))
-  assert(!enhancementEligible(enhancement(s, 'Osseus Key'), cat('Captain')))
-  assert(enhancementEligible(enhancement(s, 'Shock Deployment'), cat('Captain in Gravis Armour')))
-  assert(!enhancementEligible(enhancement(s, 'Shock Deployment'), cat('Captain')))
+  assert(enhancementEligible(enhancement(s, 'Osseus Key (Aura)'), cat('Watch Master')))
+  assert(enhancementEligible(enhancement(s, 'Osseus Key (Aura)'), cat('Techmarine')))
+  assert(!enhancementEligible(enhancement(s, 'Osseus Key (Aura)'), cat('Captain')))
+  assert(
+    enhancementEligible(enhancement(s, 'Indefatigable Fortitude'), cat('Captain in Gravis Armour')),
+  )
+  assert(!enhancementEligible(enhancement(s, 'Indefatigable Fortitude'), cat('Captain')))
   assert(
     !enhancementEligible(enhancement(s, 'Veil of Darkness'), { ...cat('Overlord'), epic: true }),
   )
@@ -150,9 +152,7 @@ test('Keyword AND/OR, exclusions and specific unit exceptions match the accepted
   assert(!enhancementEligible(enhancement(s, 'Enlivened Sentinels'), cat('Immortals')))
   assert(enhancementEligible(enhancement(s, 'Deepening Madness'), cat('Lokhust Heavy Destroyers')))
   assert(!enhancementEligible(enhancement(s, 'Deepening Madness'), cat('Skorpekh Destroyers')))
-  assert(
-    enhancementEligible(enhancement(s, 'Redoubtable Machine Spirit'), cat('Predator Destructor')),
-  )
+  assert(enhancementEligible(enhancement(s, 'Redoubtable Machine Spirit'), cat('Gladiator Lancer')))
   assert(
     !enhancementEligible(
       enhancement(s, 'Redoubtable Machine Spirit'),
