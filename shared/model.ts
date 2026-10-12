@@ -58,6 +58,8 @@ export interface Enhancement {
   upgrade?: boolean
   /** An explicit unit-bearer exception in the accepted detachment. */
   unitEligible?: boolean
+  /** Additional Support targets while this enhancement is selected. */
+  supportFor?: string[]
   source?: string
 }
 export interface Detachment {

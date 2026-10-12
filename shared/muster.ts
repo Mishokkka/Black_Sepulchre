@@ -4,8 +4,9 @@ import { honourEligible } from './campaign-upgrades.ts'
 import { SIDES, type Battle, type Muster, type Side, type State } from './model.ts'
 import { sameDatasheet, datasheetName } from './datasheets.ts'
 import { validateCargo } from './transport.ts'
+import { dispositionChoices } from './detachments.ts'
 import { optionalPackageCost } from './unit-choices.ts'
-import { enhancementEligible, validateEnhancements } from './enhancements.ts'
+import { attachmentTargets, enhancementEligible, validateEnhancements } from './enhancements.ts'
 import {
   assert,
   available,
@@ -235,20 +236,19 @@ export function validateMuster(
       assert(body.length === 1 && leaders.length <= 2, 'Нелегальная Attached формация')
       const target = entry(s, unit(s, body[0].id), b.snapshot).datasheet
       const roles = leaders.map((v) => entry(s, unit(s, v.id), b.snapshot))
-      const can = (c: (typeof roles)[number], role: 'leader' | 'support') =>
-        (role === 'leader' ? c.leaderFor : (c.supportFor ?? [])).some((name) =>
-          sameDatasheet(name, target),
+      const can = (i: number, role: 'leader' | 'support') =>
+        attachmentTargets(roles[i], b.snapshot, leaders[i].enhancement, m.detachments)[role].some(
+          (name) => sameDatasheet(name, target),
         )
       assert(
-        roles.every((c) => can(c, 'leader') || can(c, 'support')),
+        roles.every((_, i) => can(i, 'leader') || can(i, 'support')),
         'Leader/Support не присоединяется к Bodyguard',
       )
       if (roles.length === 2) {
         const mixed =
-          (can(roles[0], 'leader') && can(roles[1], 'support')) ||
-          (can(roles[1], 'leader') && can(roles[0], 'support'))
+          (can(0, 'leader') && can(1, 'support')) || (can(1, 'leader') && can(0, 'support'))
         const co =
-          roles.every((c) => can(c, 'leader')) &&
+          roles.every((_, i) => can(i, 'leader')) &&
           roles.some((c, i) =>
             (c.coLeaders ?? []).some((n) => sameDatasheet(n, roles[1 - i].datasheet)),
           )
@@ -311,9 +311,9 @@ export function validateMuster(
   assert(
     new Set(m.dispositions).size === m.dispositions.length &&
       m.dispositions.every((id) =>
-        b.snapshot.dispositions?.some((d) => d.id === id && d.side === side),
+        dispositionChoices(b.snapshot, side, m.detachments).some((d) => d.id === id),
       ),
-    'Disposition отсутствует в каталоге',
+    'Disposition недоступна выбранным Detachments',
   )
   const commander = m.picks.find((v) => v.id === m.commander)
   assert(commander, 'Нужен Warlord / Garrison Commander')

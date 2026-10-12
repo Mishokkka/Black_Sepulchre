@@ -3,6 +3,7 @@ import { BookOpen, Search, Upload, X } from 'lucide-react'
 import { ScreenLoading } from './ScreenLoading'
 import type { CatalogUnit, Snapshot } from '../../shared/model'
 import { applyMarinePrices, marinePrices, MARINE_SOURCE } from '../../shared/marine-prices'
+import { applyNecronPrices, necronPrices, NECRON_SOURCE } from '../../shared/necron-prices'
 import {
   cardFromImport,
   MAX_IMPORT_BYTES,
@@ -639,6 +640,11 @@ function TemplateEditor({
 }) {
   const { source, unitId, reference } = selection,
     u = source.units.find((u) => u.id === unitId)!
+  const currentPrice = (c: CatalogUnit) => {
+    if (snapshot.sources.includes(MARINE_SOURCE)) c = applyMarinePrices(c)
+    if (snapshot.sources.includes(NECRON_SOURCE)) c = applyNecronPrices(c)
+    return c
+  }
   const [c, setC] = useState(() => {
       const c = draftCatalog(source, u, crypto.randomUUID())
       if (reference && reference.composition.length)
@@ -646,7 +652,7 @@ function TemplateEditor({
           min: reference.composition.reduce((n, g) => n + g.min, 0),
           max: reference.composition.reduce((n, g) => n + g.max, 0),
         }
-      return snapshot.sources.includes(MARINE_SOURCE) ? applyMarinePrices(c) : c
+      return currentPrice(c)
     }),
     [target, setTarget] = useState(''),
     [error, setError] = useState(''),
@@ -654,14 +660,16 @@ function TemplateEditor({
   const card = c.card!,
     update = (patch: Partial<CatalogUnit>) => {
       const next = { ...c, ...patch }
-      setC(snapshot.sources.includes(MARINE_SOURCE) ? applyMarinePrices(next) : next)
+      setC(currentPrice(next))
     },
     editCard = (f: (v: DatasheetCard) => void) => {
       const next = structuredClone(card)
       f(next)
       update({ card: next, models: modelCount(next) })
     }
-  const automaticPrice = snapshot.sources.includes(MARINE_SOURCE) && marinePrices(c)
+  const automaticPrice =
+    (snapshot.sources.includes(MARINE_SOURCE) && marinePrices(c)) ||
+    (snapshot.sources.includes(NECRON_SOURCE) && necronPrices(c))
   const peers = source.units.filter((v) => sameDatasheet(v.datasheet, u.datasheet)),
     allowed = new Set(
       peers.flatMap((v) => [
