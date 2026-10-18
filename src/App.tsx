@@ -297,8 +297,17 @@ export default function App() {
     try {
       await call({ campaignId: id })
       const [campaign, members] = await Promise.all([
-        supabase.from('campaigns').select('invite_code').eq('id', id).single(),
-        supabase.from('campaign_members').select('side').eq('campaign_id', id),
+        supabase
+          .from('campaigns')
+          .select('invite_code')
+          .eq('id', id)
+          .abortSignal(AbortSignal.timeout(10000))
+          .single(),
+        supabase
+          .from('campaign_members')
+          .select('side')
+          .eq('campaign_id', id)
+          .abortSignal(AbortSignal.timeout(10000)),
       ])
       if (started !== scope.current) return
       if (campaign.data) setInvite(campaign.data.invite_code)
