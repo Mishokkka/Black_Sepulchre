@@ -29,6 +29,7 @@ import { errorHelp, type PendingRequest } from './lib/requests'
 import { initialSync } from './lib/sync'
 import { STAGES, stageFor } from '../shared/rules'
 import { ResultCorrection } from './views/ResultCorrection'
+import { usePendingRecovery } from './lib/usePendingRecovery'
 
 type PreviewTransport = 'normal' | 'offline' | 'slow' | 'lost' | 'conflict' | 'fallback'
 
@@ -137,6 +138,7 @@ export default function Demo() {
       setBusy(false)
     }
   }
+  usePendingRecovery(pending?.request.requestId, busy, transport !== 'offline', retry)
   const load = (mode: string) => {
     if (sending.current || pending) return
     setReceipt(null)

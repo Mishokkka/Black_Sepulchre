@@ -203,6 +203,8 @@ export interface UnitResult {
   scarBonus?: boolean
 }
 export interface Report {
+  /** Results recorded after playing offline; legacy reports keep their journal semantics. */
+  tabletop?: boolean
   vp: Record<Side, number>
   units: UnitResult[]
   withdrawal: Side[]

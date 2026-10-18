@@ -5,6 +5,7 @@ import { labels, type Props } from './common'
 import { StatusBadge } from './StatusBadge'
 import { ConfirmDialog } from './ConfirmDialog'
 import { ReportView } from './ReportView'
+import { missionInputs } from '../../shared/tabletop-report'
 
 export function ResultView({ s, side, send }: Props) {
   const b = s.battle!,
@@ -112,6 +113,22 @@ export function ResultView({ s, side, send }: Props) {
       )}
       <details>
         <summary>Условия победы, спасение и направления отхода</summary>
+        {b.report.tabletop &&
+          missionInputs(s, b, b.report).map((f) => (
+            <p key={f.key}>
+              {f.label}:{' '}
+              <strong>
+                {f.kind === 'check'
+                  ? b.report!.facts[f.key]
+                    ? 'да'
+                    : 'нет'
+                  : f.kind === 'unit'
+                    ? (b.before.find((u) => u.id === b.report!.facts[f.key])?.name ??
+                      'не выполнялся')
+                    : Number(b.report!.facts[f.key] ?? 0)}
+              </strong>
+            </p>
+          ))}
         {SIDES.map((who) => (
           <p key={who}>
             {labels[who]}: отход в {b.report?.retreat[who] ?? '—'}

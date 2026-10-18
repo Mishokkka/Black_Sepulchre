@@ -1,7 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import { SIDES, type State } from '../../shared/model'
 import { aftermathUnitChanges } from '../../shared/battle-ui'
-import { HONOURS } from '../../shared/rules.generated'
+import { HONOURS, SCARS } from '../../shared/rules.generated'
 import { labels, phases } from './common'
 import { StatusBadge } from './StatusBadge'
 
@@ -10,7 +10,7 @@ export function AftermathSummary({
   preview,
 }: {
   s: State
-  preview: Pick<State, 'players' | 'units' | 'phase'>
+  preview: Pick<State, 'players' | 'units' | 'phase'> & { sectors?: State['sectors'] }
 }) {
   const changed = aftermathUnitChanges(s, preview.units)
   const status: Record<string, string> = {
@@ -72,6 +72,18 @@ export function AftermathSummary({
           </div>
         ))}
       </div>
+      {preview.sectors && (
+        <>
+          <h4>Местные запасы секторов</h4>
+          {Object.values(preview.sectors)
+            .filter((a) => a.local !== s.sectors[a.key].local)
+            .map((a) => (
+              <p key={a.key}>
+                Сектор {a.key}: {s.sectors[a.key].local} → <strong>{a.local} Local Supply</strong>
+              </p>
+            ))}
+        </>
+      )}
       <h4>Изменения отрядов · {changed.length}</h4>
       <div className="aftermath-units">
         {changed.map(({ before, next }) => (
@@ -106,8 +118,13 @@ export function AftermathSummary({
               <span>
                 Scars{' '}
                 <b>
-                  {before?.scars.map((sc) => sc.id).join(', ') || '—'} →{' '}
-                  {next.scars.map((sc) => sc.id).join(', ') || '—'}
+                  {before?.scars
+                    .map((sc) => SCARS[next.side].find((v) => v.id === sc.id)?.name ?? sc.id)
+                    .join(', ') || '—'}{' '}
+                  →{' '}
+                  {next.scars
+                    .map((sc) => SCARS[next.side].find((v) => v.id === sc.id)?.name ?? sc.id)
+                    .join(', ') || '—'}
                 </b>
               </span>
               {next.evacDebt !== before?.evacDebt && (
@@ -133,6 +150,11 @@ export function AftermathSummary({
                 </span>
               )}
               {next.flags.pendingHonours && <span>Предстоит выбрать Honour</span>}
+              {next.armoury !== before?.armoury && (
+                <span>
+                  Снаряжение: {before?.armoury ?? '—'} → {next.armoury ?? 'утрачено'}
+                </span>
+              )}
             </div>
           </article>
         ))}

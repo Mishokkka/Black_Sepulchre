@@ -1,7 +1,16 @@
 import { EXTRA_MISSION_RULES, RULE_GUIDES } from '../content/rules-guide.generated'
 import { RuleText } from './RuleText'
+import { DeedsGuide } from './DeedsGuide'
 
-export function MissionBrief({ code, exact }: { code: string; exact: string }) {
+export function MissionBrief({
+  code,
+  exact,
+  expanded = false,
+}: {
+  code: string
+  exact: string
+  expanded?: boolean
+}) {
   const guide = RULE_GUIDES[`mission:${code}`]
   const exactBody = code === 'encounter' ? EXTRA_MISSION_RULES.encounter.body : exact
   return (
@@ -15,7 +24,7 @@ export function MissionBrief({ code, exact }: { code: string; exact: string }) {
         </div>
       )}
       {guide ? (
-        <details className="exact-rule">
+        <details className="exact-rule" open={expanded || undefined}>
           <summary>Точная формулировка миссии: числа и исключения</summary>
           <RuleText body={exactBody} />
         </details>
@@ -26,6 +35,7 @@ export function MissionBrief({ code, exact }: { code: string; exact: string }) {
         <summary>Памятка: Actions, метки, scoring и носители</summary>
         <RuleText body={RULE_GUIDES['core:Общие правила миссий'].body} />
       </details>
+      <DeedsGuide />
     </>
   )
 }
