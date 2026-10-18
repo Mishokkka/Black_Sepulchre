@@ -349,7 +349,7 @@ test('Own history export respects side and battle filters; F2 dice remain redact
 test('Next step distinguishes own action, opponent waiting, Recon order, report and D66 windows', () => {
   const s = battle(),
     b = s.battle!
-  assert.equal(nextStep(s, 'deathwatch').target, 'report-panel')
+  assert.equal(nextStep(s, 'deathwatch').target, 'report-entry')
   s.phase = 'result'
   b.confirm = ['deathwatch']
   assert.equal(nextStep(s, 'deathwatch').waiting, true)

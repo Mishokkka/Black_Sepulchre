@@ -1,3 +1,5 @@
+import { DeedsGuide, DEEDS } from './DeedsGuide'
+import { MissionReportFacts } from './MissionReportFacts'
 import { reportRetreatPlan } from '../../shared/aftermath'
 import { SIDES, type Side, type Report, type UnitResult } from '../../shared/model'
 import {
@@ -23,14 +25,14 @@ export function ReportView({
       b.id,
       correction ? 'correction' : 'report',
       s.version,
-      initialReport(b),
+      initialReport(b, true),
       (v): v is Report =>
         isReportDraft(v) &&
-        v.units.length === initialReport(b).units.length &&
+        v.units.length === initialReport(b, true).units.length &&
         new Set(v.units.map((u) => u.id)).size === v.units.length &&
         v.units.every((u) => b.before.some((old) => old.id === u.id)),
     ),
-    report = draft.value,
+    report = { ...draft.value, tabletop: true },
     { units: rows, facts, narrative, vp, retreat, garrisonRetreat } = report
   const setFacts = (v: Record<string, unknown>) => draft.update((r) => ({ ...r, facts: v }))
   const setNarrative = (v: string) => draft.update((r) => ({ ...r, narrative: v }))
@@ -47,20 +49,7 @@ export function ReportView({
       ...r,
       units: r.units.map((row) => (row.id === id ? { ...row, ...value } : row)),
     }))
-  const submitted = cleanReport(s, b, {
-    ...report,
-    vp: correction ? vp : b.table.vp,
-    withdrawal: b.table.records.mutualWithdrawal
-      ? [...SIDES]
-      : b.table.records.withdrawalSide
-        ? [b.table.records.withdrawalSide as Side]
-        : [],
-    facts: {
-      ...facts,
-      withdrawal_timing_valid:
-        !!b.table.records.withdrawalSide || !!b.table.records.mutualWithdrawal,
-    },
-  })
+  const submitted = cleanReport(s, b, { ...report, tabletop: true })
   const submitError = battleCommandError(
     s,
     side,
@@ -69,32 +58,76 @@ export function ReportView({
   )
   return (
     <section className="panel report-builder" id="report-panel">
-      <h3>{correction ? 'Новая ревизия результата' : 'Итог и потери по ID'}</h3>
+      <h3>{correction ? 'Новая ревизия результата' : 'Результат сыгранного боя'}</h3>
       {draft.status}
-      {correction && (
-        <>
+      <>
+        {correction && (
           <p>
             Оба согласуют откат всех зависимых решений к исходному результату. Сохранённые dice
             повторно не бросаются; доход пересчитывается один раз.
           </p>
-          {SIDES.map((who) => (
-            <label key={who}>
-              VP {labels[who]}
-              <input
-                type="number"
-                min="0"
-                max="50"
-                value={vp[who]}
-                onChange={(e) => setVP({ ...vp, [who]: Number(e.target.value) })}
-              />
-            </label>
-          ))}
-        </>
-      )}
+        )}
+        {SIDES.map((who) => (
+          <label key={who}>
+            VP {labels[who]}
+            <input
+              type="number"
+              min="0"
+              max="50"
+              value={vp[who]}
+              onChange={(e) => setVP({ ...vp, [who]: Number(e.target.value) })}
+            />
+          </label>
+        ))}
+      </>
       <p>
-        VP {b.table.vp.deathwatch} : {b.table.vp.necrons}. Участие и прибытие перенесены из хода
-        боя. Отметьте потери, Deed и Distinguished; применимые бонусы появятся сами.
+        Введите финальные VP (0–50) и факты по обеим армиям. Второй игрок проверит отчёт перед
+        расчётом последствий.
       </p>
+      <DeedsGuide />
+      {!['WAR', 'PACT'].includes(b.type) && (
+        <details>
+          <summary>Был добровольный Withdrawal</summary>
+          {SIDES.map((who) => (
+            <Check
+              key={who}
+              label={labels[who] + ': объявлен отход'}
+              value={report.withdrawal.includes(who)}
+              change={(v) =>
+                draft.update((r) => ({
+                  ...r,
+                  withdrawal: v ? [...r.withdrawal, who] : r.withdrawal.filter((x) => x !== who),
+                }))
+              }
+            />
+          ))}
+          {report.withdrawal.length > 0 && (
+            <>
+              <label>
+                Раунд эвакуации (3–5)
+                <input
+                  type="number"
+                  min="3"
+                  max="5"
+                  value={Number(facts.withdrawal_round ?? 3)}
+                  onChange={(e) => setFacts({ ...facts, withdrawal_round: Number(e.target.value) })}
+                />
+              </label>
+              <Check
+                label="Объявлен в Command; эвакуация разрешена в Movement того же хода. Уходящим VP не больше 25; сопернику VP не меньше 40 (при обоюдном отходе обоим не больше 25)."
+                value={facts.withdrawal_timing_valid === true}
+                change={(v) =>
+                  setFacts({
+                    ...facts,
+                    withdrawal_timing_valid: v,
+                    withdrawal_round: Number(facts.withdrawal_round ?? 3),
+                  })
+                }
+              />
+            </>
+          )}
+        </details>
+      )}
       <nav className="report-checklist" aria-label="Разделы отчёта">
         <a href="#report-losses">
           1 · Потери <strong>{rows.filter((r) => r.destroyed).length}</strong>
@@ -111,28 +144,45 @@ export function ReportView({
         <h4>1 · Потери и Deeds</h4>
         {rows.map((r) => {
           const fields = reportFields(s, b, r)
-          if (!r.entered)
-            return (
-              <details className="report-row" key={r.id}>
-                <summary>
-                  {fields.u.name} · не прибыл{r.destroyed ? ' · Initial Reserve потерян' : ''}
-                </summary>
-                <p>Участие зафиксировано в ходе боя; награды за участие не применяются.</p>
-                {fields.medicae && (
-                  <Check
-                    label="Medicae при новом Damage"
-                    value={r.usedMedicae ?? false}
-                    change={(v) => edit(r.id, { usedMedicae: v })}
-                  />
-                )}
-              </details>
-            )
           return (
             <div className="report-row" key={r.id}>
               <strong>{s.units.find((u) => u.id === r.id)?.name ?? r.id}</strong>
               <div className="buttons">
-                <small>Участвовал · {labels[fields.u.side]}</small>
-                {fields.withdrawn && (
+                <small>{labels[fields.u.side]}</small>
+                {(fields.pick.reserve || fields.pick.role === 'pool') && !fields.pick.transport && (
+                  <Check
+                    label="Вышел на поле"
+                    value={r.entered}
+                    change={(v) =>
+                      draft.update((report) => ({
+                        ...report,
+                        units: report.units.map((row) =>
+                          row.id === r.id ||
+                          b.muster[fields.u.side]!.picks.find((p) => p.id === row.id)?.transport ===
+                            r.id
+                            ? {
+                                ...row,
+                                entered: v,
+                                destroyed: !v && fields.pick.reserve && fields.pick.role !== 'pool',
+                                distinguished: false,
+                                deed: null,
+                                withdrawn: false,
+                              }
+                            : row,
+                        ),
+                      }))
+                    }
+                  />
+                )}
+                {!r.entered && (
+                  <small>
+                    Не участвовал.{' '}
+                    {fields.pick.role === 'pool'
+                      ? 'Pool не несёт потерь.'
+                      : 'Не прибывшие Initial Reserves уничтожены.'}
+                  </small>
+                )}
+                {report.withdrawal.includes(fields.u.side) && r.entered && !r.destroyed && (
                   <Check
                     label="Эвакуирован со стола"
                     value={r.withdrawn}
@@ -141,6 +191,7 @@ export function ReportView({
                 )}
                 <Check
                   label="Уничтожен"
+                  disabled={!r.entered}
                   value={r.destroyed}
                   change={(v) => edit(r.id, { destroyed: v })}
                 />
@@ -161,12 +212,10 @@ export function ReportView({
               </div>
               <Options
                 label="Deed, максимум один на исходную формацию"
+                disabled={!r.entered}
                 value={r.deed ?? ''}
                 change={(v) => edit(r.id, { deed: (v || null) as UnitResult['deed'] })}
-                items={['HOLD', 'BREAK', 'HUNT', 'ENDURE', 'OPERATE', 'EXTRACT'].map((id) => ({
-                  id,
-                  name: id,
-                }))}
+                items={DEEDS.map(([id, name]) => ({ id, name: id + ' · ' + name }))}
               />
               {fields.memory && (
                 <Check
@@ -207,12 +256,31 @@ export function ReportView({
                   }
                 />
               )}
+              {r.entered && r.destroyed && facts.no_recovery_source === true && (
+                <Check
+                  label="К этому отряду применился отдельный No Recovery: Casualty −1"
+                  value={r.casualtySources.includes('no_recovery')}
+                  change={(v) =>
+                    edit(r.id, {
+                      casualtySources: v
+                        ? [...r.casualtySources.filter((x) => x !== 'no_recovery'), 'no_recovery']
+                        : r.casualtySources.filter((x) => x !== 'no_recovery'),
+                    })
+                  }
+                />
+              )}
             </div>
           )
         })}
       </div>
       <div className="report-section" id="report-facts">
         <h4>2 · Факты миссии и спасение</h4>
+        <MissionReportFacts s={s} b={b} report={report} change={setFacts} />
+        <Check
+          label="В бою действовал отдельный прямо указанный источник No Recovery (отметьте затронутые отряды выше)"
+          value={facts.no_recovery_source === true}
+          change={(v) => setFacts({ ...facts, no_recovery_source: v })}
+        />
         {b.type === 'PACT' &&
           SIDES.map((who) => (
             <Check
@@ -264,7 +332,7 @@ export function ReportView({
             }))}
           />
         )}
-        {b.table.objects.some((o) => o.id === 'overlay') && (
+        {!report.tabletop && b.table.objects.some((o) => o.id === 'overlay') && (
           <Options
             label="Контроль Anchor в конце R5 (если есть overlay)"
             value={String(facts.anchor_control ?? '')}

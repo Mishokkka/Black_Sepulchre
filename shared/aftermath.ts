@@ -42,9 +42,19 @@ import {
 import { addEffect, beginActivation, finishActivation } from './state.ts'
 import { capture, setExhausted } from './strategy.ts'
 import { armouryBlocked } from './rules.ts'
+import { applyTabletopFacts, validateTabletopFacts } from './tabletop-report.ts'
 export function outcome(s: State, r: Report): Battle['outcome'] {
   const b = s.battle!,
     t = b.table
+  if (b.type === 'PACT')
+    if (r.tabletop)
+      return !r.facts.pact_failed &&
+        r.facts.pact_keys === true &&
+        SIDES.every(
+          (side) => r.facts[`prime:${side}`] === true && r.facts[`prime_valid:${side}`] === true,
+        )
+        ? 'both_win'
+        : 'both_lose'
   if (b.type === 'PACT')
     return !t.records.immediateFailure &&
       t.objects
@@ -56,8 +66,10 @@ export function outcome(s: State, r: Report): Battle['outcome'] {
   if (b.type === 'WAR') {
     const candidates = SIDES.filter(
       (side) =>
-        t.records[`override:${side}`] &&
-        t.objects.filter((o) => o.tag !== undefined && o.data[`hack:${side}`]).length >= 2 &&
+        (r.tabletop
+          ? r.facts[`override:${side}`] === true && Number(r.facts[`seals:${side}`] ?? 0) >= 2
+          : t.records[`override:${side}`] &&
+            t.objects.filter((o) => o.data[`hack:${side}`]).length >= 2) &&
         r.facts[`engine_alive_oc:${side}`] === true,
     )
     return candidates.length === 1
@@ -71,7 +83,10 @@ export function outcome(s: State, r: Report): Battle['outcome'] {
   if (r.withdrawal.length === 2) return 'draw'
   if (r.withdrawal.length === 1) return other(r.withdrawal[0])
   if (/[AK]3/.test(b.mission!))
-    return t.records.claim && r.facts.throne_control === b.attacker ? b.attacker : b.defender
+    return (r.tabletop ? r.facts.claim === true : t.records.claim) &&
+      r.facts.throne_control === b.attacker
+      ? b.attacker
+      : b.defender
   return r.vp.deathwatch === r.vp.necrons
     ? 'draw'
     : r.vp.deathwatch > r.vp.necrons
@@ -80,6 +95,7 @@ export function outcome(s: State, r: Report): Battle['outcome'] {
 }
 function validateReport(s: State, r: Report) {
   const b = s.battle!
+  assert(r?.tabletop === undefined || typeof r.tabletop === 'boolean', 'Неверный формат отчёта')
   assert(
     r &&
       r.vp &&
@@ -93,7 +109,8 @@ function validateReport(s: State, r: Report) {
   )
   for (const side of SIDES) {
     integer(r.vp[side], 0, 50)
-    assert(r.vp[side] === b.table.vp[side], 'VP должны совпадать с журналом миссии')
+    if (!r.tabletop)
+      assert(r.vp[side] === b.table.vp[side], 'VP должны совпадать с журналом миссии')
   }
   assert(
     new Set(r.withdrawal).size === r.withdrawal.length &&
@@ -106,17 +123,28 @@ function validateReport(s: State, r: Report) {
       ? [b.table.records.withdrawalSide]
       : []
   assert(
-    [...r.withdrawal].sort().join() === recorded.sort().join(),
+    r.tabletop || [...r.withdrawal].sort().join() === recorded.sort().join(),
     'Отход должен совпадать с журналом',
   )
   if (r.withdrawal.length)
     assert(
       !['WAR', 'PACT'].includes(b.type) &&
-        b.table.round >= 3 &&
-        b.table.round <= 5 &&
+        (r.tabletop
+          ? Number.isInteger(r.facts.withdrawal_round) &&
+            Number(r.facts.withdrawal_round) >= 3 &&
+            Number(r.facts.withdrawal_round) <= 5
+          : b.table.round >= 3 && b.table.round <= 5) &&
         r.facts.withdrawal_timing_valid === true,
       'Подтвердите Command и Movement той же очереди хода',
     )
+  if (r.tabletop && r.withdrawal.length) {
+    for (const side of r.withdrawal) assert(r.vp[side] <= 25, 'После Withdrawal не больше 25 VP')
+    if (r.withdrawal.length === 1)
+      assert(
+        r.vp[other(r.withdrawal[0])] >= 40,
+        'После одностороннего Withdrawal сопернику минимум 40 VP',
+      )
+  }
   const picks = SIDES.flatMap((side) => b.muster[side]!.picks),
     ids = picks.map((v) => v.id)
   assert(
@@ -136,7 +164,7 @@ function validateReport(s: State, r: Report) {
     )
     const committed = picks.find((p) => p.id === u.id)!
     if (committed.role === 'pool' || committed.reserve) {
-      const arrived = !!b.table.records[`entered:${u.id}`]
+      const arrived = r.tabletop ? u.entered : !!b.table.records[`entered:${u.id}`]
       assert(u.entered === arrived, 'Участие резервов должно совпадать с прибытием')
       if (committed.role === 'pool') assert(!u.destroyed || u.entered, 'Не вошедший Pool не погиб')
       else if (!arrived) assert(u.destroyed, 'Initial Reserves не вошли до конца R3 и уничтожены')
@@ -230,6 +258,8 @@ export function aftermathCommand(s: State, c: Command, ctx: Context) {
     const test = structuredClone(s.rollback.base)
     test.battle!.table.vp = (c.payload.report as Report).vp
     validateReport(test, c.payload.report as Report)
+    if ((c.payload.report as Report).tabletop)
+      validateTabletopFacts(test, test.battle!, c.payload.report as Report)
     s.correctionProposal = { report: structuredClone(c.payload.report as Report), approved: [side] }
     return
   }
@@ -259,6 +289,7 @@ export function aftermathCommand(s: State, c: Command, ctx: Context) {
       s.resultBase = null
       const b = s.battle!
       b.report = report
+      if (report.tabletop) applyTabletopFacts(s, b, report)
       b.table.vp = report.vp
       Object.assign(
         b.table.records,
@@ -283,12 +314,17 @@ export function aftermathCommand(s: State, c: Command, ctx: Context) {
   assert(b, 'Нет боя')
   switch (c.type) {
     case 'submit_result': {
+      const r = structuredClone(c.payload.report) as unknown as Report
       assert(
-        (s.phase === 'battle' && b.table.step === 'finished') || s.phase === 'result',
+        (s.phase === 'battle' && (r?.tabletop === true || b.table.step === 'finished')) ||
+          s.phase === 'result',
         'Отчёт после завершения стола',
       )
-      const r = c.payload.report as unknown as Report
       validateReport(s, r)
+      if (r.tabletop) {
+        validateTabletopFacts(s, b, r)
+        applyTabletopFacts(s, b, r)
+      }
       b.report = structuredClone(r)
       b.confirm = [side]
       b.outcome = outcome(s, r)
@@ -521,6 +557,10 @@ function prepareCasualties(s: State, ctx: Context) {
     if (asset?.defensive.includes('stores') && b.report!.facts.stores_id === u.id) modifier++
     if (
       (asset?.tactical.includes('evacuation') ||
+        (b.report!.tabletop &&
+          /^[AK]2$/.test(b.mission ?? '') &&
+          u.side === b.attacker &&
+          b.report!.facts.extraEvacuation === true) ||
         (u.side === b.attacker && b.assets[b.attacker]?.breach.includes('extraction'))) &&
       b.report!.facts[`first_destroyed:${u.side}`] === u.id &&
       !entry(s, u).character
@@ -732,7 +772,9 @@ function buildChoices(original: State, ctx: Context) {
   }
   if (b.mission === 'B1' && winner) {
     const ids = played(winner, (u) =>
-      b.table.actions.some((a) => a.actor === u.id && a.kind === 'PICK UP' && a.success),
+      b.report!.tabletop
+        ? b.report!.facts[`pickup:${u.id}`] === true
+        : b.table.actions.some((a) => a.actor === u.id && a.kind === 'PICK UP' && a.success),
     )
     if (ids.length) add('B1', winner, 'Reliquary Hunt XP', ['xp'], ids)
   }
@@ -810,6 +852,15 @@ function applyAftermath(s: State, ctx: Context) {
     exists = (id: string) => s.units.find((u) => u.id === id && u.status === 'active')
   assert(!b.aftermathApplied, 'Afternath уже применён')
   b.aftermathApplied = true
+  if (r.tabletop)
+    for (const row of r.units) {
+      if (r.facts[`damagedUsed:${row.id}`] !== true) continue
+      const u = unit(s, row.id)
+      const die = savedDie(s, ctx, `damagedArmoury:${u.id}`, 6)
+      b.table.records[`damagedArmoury:${u.id}`] = die
+      u.flags.damagedArmoury = false
+      if (die === 1) u.armoury = null
+    }
   if (b.type === 'assault' && winner === b.attacker) {
     s.players[b.defender].integrity--
     if (s.players[b.defender].integrity === 0) s.sectors[b.sector as SectorKey].owner = b.attacker

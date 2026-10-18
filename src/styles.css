@@ -6036,3 +6036,36 @@ button.campaign-choice {
     min-height: 44px;
   }
 }
+.mission-layout {
+  max-width: 780px;
+  margin: 24px auto;
+}
+.mission-layout svg {
+  width: 100%;
+  height: auto;
+  max-height: 520px;
+}
+.mission-layout svg text {
+  fill: #eee9db;
+  font: 1.7px sans-serif;
+}
+.mission-layout figcaption {
+  color: var(--muted);
+  font-size: 14px;
+}
+.mission-coordinates {
+  overflow-x: auto;
+}
+.mission-coordinates table {
+  width: 100%;
+}
+.mission-basics dd {
+  margin: 4px 0 14px;
+}
+.mission-report-facts {
+  display: grid;
+  gap: 14px;
+}
+.request-recovery {
+  border-color: var(--gold);
+}

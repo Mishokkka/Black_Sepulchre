@@ -117,27 +117,5 @@ export function nextStep(
         : result('Проверьте и подтвердите расчёт последствий', 'battle', 'aftermath-panel')
     return result('Подготовьте итоговый расчёт последствий', 'battle', 'aftermath-panel')
   }
-  if (b.table.step === 'finished')
-    return result('Отметьте потери и отправьте отчёт о бое', 'battle', 'report-panel')
-  if (
-    b.table.turn !== side &&
-    ['command', 'movement', 'shooting', 'charge', 'fight', 'end_turn'].includes(b.table.step)
-  )
-    return wait(`Раунд ${b.table.round}: идёт ход другого командира; выполняйте реакции за столом`)
-  const steps: Record<string, string> = {
-    start: 'Выберите первого игрока и начните бой',
-    command: 'Запишите действия командной фазы',
-    movement: 'Запишите прибытие резервов и действия движения',
-    shooting: 'Запишите действия стрельбы',
-    charge: 'Выполните чарджи за столом, проверьте запреты Actions',
-    fight: 'Разрешите ближний бой за столом и обновите контроль целей',
-    end_turn: 'Запишите контроль целей и завершите ход',
-    end_round: 'Проверьте контроль целей и завершите раунд',
-    hazards: 'Примените и подтвердите опасности миссии',
-  }
-  return result(
-    `Раунд ${b.table.round}: ${steps[b.table.step] ?? 'продолжите бой за столом'}`,
-    'battle',
-    'table-panel',
-  )
+  return result('Сыграйте миссию за столом и внесите итог боя', 'battle', 'report-entry')
 }

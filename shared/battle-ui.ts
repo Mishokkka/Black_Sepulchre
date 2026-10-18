@@ -150,7 +150,9 @@ export function aftermathUnitChanges(s: State, units: Unit[]) {
       JSON.stringify(before.scars) !== JSON.stringify(next.scars) ||
       JSON.stringify(before.honours) !== JSON.stringify(next.honours) ||
       JSON.stringify(before.flags.pendingHonours) !== JSON.stringify(next.flags.pendingHonours) ||
-      before.evacDebt !== next.evacDebt
+      before.evacDebt !== next.evacDebt ||
+      before.armoury !== next.armoury ||
+      before.flags.damagedArmoury !== next.flags.damagedArmoury
     return changed ? [{ before, next }] : []
   })
 }

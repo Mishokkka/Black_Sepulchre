@@ -1,5 +1,5 @@
 import { Check, Circle, Minus, Swords, Clock3 } from 'lucide-react'
-import { battleProgress, TABLE_STEPS } from '../../shared/battle-ui'
+import { battleProgress } from '../../shared/battle-ui'
 import { nextStep } from '../../shared/next-step'
 import { MISSION_CARDS } from '../../shared/rules.generated'
 import { SIDES } from '../../shared/model'
@@ -19,22 +19,8 @@ export function BattleHeader({ s, side }: Pick<Props, 's' | 'side'>) {
           <div className="battle-clock">
             <Swords size={18} aria-hidden="true" />
             <div>
-              <strong>
-                Бой {b.number} · R{b.table.round}
-              </strong>
-              <small>
-                {s.phase === 'battle'
-                  ? `${TABLE_STEPS[b.table.step]} · ${labels[b.table.turn]}`
-                  : phases[s.phase]}
-              </small>
-            </div>
-            <div className="round-dots" aria-label={`Раунд ${b.table.round} из 5`}>
-              {[1, 2, 3, 4, 5].map((r) => (
-                <i
-                  key={r}
-                  className={r === b.table.round ? 'current' : r < b.table.round ? 'past' : ''}
-                />
-              ))}
+              <strong>Бой {b.number}</strong>
+              <small>{s.phase === 'battle' ? 'Миссия за столом' : phases[s.phase]}</small>
             </div>
           </div>
           <div
@@ -44,25 +30,15 @@ export function BattleHeader({ s, side }: Pick<Props, 's' | 'side'>) {
             {SIDES.map((who) => (
               <div key={who} data-side={who}>
                 <span>{labels[who]}</span>
-                <strong>{vp[who]}</strong>
+                <strong>{b.report ? vp[who] : '—'}</strong>
                 <small>VP</small>
               </div>
             ))}
           </div>
           <div className="battle-turn">
             <StatusBadge tone={n.waiting ? 'info' : 'ready'}>
-              {s.phase === 'battle' && b.table.step !== 'finished'
-                ? `Ход ${labels[b.table.turn]}`
-                : n.waiting
-                  ? 'Ожидание'
-                  : 'Ваше решение'}
+              {n.waiting ? 'Ожидание' : 'Ваше решение'}
             </StatusBadge>
-            {b.type === 'PACT' && (
-              <small>
-                Instability <strong>{b.table.instability}/12</strong> · Keys{' '}
-                {b.table.objects.reduce((n, o) => n + o.keys.length, 0)}/6
-              </small>
-            )}
           </div>
         </div>
       )}

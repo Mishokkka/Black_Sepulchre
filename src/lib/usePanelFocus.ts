@@ -7,6 +7,7 @@ export function usePanelFocus(request: { target: string } | null) {
     const focus = () => {
       const panel = document.getElementById(request.target)
       if (!panel) return
+      if (panel instanceof HTMLDetailsElement) panel.open = true
       panel.tabIndex = -1
       panel.focus({ preventScroll: true })
       panel.scrollIntoView({

@@ -23,6 +23,7 @@ import {
   clearPending,
 } from './lib/requests'
 import { initialSync, type SyncState } from './lib/sync'
+import { usePendingRecovery } from './lib/usePendingRecovery'
 const CampaignMap = lazy(() =>
   import('./views/CampaignMap').then((m) => ({ default: m.CampaignMap })),
 )
@@ -248,7 +249,10 @@ export default function App() {
     const started = scope.current
     if (started !== `${user.current ?? ''}:${String(body.campaignId)}`)
       throw new CampaignRequestError('Кампания изменена', false)
-    const { data, error } = await supabase.functions.invoke('campaign-engine', { body })
+    const { data, error } = await supabase.functions.invoke('campaign-engine', {
+      body,
+      signal: AbortSignal.timeout(25000),
+    })
     if (started !== scope.current)
       throw new CampaignRequestError('Сессия или кампания изменена', false)
     if (error) {
@@ -474,6 +478,7 @@ export default function App() {
     }
   }
   const help = errorHelp(error, !!pending, sync.online)
+  usePendingRecovery(pending?.requestId, busy, sync.online, retry)
   const alert = (error || !!pending) && (
     <div role="alert" className={`toast${pending ? ' uncertain' : ''}`}>
       <span>{help.text}</span>
@@ -637,6 +642,18 @@ export default function App() {
         }
       >
         <Suspense fallback={<ScreenLoading />}>
+          {!!pending && (
+            <section className="panel request-recovery" role="status">
+              <h2>Проверяем сохранение последнего решения</h2>
+              <p>
+                Кнопки временно закрыты, пока сервер не подтвердит прежнюю отправку. Повторная
+                проверка безопасна: награды не начислятся дважды.
+              </p>
+              <button disabled={busy} onClick={retry}>
+                {busy ? 'Проверка…' : 'Восстановить доступ к действиям'}
+              </button>
+            </section>
+          )}
           <fieldset className="workspace" disabled={busy || !!pending}>
             {(s.correctionProposal || s.flags.correctionAvailable) && (
               <ResultCorrection key={`${s.id}:${side}`} s={s} side={side} send={send} />

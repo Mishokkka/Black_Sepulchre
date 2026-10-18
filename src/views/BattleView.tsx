@@ -5,23 +5,18 @@ import { ConfirmDialog } from './ConfirmDialog'
 import { ReportView } from './ReportView'
 export { ReportView } from './ReportView'
 import { AftermathSummary } from './AftermathSummary'
-import { battleCommandError, TABLE_STEPS } from '../../shared/battle-ui'
-import { nextStep } from '../../shared/next-step'
-import { StatusBadge } from './StatusBadge'
+import { SALVAGE_REWARDS, casualtyMeaning, CHOICE_LABELS } from '../../shared/aftermath-help'
+import { battleCommandError } from '../../shared/battle-ui'
 import { BattlePacket } from './BattlePacket'
-import { TableExtras, MissionFacts } from './TableExtras'
-import { FirstPlayer, TableAdvance } from './TableAdvance'
-import { BattleJournal } from './BattleJournal'
-import { completionReady } from '../../shared/table-checks'
+import { TabletopMission } from './TabletopMission'
 import { useState } from 'react'
 import Markdown from 'react-markdown'
 import { MissionBrief } from './MissionBrief'
 import { EVENTS, MISSION_CARDS, CRISIS_CARDS } from '../../shared/rules.generated'
 import { SIDES, other, type Side, type State } from '../../shared/model'
-import { BREACH, DEFENSIVE, TACTICAL, unit, STAGES } from '../../shared/rules'
-import { actionsFor } from '../../shared/table'
+import { BREACH, DEFENSIVE, TACTICAL, unit, entry } from '../../shared/rules'
 import { underdog } from '../../shared/muster'
-import { labels, phases } from './common'
+import { labels } from './common'
 import { Check, Options, type Props } from './common'
 import { RuleHelp } from './RulesContext'
 const ASSET_LABELS: Record<string, string> = {
@@ -166,12 +161,12 @@ export function BattleView({ s, side, send }: Props) {
       {['battle', 'result', 'aftermath'].includes(s.phase) && (
         <BattlePacket s={s} side={side} send={send} />
       )}{' '}
-      {s.phase === 'battle' && !b.reconciliation && <TableView s={s} side={side} send={send} />}
-      {['battle', 'result', 'aftermath'].includes(s.phase) && (
-        <BattleJournal s={s} side={side} send={send} />
-      )}
-      {s.phase === 'battle' && b.table.step === 'finished' && !b.reconciliation && (
-        <ReportView s={s} side={side} send={send} />
+      {s.phase === 'battle' && <TabletopMission s={s} />}
+      {s.phase === 'battle' && (
+        <details className="panel" id="report-entry">
+          <summary>Внести результат боя</summary>
+          <ReportView s={s} side={side} send={send} />
+        </details>
       )}
       {s.phase === 'result' && !b.reconciliation && <ResultView s={s} side={side} send={send} />}
       {s.phase === 'ending' && <Endings s={s} side={side} send={send} />}
@@ -353,412 +348,6 @@ function AssetView({ s, side, send }: Props) {
     </section>
   )
 }
-function TableView({ s, side, send }: Props) {
-  const dimensions = ['WAR', 'PACT'].includes(s.battle!.type)
-    ? { l: 60, w: 44, d: 12 }
-    : STAGES[s.battle!.stage]
-  const b = s.battle!,
-    t = b.table,
-    [actor, setActor] = useState(''),
-    [object, setObject] = useState(''),
-    [kind, setKind] = useState(''),
-    [actionHonour, setActionHonour] = useState(''),
-    [die, setDie] = useState(3),
-    [ack, setAck] = useState(false),
-    [ruinsBonus, setRuinsBonus] = useState(false),
-    [completionAck, setCompletionAck] = useState<Record<string, boolean>>({}),
-    [actionUpgrades, setActionUpgrades] = useState<
-      Record<string, { fieldEngineers?: boolean; ossuaryKey?: boolean }>
-    >({})
-  const o = t.objects.find((o) => o.id === object),
-    options = o ? actionsFor(s, o) : []
-  const n = nextStep(s, side)
-  const startPayload = {
-    actor,
-    object,
-    kind,
-    eligible: true,
-    inRange: true,
-    deliveryEligible: true,
-    advanced: actionHonour === 'secure_and_extract',
-    actionShoot: ['operational_mastery', 'black_spear_veteran'].includes(actionHonour),
-    actionHonour: actionHonour || undefined,
-  }
-  const startError =
-    actor && object && kind && t.step === 'movement'
-      ? battleCommandError(s, side, 'table_action', startPayload)
-      : ''
-  const selectObject = (id: string) => {
-    const target = t.objects.find((o) => o.id === id)
-    if (!target || target.disabled) return
-    setObject(id)
-    const actions = actionsFor(s, target)
-    setKind(actions.length === 1 ? actions[0] : '')
-  }
-  return (
-    <>
-      <section className="panel battle-table-panel" id="table-panel">
-        <div className="section-head">
-          <h2>За столом</h2>
-          <StatusBadge tone={n.waiting ? 'info' : 'ready'}>{TABLE_STEPS[t.step]}</StatusBadge>
-        </div>
-        <div className="battle-live-grid">
-          <aside className="battle-mission-panel" aria-label="Оперативная карточка миссии">
-            <p className="eyebrow">МИССИЯ · {b.mission ?? b.type}</p>
-            <MissionBrief
-              code={b.mission ?? b.type}
-              exact={MISSION_CARDS[b.mission ?? '']?.body ?? CRISIS_CARDS[b.type] ?? crisisText(s)}
-            />
-            {b.effects.map((e, i) => (
-              <p key={i}>
-                <strong>{e.code}</strong> — {EVENTS[e.code]?.effect ?? e.code}
-              </p>
-            ))}
-          </aside>
-          <div className="battle-board">
-            {t.round === 1 && t.step === 'start' && <FirstPlayer s={s} side={side} send={send} />}
-            <div className="table-map">
-              <svg
-                viewBox={`-2 -2 ${dimensions.l + 4} ${dimensions.w + 4}`}
-                role="img"
-                aria-label="Объекты текущей миссии"
-              >
-                <rect
-                  x="0"
-                  y="0"
-                  width={dimensions.l}
-                  height={dimensions.d}
-                  fill="#786044"
-                  opacity=".2"
-                />
-                <rect
-                  x="0"
-                  y={dimensions.w - dimensions.d}
-                  width={dimensions.l}
-                  height={dimensions.d}
-                  fill="#4f7761"
-                  opacity=".2"
-                />
-                {t.objects.map((o) => (
-                  <g
-                    key={o.id}
-                    role="button"
-                    tabIndex={o.disabled ? -1 : 0}
-                    aria-label={`Объект ${o.id} · ${o.kind}${o.disabled ? ' · отключён' : ''}`}
-                    aria-disabled={o.disabled}
-                    aria-pressed={object === o.id}
-                    onClick={() => selectObject(o.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        selectObject(o.id)
-                      }
-                    }}
-                  >
-                    <title>
-                      {o.id} · {o.kind} · {o.control ? labels[o.control] : 'без контроля'}
-                    </title>
-                    {object === o.id && (
-                      <circle className="marker-selected" cx={o.x} cy={o.y} r={3.2} />
-                    )}
-                    {o.kind === 'objective' ? (
-                      <circle cx={o.x} cy={o.y} r={2} className={o.control ?? 'neutral'} />
-                    ) : o.kind === 'interaction' ? (
-                      <rect
-                        className={'mission-marker ' + (o.control ?? 'neutral')}
-                        x={o.x - 1.5}
-                        y={o.y - 1.5}
-                        width={3}
-                        height={3}
-                        rx={0.2}
-                      />
-                    ) : (
-                      <path
-                        className={'mission-marker ' + (o.control ?? 'neutral')}
-                        d={`M ${o.x} ${o.y - 1.8} l 1.8 1.8 l -1.8 1.8 l -1.8 -1.8 Z`}
-                      />
-                    )}
-                    {o.disabled && (
-                      <path
-                        className="marker-disabled"
-                        d={`M ${o.x - 1.7} ${o.y - 1.7} l 3.4 3.4 M ${o.x - 1.7} ${o.y + 1.7} l 3.4 -3.4`}
-                      />
-                    )}
-                    <text x={o.x} y={o.y + 4}>
-                      {o.id}
-                    </text>
-                  </g>
-                ))}
-              </svg>
-            </div>
-            {b.type === 'PACT' && (
-              <p>
-                Instability <strong>{t.instability}/12</strong> · Keys{' '}
-                {t.objects.reduce((n, o) => n + o.keys.length, 0)}/6 · Primes{' '}
-                {Object.keys(t.primes).length}/2
-              </p>
-            )}
-          </div>
-          <aside className="battle-current-action">
-            <p className="eyebrow">ТЕКУЩИЙ ШАГ</p>
-            <h3>{TABLE_STEPS[t.step]}</h3>
-            <p>{n.text}</p>
-            <StatusBadge tone={n.waiting ? 'info' : 'ready'}>Ход {labels[t.turn]}</StatusBadge>
-            {t.step !== 'finished' && (
-              <TableAdvance key={s.version} s={s} side={side} send={send} />
-            )}
-            {object && (
-              <p className="board-selection">
-                Выбран объект <strong>{object}</strong>
-              </p>
-            )}
-            <small>
-              Круг — objective · квадрат — interaction · ромб — item. Контроль объектов сверяется с
-              физическим столом.
-            </small>
-          </aside>
-        </div>
-        <details className="battle-object-controls">
-          <summary>
-            Контроль объектов · {t.objects.filter((o) => !o.disabled).length} активных
-          </summary>
-          <div className="object-grid">
-            {t.objects.map((o) => (
-              <div className="object" key={o.id}>
-                <strong>
-                  {o.id} · {o.kind}
-                </strong>
-                <small>
-                  ({o.x.toFixed(1)}, {o.y.toFixed(1)}) {o.disabled ? '· отключён' : ''}
-                </small>
-                <Options
-                  label="Физический контроль"
-                  disabled={o.disabled || t.step === 'finished'}
-                  value={o.control ?? ''}
-                  change={(who) =>
-                    send('table_controls', { controls: [{ id: o.id, side: who || null }] })
-                  }
-                  items={SIDES.map((id) => ({ id, name: labels[id] }))}
-                />
-                {o.disabled && <small>Отключённый объект не может менять контроль.</small>}
-                <small>
-                  Tag: {o.tag ? labels[o.tag] : '—'}
-                  {o.keys.length ? ` · Keys ${o.keys.join(' + ')}` : ''}
-                  {o.carrier ? ` · Bearer ${unit(s, o.carrier).name}` : ''}
-                </small>
-                {b.type === 'PACT' && ['1', '2', '3'].includes(o.id) && (
-                  <label>
-                    Echo wounds
-                    <input
-                      type="number"
-                      min="0"
-                      max="10"
-                      value={t.echoes[Number(o.id) - 1].wounds}
-                      disabled={t.step === 'finished'}
-                      onChange={(e) =>
-                        send('echo_wounds', {
-                          index: Number(o.id) - 1,
-                          wounds: Number(e.target.value),
-                        })
-                      }
-                    />
-                  </label>
-                )}
-              </div>
-            ))}
-          </div>
-        </details>
-        {t.notes.length > 0 && (
-          <div className="notice">
-            {t.notes.map((n, i) => (
-              <p key={i}>{n}</p>
-            ))}
-          </div>
-        )}
-      </section>
-      {t.step === 'movement' && t.turn === side && (
-        <section className="panel">
-          <h3>Старт Named Action</h3>
-          <div className="form-grid">
-            <Options
-              label="Actor persistent ID"
-              value={actor}
-              change={(id) => {
-                setActor(id)
-                setActionHonour('')
-              }}
-              items={b.muster[side]!.picks.filter(
-                (p) => !(p.reserve || p.role === 'pool') || t.records[`entered:${p.id}`],
-              ).map((p) => ({ id: p.id, name: unit(s, p.id).name }))}
-            />
-            <Options
-              label="Объект"
-              value={object}
-              change={(v) => {
-                selectObject(v)
-              }}
-              items={t.objects
-                .filter((o) => !o.disabled)
-                .map((o) => ({ id: o.id, name: `${o.id} · ${o.kind}` }))}
-            />
-            <Options
-              label="Action"
-              value={kind}
-              change={setKind}
-              items={options.map((id) => ({ id, name: id }))}
-            />
-          </div>
-          {actor && (
-            <Options
-              label="Кампанийное разрешение для Action"
-              emptyLabel="Обычный Action"
-              value={actionHonour}
-              change={setActionHonour}
-              items={[
-                ...(['secure_and_extract', 'operational_mastery', 'black_spear_veteran'] as const)
-                  .filter(
-                    (id) =>
-                      b.muster[side]!.picks.find((p) => p.id === actor)?.honours.includes(id) &&
-                      !t.records[`use:${side}:${actor}:${id}`] &&
-                      !['CLAIM', 'OVERRIDE ENGINE', 'PRIME ENGINE'].includes(kind),
-                  )
-                  .map((id) => ({
-                    id,
-                    name:
-                      id === 'secure_and_extract'
-                        ? 'Secure and Extract · после Advance, без Shoot/Charge'
-                        : id === 'operational_mastery'
-                          ? 'Operational Mastery · Action + Shoot с −1 Hit, без Charge'
-                          : 'Black Spear Veteran · Action + Shoot, без Charge',
-                  })),
-              ]}
-            />
-          )}
-          <Check
-            label="За столом проверены eligibility, range, запреты Shoot/Charge и требуемый контроль"
-            value={ack}
-            change={setAck}
-          />
-          <button
-            disabled={!ack || !actor || !object || !kind || !!startError}
-            onClick={() => send('table_action', startPayload)}
-          >
-            Начать Action
-          </button>
-          {startError && <p className="validation">{startError}</p>}
-        </section>
-      )}
-      {t.actions
-        .filter((a) => a.pending && a.side === side)
-        .map((a) => (
-          <section className="panel" key={a.id}>
-            <h3>
-              {a.kind} · {unit(s, a.actor).name} → {a.object}
-            </h3>
-            <p>
-              Успех требует живого, не Battle-shocked, стационарного actor в range. Если нужен
-              контроль, он сохранён. ENCODE проверяет мёртвую Echo сейчас.
-            </p>
-            {!completionReady(t, a) ? (
-              <p className="muted">
-                Завершение доступно в {a.kind === 'COMMUNE' ? 'конце раунда' : 'конце своего хода'},
-                после Charge и Fight.
-              </p>
-            ) : (
-              <Check
-                label="Условия успешного завершения проверены за столом"
-                value={!!completionAck[a.id]}
-                change={(v) => setCompletionAck({ ...completionAck, [a.id]: v })}
-              />
-            )}
-            {s.sectors.B.owner === side && !t.records[`ruinsBonus:${side}`] && (
-              <Check
-                label="B: actor в Ruins, применить одноразовый +1 к последствиям D6"
-                value={ruinsBonus}
-                change={setRuinsBonus}
-              />
-            )}
-            <label>
-              Боевой D6, если его требует карточка
-              <input
-                type="number"
-                min="1"
-                max="6"
-                value={die}
-                onChange={(e) => setDie(Number(e.target.value))}
-              />
-            </label>
-            {b.muster[side]!.picks.find((p) => p.id === a.actor)?.honours.includes(
-              'field_engineers',
-            ) &&
-              !t.records[`use:${side}:${a.actor}:field_engineers`] && (
-                <Check
-                  label="Применить Field Engineers · Jam, один раз за бой"
-                  value={!!actionUpgrades[a.id]?.fieldEngineers}
-                  change={(v) =>
-                    setActionUpgrades({
-                      ...actionUpgrades,
-                      [a.id]: { ...actionUpgrades[a.id], fieldEngineers: v },
-                    })
-                  }
-                />
-              )}
-            {unit(s, a.actor).relic === 'key' &&
-              b.muster[side]!.picks.find((p) => p.id === a.actor)?.relic &&
-              b.type !== 'PACT' &&
-              !['CLAIM', 'OVERRIDE ENGINE', 'PRIME ENGINE'].includes(a.kind) &&
-              !t.records[`use:${side}:${a.actor}:key`] && (
-                <Check
-                  label="Применить Ossuary Key · +1 VP, один раз за бой"
-                  value={!!actionUpgrades[a.id]?.ossuaryKey}
-                  change={(v) =>
-                    setActionUpgrades({
-                      ...actionUpgrades,
-                      [a.id]: { ...actionUpgrades[a.id], ossuaryKey: v },
-                    })
-                  }
-                />
-              )}
-            <div className="buttons">
-              <button
-                disabled={!completionReady(t, a) || !completionAck[a.id]}
-                onClick={() =>
-                  send('table_complete', {
-                    id: a.id,
-                    success: true,
-                    alive: true,
-                    inRange: true,
-                    notShocked: true,
-                    stationary: true,
-                    die,
-                    ruinsBonus,
-                    inRuins: ruinsBonus,
-                    fieldEngineers: !!actionUpgrades[a.id]?.fieldEngineers,
-                    ossuaryKey: !!actionUpgrades[a.id]?.ossuaryKey,
-                  })
-                }
-              >
-                Подтвердить успешный completion
-              </button>
-              <button
-                className="quiet"
-                disabled={!completionReady(t, a)}
-                onClick={() => send('table_complete', { id: a.id, success: false })}
-              >
-                Action сорван
-              </button>
-            </div>
-          </section>
-        ))}
-      {t.step !== 'finished' && (
-        <>
-          <TableExtras s={s} side={side} send={send} />
-          <MissionFacts s={s} side={side} send={send} />
-        </>
-      )}
-    </>
-  )
-}
 function Endings({ s, side, send }: Props) {
   return (
     <section className="panel">
@@ -797,27 +386,108 @@ function AftermathView({ s, side, send }: Props) {
     ).preview
   return (
     <section className="panel" id="aftermath-panel">
-      <h3>Последствия: один сохранённый расчёт</h3>
-      <p>Casualty пока предварительные. Recovery Crew меняет raw total до Critical.</p>
+      <h2>После боя: потери, добыча и награды</h2>
+      <p>
+        Сайт уже сохранил броски. Обновление страницы не бросает их заново. Сначала посмотрите
+        последствия, затем при желании потратьте Intel на переброс добычи или события, выберите
+        награды и подтвердите итог вдвоём.
+      </p>
+      <h3>1 · Потери отрядов (Casualty)</h3>
+      <p>
+        Для каждого уничтоженного отряда: D6 + модификаторы. Это последствия для кампании, а не
+        погибшие модели на столе. Обычного переброса Casualty здесь нет. Событие Recovery Crew может
+        улучшить один результат на +1; поэтому Damage и шрамы ещё не применены.
+      </p>
+      {!b.casualties.length && <p>Отрядов, которым нужен бросок потерь, нет.</p>}
+      <details>
+        <summary>Как читать потери, Damage и Critical</summary>
+        <p>
+          Damage — постоянное повреждение отряда между боями (максимум 3). Шрам — отдельное
+          постоянное последствие; его правило появится в итогах и карточке отряда. Сайт учитывает
+          модификаторы за прежний Damage, эвакуацию, экипировку, события и отмеченные причины
+          потерь. Чем выше итог броска, тем лучше.
+        </p>
+        {[1, 2, 3, 4, 5, 6].map((n) => (
+          <p key={n}>
+            {n === 1 ? '1 и ниже' : n === 6 ? '6 и выше' : n}: {casualtyMeaning(n)}
+          </p>
+        ))}
+        <p>
+          Только CHARACTER при результате 0 или ниже дополнительно бросает Critical D6. Он добавляет
+          последствия к обычным потерям. Сайт делает этот бросок после решений Recovery Crew и
+          показывает результат при подготовке расчёта.
+        </p>
+        <p>
+          Critical 1 — потеря навсегда или эвакуация с Damage 3, дополнительным шрамом и долгом;
+          Epic Hero эвакуируется автоматически. 2 — Damage 3 и дополнительный шрам. 3 — Damage 3 и
+          Systemic Damage. 4 — Damage 3 и Out of Action. 5 — ещё +1 XP. 6 — убрать 1 полученный
+          Damage, не ниже значения до боя.
+        </p>
+        <p>Окончательные изменения, включая лечение и новые шрамы, проверьте в итоговом расчёте.</p>
+      </details>
       {b.casualties.map((c) => (
         <p key={c.id}>
           {unit(s, c.id).name}: D6 {c.die} {c.modifier >= 0 ? '+' : ''}
           {c.modifier} · raw {c.die + c.modifier}
-          {c.critical ? ` · Critical ${c.critical}` : ''}
+          {' → '}
+          {casualtyMeaning(c.die + c.modifier, entry(s, unit(s, c.id), b.snapshot).character)}
+          {c.critical ? ` · Critical D6: ${c.critical}` : ''}
         </p>
       ))}
       {!b.terminal && (
         <>
-          <h4>Salvage</h4>
-          <p>Ваш D6: {b.salvage[side]}</p>
+          <h3>2 · Добыча (Salvage)</h3>
+          <p>
+            Ваш D6:{' '}
+            <strong>
+              {b.salvage[side]} → {SALVAGE_REWARDS[b.salvage[side] - 1]}
+            </strong>
+            .
+          </p>
+          <p>
+            Один добровольный переброс за 1 Intel: новый D6 заменит старый, даже если окажется хуже.
+            Сохранить результат бесплатно — просто переходите к событию. Добыча добавляется к
+            базовому доходу за бой.
+          </p>
+          <details>
+            <summary>Все результаты добычи</summary>
+            {SALVAGE_REWARDS.map((r, i) => (
+              <p key={i}>
+                D6 {i + 1}: {r}
+              </p>
+            ))}
+          </details>
           <button
             className="quiet"
-            disabled={b.salvageRerolled.includes(side) || b.eventPass.length === 2}
+            disabled={
+              b.salvageRerolled.includes(side) ||
+              b.eventPass.length === 2 ||
+              s.players[side].intel < 1
+            }
             onClick={() => send('salvage_reroll')}
           >
             Перебросить · 1 Intel
           </button>
-          <h4>D66</h4>
+          <p className="muted">
+            {b.salvageRerolled.includes(side)
+              ? 'Ваш переброс уже использован.'
+              : b.eventPass.length === 2
+                ? 'Окно перебросов закрыто обоими игроками.'
+                : s.players[side].intel < 1
+                  ? 'Для переброса нужен 1 Intel.'
+                  : 'Переброс доступен, пока оба игрока не приняли событие.'}
+          </p>
+          <h3>3 · Общее событие кампании (D66)</h3>
+          <p>
+            D66 — две шестигранные кости: первая даёт десятки, вторая единицы. Например, 3 и 3 →
+            событие 33. Событие одно на двоих. Переброс за 2 Intel заменяет его для обоих; результат
+            может стать хуже. Всего один такой переброс за бой. Принять событие бесплатно.
+          </p>
+          <p>
+            {b.eventPass.length === 2
+              ? 'Оба игрока приняли событие. Теперь распределите награды.'
+              : `Сейчас решение принимает ${labels[b.eventOptions.length ? b.eventChooser : b.eventPass.length ? other(b.eventChooser) : b.eventChooser]}. Приняли: ${b.eventPass.map((who) => labels[who]).join(', ') || 'пока никто'}.`}
+          </p>
           {b.eventOptions.length ? (
             b.eventOptions.map((code, i) => (
               <button
@@ -840,13 +510,14 @@ function AftermathView({ s, side, send }: Props) {
                 <button
                   className="quiet"
                   disabled={
+                    s.players[side].intel < 2 ||
                     b.eventPass.length === 2 ||
                     b.eventRerolled ||
                     side !== (b.eventPass.length ? other(b.eventChooser) : b.eventChooser)
                   }
                   onClick={() => send('event_reroll')}
                 >
-                  D66 reroll · 2 Intel
+                  Перебросить общее событие · 2 Intel
                 </button>
                 <button
                   disabled={
@@ -855,7 +526,7 @@ function AftermathView({ s, side, send }: Props) {
                   }
                   onClick={() => send('event_pass')}
                 >
-                  Принять / закрыть свою очередь
+                  Оставить событие · бесплатно
                 </button>
               </div>
             </>
@@ -871,6 +542,19 @@ function AftermathView({ s, side, send }: Props) {
         <p>Другой игрок ещё выбирает награды.</p>
       )}
       <hr />
+      <h3>4 · Итоговый расчёт</h3>
+      {!preview && (
+        <p>
+          {!b.terminal && b.eventPass.length < 2
+            ? 'Сначала оба командира должны принять событие.'
+            : b.choices.some((c) => c.value === undefined)
+              ? `Остались решения: ${b.choices
+                  .filter((c) => c.value === undefined)
+                  .map((c) => labels[c.side] + ' — ' + c.label)
+                  .join('; ')}.`
+              : 'Все решения сохранены. Подготовьте расчёт: сайт покажет изменения ресурсов, XP, Damage и шрамов до их применения.'}
+        </p>
+      )}
       {preview ? (
         <>
           <AftermathSummary s={s} preview={preview} />
@@ -898,10 +582,24 @@ function ChoiceView({ s, side, send, choiceKey }: Props & { choiceKey: string })
     [sector, setSector] = useState<string>(c.sectorKeys[0] ?? '')
   return (
     <div className="choice">
-      <h4>{c.label}</h4>
+      <h4>{c.kind === 'deposit' ? '25 Local Supply · местное снабжение' : c.label}</h4>
+      {c.kind === 'deposit' && (
+        <p>
+          Бесплатно разместите 25 Supply в одном из доступных снабжаемых секторов. Это местный запас
+          сектора для гарнизона; он не списывается из обычного Supply. Сайт учтёт предельный запас.
+        </p>
+      )}
+      {c.kind === '33' && (
+        <p>
+          Xenos Script даёт Necrons +1 XP одному выбранному своему отряду. Выберите получателя и
+          сохраните. Deathwatch получает +1 Intel автоматически; дополнительный Supply зависит от
+          контроля I/K.
+        </p>
+      )}
       {c.value !== undefined ? (
         <p>
-          Зафиксировано: {c.value} {c.unit ? unit(s, c.unit).name : ''} {c.sector}
+          Сохранено: {CHOICE_LABELS[c.value] ?? c.value} {c.unit ? unit(s, c.unit).name : ''}{' '}
+          {c.sector}
         </p>
       ) : (
         <>
@@ -909,11 +607,11 @@ function ChoiceView({ s, side, send, choiceKey }: Props & { choiceKey: string })
             label="Решение"
             value={value}
             change={setValue}
-            items={c.options.map((id) => ({ id, name: id }))}
+            items={c.options.map((id) => ({ id, name: CHOICE_LABELS[id] ?? id }))}
           />
           {c.unitIds.length > 0 && (
             <Options
-              label="Eligible ID"
+              label="Отряд — получатель награды"
               value={id}
               change={setId}
               items={c.unitIds.map((id) => ({ id, name: unit(s, id).name }))}
@@ -929,6 +627,13 @@ function ChoiceView({ s, side, send, choiceKey }: Props & { choiceKey: string })
           )}
           <button
             className="quiet"
+            disabled={
+              !value ||
+              (c.unitIds.length > 0 &&
+                !['skip', 'intel', 'supply', 'cache', 'inventory', 'relic'].includes(value) &&
+                !id) ||
+              (c.sectorKeys.length > 0 && value !== 'skip' && !sector)
+            }
             onClick={() =>
               send('aftermath_choice', {
                 key: c.key,
@@ -938,7 +643,7 @@ function ChoiceView({ s, side, send, choiceKey }: Props & { choiceKey: string })
               })
             }
           >
-            Зафиксировать
+            Сохранить выбор
           </button>
         </>
       )}
