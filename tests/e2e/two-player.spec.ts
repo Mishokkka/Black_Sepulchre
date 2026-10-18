@@ -190,15 +190,14 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
       await p.getByRole('button', { name: 'Текущий бой', exact: true }).click()
       await expect(p.getByRole('heading', { name: 'Recon Lock' })).toBeVisible()
     }
-    // Lose the acknowledgement after a real successful commit, then reload and replay the UUID.
+    // Lose both the acknowledgement and automatic retry; reload replays the same UUID.
     const sentIds: string[] = []
-    let dropped = false
+    let dropped = 0
     await contexts[0].route('**/functions/v1/campaign-engine', async (route) => {
       const body = route.request().postDataJSON()
       if (body?.command?.type !== 'recon_lock') return route.continue()
       sentIds.push(body.requestId)
-      if (!dropped) {
-        dropped = true
+      if (dropped++ < 2) {
         const committed = await route.fetch()
         expect(committed.status()).toBe(200)
         return route.abort('failed')
@@ -206,23 +205,22 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
       return route.continue()
     })
     await a.getByRole('button', { name: 'Использовать Recon Lock', exact: true }).click()
-    await expect(a.getByRole('button', { name: 'Проверить прежнюю отправку' })).toBeVisible()
+    await expect.poll(() => sentIds.length).toBe(2)
+    await expect(a.getByRole('button', { name: 'Восстановить доступ к действиям' })).toBeEnabled()
     const committedVersion = (await load(0)).version
     await a.close()
     a = await contexts[0].newPage()
     pages[0] = a
     a.on('pageerror', (e) => errors.push(e.message))
-    await a.goto('/Black_Sepulchre/')
-    await expect(a.getByRole('button', { name: 'Проверить прежнюю отправку' })).toBeVisible()
     const replayed = a.waitForResponse(
       (r) => r.request().postDataJSON()?.command?.type === 'recon_lock' && r.status() === 200,
     )
-    await a.getByRole('button', { name: 'Проверить прежнюю отправку' }).click()
+    await a.goto('/Black_Sepulchre/')
     expect((await (await replayed).json()).replayed).toBe(true)
     await expect(a.getByRole('button', { name: 'Проверить прежнюю отправку' })).toHaveCount(0)
     expect((await load(0)).version).toBe(committedVersion)
-    expect(sentIds).toHaveLength(2)
-    expect(sentIds[0]).toBe(sentIds[1])
+    expect(sentIds).toHaveLength(3)
+    expect(new Set(sentIds).size).toBe(1)
     const hiddenResponse = stateResponse(b)
     await refresh(b)
     const hidden = (await (await hiddenResponse).json()).state
@@ -254,9 +252,6 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
       battle = live.battle!
     battle.mission = 'F1'
     battle.table = createTable(live, 'F1', ctx('deathwatch'))
-    battle.table.round = 3
-    battle.table.step = 'movement'
-    battle.table.firstConfirmed = true
     for (const side of ['deathwatch', 'necrons'] as Side[]) {
       const units = live.units.filter((u) => u.side === side)
       battle.muster[side] = {
@@ -294,49 +289,26 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
     if (tableSeed.error) throw tableSeed.error
     await refresh(b)
     await b.getByRole('button', { name: 'Текущий бой', exact: true }).click()
-    for (const phase of ['Стрельба', 'Чардж', 'Ближний бой', 'Конец хода']) {
-      await b.getByRole('button', { name: 'Завершить шаг', exact: true }).click()
-      await expect(b.getByRole('heading', { name: phase, exact: true })).toBeVisible()
-    }
-    await expect(b.getByRole('button', { name: 'Завершить шаг', exact: true })).toBeDisabled()
-    await b.getByLabel('Контроль, факты и последствия сверены за столом', { exact: true }).check()
-    await b.getByRole('button', { name: 'Завершить шаг', exact: true }).click()
-    await expect.poll(async () => (await load(1)).battle!.table.turn).toBe('necrons')
-    await b.getByRole('button', { name: 'Восстановить или исправить факт', exact: true }).click()
-    const moment = await b
-      .getByLabel('Момент перед завершением шага', { exact: true })
-      .locator('option')
-      .filter({ hasText: 'R3 · Движение · Deathwatch' })
-      .getAttribute('value')
-    await b.getByLabel('Момент перед завершением шага', { exact: true }).selectOption(moment!)
-    await b.getByLabel('Отряд', { exact: true }).selectOption(battle.muster.deathwatch!.picks[0].id)
-    await b.getByLabel('Объект исправления', { exact: true }).selectOption('1')
-    await b.getByLabel('Восстановленный Action', { exact: true }).selectOption('HACK')
-    await b
-      .getByLabel('Причина исправления', { exact: true })
-      .fill('HACK выполнили в R3, но забыли записать')
-    await b
-      .getByLabel(
-        'Исторические условия, контроль, eligibility и физические броски проверены обоими за столом',
-        { exact: true },
-      )
-      .check()
-    await b.getByRole('button', { name: 'Предложить исправление', exact: true }).click()
-    await expect(
-      b.getByText('Deathwatch: 0 → 5 VP · Necrons: 0 → 0 VP', { exact: true }),
-    ).toBeVisible()
-    expect((await load(1)).battle!.table.vp.deathwatch).toBe(0)
+    await expect(b.getByRole('button', { name: 'Завершить шаг', exact: true })).toHaveCount(0)
+    await expect(b.getByLabel('Начальная расстановка и координаты объектов миссии')).toBeVisible()
+    await b.getByText('Внести результат боя', { exact: true }).click()
+    await b.getByLabel('VP Deathwatch', { exact: true }).fill('20')
+    await b.getByLabel('VP Necrons', { exact: true }).fill('20')
+    await b.getByRole('button', { name: 'Отправить результат на подтверждение обоими' }).click()
+    await expect.poll(async () => (await load(0)).phase).toBe('result')
+    const reported = await load(0)
+    expect(reported.battle!.report!.tabletop).toBe(true)
+    expect(reported.battle!.report!.vp).toEqual({ deathwatch: 20, necrons: 20 })
+    expect(reported.battle!.table.actions).toHaveLength(0)
+    expect(reported.battle!.confirm).toEqual(['deathwatch'])
     await refresh(a)
     await a.getByRole('button', { name: 'Текущий бой', exact: true }).click()
-    const proposalState = await load(0)
-    expect(proposalState.battle).not.toHaveProperty('replay')
-    expect(proposalState.battle!.reconciliation).not.toHaveProperty('edits')
-    await a.getByRole('button', { name: 'Согласовать исправление', exact: true }).click()
-    await expect.poll(async () => (await load(0)).battle!.table.vp.deathwatch).toBe(5)
-    await refresh(b)
-    await expect(b.getByLabel('Deathwatch 5 VP, Necrons 0 VP', { exact: true })).toBeVisible()
-    expect((await load(0)).battle!.table.objects[0].tag).toBe('deathwatch')
-    expect((await load(1)).battle!.table.actions.filter((action) => action.success)).toHaveLength(1)
+    await a.getByRole('button', { name: 'Проверить и подтвердить', exact: true }).click()
+    await a.getByRole('button', { name: 'Подтвердить результат и потери', exact: true }).click()
+    await expect.poll(async () => (await load(0)).phase).toBe('aftermath')
+    await expect(
+      a.getByRole('heading', { name: 'После боя: потери, добыча и награды' }),
+    ).toBeVisible()
 
     // Seed 3 completed battles in this disposable campaign; purchases use the real Edge guard.
     const priorLogistics = await load(0),
