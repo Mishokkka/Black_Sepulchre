@@ -1,0 +1,2249 @@
+{
+  "asOf": "2026-10-12",
+  "version": "1.5",
+  "source": "https://mfm.warhammer-community.com/en/deathwatch",
+  "detachments": [
+    {
+      "name": "Assault Brethren",
+      "dp": 1,
+      "dispositions": [
+        "TAKE AND HOLD"
+      ],
+      "unique": "DOCTRINES",
+      "enhancements": [
+        {
+          "name": "Furious Assault",
+          "cost": 10,
+          "eligible": [
+            "ADEPTUS ASTARTES",
+            "INFANTRY"
+          ],
+          "upgrade": true,
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Imperium's Sword",
+          "cost": 20,
+          "eligible": [
+            "ADEPTUS ASTARTES"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    },
+    {
+      "name": "Black Spear Task Force",
+      "dp": 3,
+      "dispositions": [
+        "PRIORITY ASSETS",
+        "PURGE THE FOE"
+      ],
+      "unique": null,
+      "enhancements": [
+        {
+          "name": "Beacon Angelis",
+          "cost": 25,
+          "eligible": [
+            "ADEPTUS ASTARTES"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Osseus Key (Aura)",
+          "cost": 20,
+          "eligible": [
+            "ADEPTUS ASTARTES"
+          ],
+          "eligibleAny": [
+            [
+              "WATCH MASTER"
+            ],
+            [
+              "TECHMARINE"
+            ]
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "The Thief Of Secrets",
+          "cost": 10,
+          "eligible": [
+            "ADEPTUS ASTARTES"
+          ],
+          "eligibleAny": [
+            [
+              "WATCH MASTER"
+            ],
+            [
+              "CAPTAIN"
+            ]
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "The Tome Of Ectoclades",
+          "cost": 15,
+          "eligible": [
+            "ADEPTUS ASTARTES"
+          ],
+          "eligibleAny": [
+            [
+              "WATCH MASTER"
+            ],
+            [
+              "CAPTAIN"
+            ]
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    },
+    {
+      "name": "Devastator Brethren",
+      "dp": 1,
+      "dispositions": [
+        "PURGE THE FOE"
+      ],
+      "unique": "DOCTRINES",
+      "enhancements": [
+        {
+          "name": "Honour Of Vigilance",
+          "cost": 20,
+          "eligible": [
+            "ADEPTUS ASTARTES"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Master-Forged Firearms",
+          "cost": 15,
+          "eligible": [
+            "ADEPTUS ASTARTES"
+          ],
+          "eligibleAny": [
+            [
+              "INFANTRY"
+            ],
+            [
+              "MOUNTED"
+            ]
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    },
+    {
+      "name": "Gauntlet Task Force",
+      "dp": 1,
+      "dispositions": [
+        "RECONNAISSANCE"
+      ],
+      "unique": null,
+      "enhancements": [
+        {
+          "name": "Damocles-Class Uplink",
+          "cost": 15,
+          "eligible": [
+            "CAPTAIN"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Linebreaker Onslaught",
+          "cost": 20,
+          "eligible": [
+            "ADEPTUS ASTARTES",
+            "INFANTRY"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    },
+    {
+      "name": "Gladius Task Force",
+      "dp": 3,
+      "dispositions": [
+        "TAKE AND HOLD",
+        "PRIORITY ASSETS"
+      ],
+      "unique": null,
+      "enhancements": [
+        {
+          "name": "Adept Of The Codex",
+          "cost": 20,
+          "eligible": [
+            "CAPTAIN"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Artificer Armour",
+          "cost": 15,
+          "eligible": [
+            "ADEPTUS ASTARTES"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Laurels Of Triumph",
+          "cost": 20,
+          "eligible": [
+            "ADEPTUS ASTARTES"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Standard Of The Emperor Ascendant",
+          "cost": 25,
+          "eligible": [
+            "ANCIENT"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    },
+    {
+      "name": "Gravis Linebreaker Force",
+      "dp": 1,
+      "dispositions": [
+        "TAKE AND HOLD"
+      ],
+      "unique": "GRAVIS",
+      "enhancements": [
+        {
+          "name": "Indefatigable Fortitude",
+          "cost": 20,
+          "eligible": [
+            "GRAVIS"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Relentless Advance",
+          "cost": 20,
+          "eligible": [
+            "GRAVIS"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    },
+    {
+      "name": "Gravis Siege Force",
+      "dp": 1,
+      "dispositions": [
+        "TAKE AND HOLD"
+      ],
+      "unique": "GRAVIS",
+      "enhancements": [
+        {
+          "name": "Immovable Conquerors",
+          "cost": 15,
+          "eligible": [
+            "GRAVIS"
+          ],
+          "upgrade": true,
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Narthecis Gauntlet",
+          "cost": 20,
+          "eligible": [
+            "GRAVIS"
+          ],
+          "datasheets": [
+            "Apothecary Biologis"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    },
+    {
+      "name": "Ironclad Champions",
+      "dp": 1,
+      "dispositions": [
+        "PRIORITY ASSETS"
+      ],
+      "unique": null,
+      "enhancements": [
+        {
+          "name": "Artificer Sarcophagus",
+          "cost": 40,
+          "eligible": [
+            "DREADNOUGHT"
+          ],
+          "upgrade": true,
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Venerable Champion (Aura)",
+          "cost": 30,
+          "eligible": [
+            "DREADNOUGHT"
+          ],
+          "upgrade": true,
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    },
+    {
+      "name": "Ironstorm Spearhead",
+      "dp": 1,
+      "dispositions": [
+        "PURGE THE FOE"
+      ],
+      "unique": "IRONSTORM",
+      "enhancements": [
+        {
+          "name": "Gunnery Honours",
+          "cost": 15,
+          "eligible": [
+            "ADEPTUS ASTARTES",
+            "VEHICLE"
+          ],
+          "excluded": [
+            "DEDICATED TRANSPORT",
+            "FLY",
+            "WALKER"
+          ],
+          "upgrade": true,
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Redoubtable Machine Spirit",
+          "cost": 25,
+          "eligible": [
+            "ADEPTUS ASTARTES",
+            "VEHICLE"
+          ],
+          "excluded": [
+            "DEDICATED TRANSPORT",
+            "FLY",
+            "WALKER"
+          ],
+          "upgrade": true,
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    },
+    {
+      "name": "Phobos Shadow Force",
+      "dp": 1,
+      "dispositions": [
+        "DISRUPTION"
+      ],
+      "unique": "PHOBOS",
+      "enhancements": [
+        {
+          "name": "Execute And Redeploy",
+          "cost": 25,
+          "eligible": [
+            "PHOBOS"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Venator Omni-Auspex",
+          "cost": 15,
+          "eligible": [
+            "PHOBOS"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    },
+    {
+      "name": "Phobos Shock Force",
+      "dp": 1,
+      "dispositions": [
+        "DISRUPTION"
+      ],
+      "unique": "PHOBOS",
+      "enhancements": [
+        {
+          "name": "Seal Of Shrouding",
+          "cost": 15,
+          "eligible": [
+            "PHOBOS"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Venator Omni-Auspex",
+          "cost": 15,
+          "eligible": [
+            "PHOBOS"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    },
+    {
+      "name": "Stormlance Task Force",
+      "dp": 1,
+      "dispositions": [
+        "RECONNAISSANCE"
+      ],
+      "unique": null,
+      "enhancements": [
+        {
+          "name": "Auspex Triangulation Shrines",
+          "cost": 10,
+          "eligible": [
+            "ADEPTUS ASTARTES",
+            "SPEEDER"
+          ],
+          "upgrade": true,
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Supercharged Engines",
+          "cost": 10,
+          "eligible": [
+            "ADEPTUS ASTARTES",
+            "MOUNTED"
+          ],
+          "upgrade": true,
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    },
+    {
+      "name": "Tactical Brethren",
+      "dp": 1,
+      "dispositions": [
+        "PRIORITY ASSETS"
+      ],
+      "unique": "DOCTRINES",
+      "enhancements": [
+        {
+          "name": "Laurels Of Vigilance",
+          "cost": 10,
+          "eligible": [
+            "ADEPTUS ASTARTES"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Tactical Insight",
+          "cost": 15,
+          "eligible": [
+            "CAPTAIN"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    },
+    {
+      "name": "Tacticus Attack Force",
+      "dp": 1,
+      "dispositions": [
+        "TAKE AND HOLD"
+      ],
+      "unique": "TACTICUS",
+      "enhancements": [
+        {
+          "name": "Martial Paragon",
+          "cost": 10,
+          "eligible": [
+            "TACTICUS"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Spearpoint War Leader",
+          "cost": 15,
+          "eligible": [
+            "TACTICUS"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    },
+    {
+      "name": "Tacticus Firestorm Force",
+      "dp": 1,
+      "dispositions": [
+        "PRIORITY ASSETS"
+      ],
+      "unique": "TACTICUS",
+      "enhancements": [
+        {
+          "name": "Cyber-Familiar",
+          "cost": 15,
+          "eligible": [
+            "TACTICUS"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Tempered In Battle (Aura)",
+          "cost": 10,
+          "eligible": [
+            "TACTICUS"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    },
+    {
+      "name": "Terminator Storm Force",
+      "dp": 1,
+      "dispositions": [
+        "PRIORITY ASSETS"
+      ],
+      "unique": "TERMINATOR",
+      "enhancements": [
+        {
+          "name": "Champion Of The First Company",
+          "cost": 20,
+          "eligible": [
+            "ADEPTUS ASTARTES",
+            "TERMINATOR"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        },
+        {
+          "name": "Corporeum Reliquary",
+          "cost": 25,
+          "eligible": [
+            "ADEPTUS ASTARTES",
+            "TERMINATOR"
+          ],
+          "source": "MFM v1.5 (12.10.2026); https://wahapedia.ru/wh40k11ed/factions/space-marines/"
+        }
+      ]
+    }
+  ],
+  "units": [
+    {
+      "name": "CORVUS BLACKSTAR",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 180,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "DEATHWATCH TERMINATOR SQUAD",
+      "tiers": [
+        {
+          "models": 5,
+          "points": 190,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 10,
+          "points": 380,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 5,
+          "points": 230,
+          "copyFrom": 3,
+          "copyTo": null
+        },
+        {
+          "models": 10,
+          "points": 420,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [
+        {
+          "name": "Storm Shield",
+          "points": 5
+        },
+        {
+          "name": "Cyclone Missile Launcher",
+          "points": 10
+        }
+      ],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "DEATHWATCH VETERANS",
+      "tiers": [
+        {
+          "models": 5,
+          "points": 115,
+          "copyFrom": 1,
+          "copyTo": null
+        },
+        {
+          "models": 10,
+          "points": 220,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "DECIMUS KILL TEAM",
+      "tiers": [
+        {
+          "models": 5,
+          "points": 110,
+          "copyFrom": 1,
+          "copyTo": null
+        },
+        {
+          "models": 10,
+          "points": 210,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "FORTIS KILL TEAM",
+      "tiers": [
+        {
+          "models": 10,
+          "points": 210,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 10,
+          "points": 225,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "INDOMITOR KILL TEAM",
+      "tiers": [
+        {
+          "models": 10,
+          "points": 280,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 10,
+          "points": 300,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "SPECTRUS KILL TEAM",
+      "tiers": [
+        {
+          "models": 10,
+          "points": 185,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 10,
+          "points": 195,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "TALONSTRIKE KILL TEAM",
+      "tiers": [
+        {
+          "models": 10,
+          "points": 280,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 10,
+          "points": 300,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "WATCH CAPTAIN ARTEMIS",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 75,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "DEATHWATCH VETERANS",
+        "DECIMUS KILL TEAM",
+        "FORTIS KILL TEAM"
+      ],
+      "support": []
+    },
+    {
+      "name": "WATCH MASTER",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 105,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "DEATHWATCH VETERANS",
+        "DECIMUS KILL TEAM",
+        "FORTIS KILL TEAM"
+      ],
+      "support": []
+    },
+    {
+      "name": "AGGRESSOR SQUAD",
+      "tiers": [
+        {
+          "models": 3,
+          "points": 90,
+          "copyFrom": 1,
+          "copyTo": null
+        },
+        {
+          "models": 6,
+          "points": 180,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "ANCIENT",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 40,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": [
+        "ASSAULT INTERCESSOR SQUAD",
+        "CRUSADER SQUAD",
+        "DEATHWATCH VETERANS",
+        "DECIMUS KILL TEAM",
+        "DESOLATION SQUAD",
+        "FORTIS KILL TEAM",
+        "HELLBLASTER SQUAD",
+        "INFERNUS SQUAD",
+        "INNER CIRCLE COMPANIONS",
+        "INTERCESSOR SQUAD",
+        "STERNGUARD VETERAN SQUAD",
+        "SWORD BRETHREN SQUAD",
+        "VANGUARD VETERAN SQUAD"
+      ]
+    },
+    {
+      "name": "ANCIENT IN TERMINATOR ARMOUR",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 75,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": [
+        "DEATHWATCH TERMINATOR SQUAD",
+        "DEATHWING KNIGHTS",
+        "DEATHWING TERMINATOR SQUAD",
+        "TERMINATOR ASSAULT SQUAD",
+        "TERMINATOR SQUAD",
+        "WOLF GUARD TERMINATORS"
+      ]
+    },
+    {
+      "name": "APOTHECARY",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 45,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": [
+        "ASSAULT INTERCESSOR SQUAD",
+        "BLADEGUARD VETERAN SQUAD",
+        "COMPANY HEROES",
+        "CRUSADER SQUAD",
+        "DEATHWATCH VETERANS",
+        "DECIMUS KILL TEAM",
+        "DESOLATION SQUAD",
+        "FORTIS KILL TEAM",
+        "HELLBLASTER SQUAD",
+        "INFERNUS SQUAD",
+        "INNER CIRCLE COMPANIONS",
+        "INTERCESSOR SQUAD",
+        "STERNGUARD VETERAN SQUAD",
+        "SWORD BRETHREN SQUAD"
+      ]
+    },
+    {
+      "name": "APOTHECARY BIOLOGIS",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 60,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": [
+        "AGGRESSOR SQUAD",
+        "ERADICATOR SQUAD WITH HEAVY BOLTERS",
+        "ERADICATOR SQUAD WITH MELTA RIFLES",
+        "HEAVY INTERCESSOR SQUAD",
+        "INDOMITOR KILL TEAM"
+      ]
+    },
+    {
+      "name": "ASSAULT INTERCESSOR SQUAD",
+      "tiers": [
+        {
+          "models": 5,
+          "points": 85,
+          "copyFrom": 1,
+          "copyTo": null
+        },
+        {
+          "models": 10,
+          "points": 170,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "ASSAULT INTERCESSORS WITH JUMP PACKS",
+      "tiers": [
+        {
+          "models": 5,
+          "points": 95,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 10,
+          "points": 190,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 5,
+          "points": 105,
+          "copyFrom": 3,
+          "copyTo": null
+        },
+        {
+          "models": 10,
+          "points": 200,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "ASTRAEUS",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 550,
+          "copyFrom": 1,
+          "copyTo": 1
+        },
+        {
+          "models": 1,
+          "points": 650,
+          "copyFrom": 2,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "BALLISTUS DREADNOUGHT",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 150,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 1,
+          "points": 170,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "BLADEGUARD ANCIENT",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 70,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": [
+        "BLADEGUARD VETERAN SQUAD"
+      ]
+    },
+    {
+      "name": "BLADEGUARD VETERAN SQUAD",
+      "tiers": [
+        {
+          "models": 3,
+          "points": 90,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 6,
+          "points": 180,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 3,
+          "points": 110,
+          "copyFrom": 3,
+          "copyTo": null
+        },
+        {
+          "models": 6,
+          "points": 200,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "BRUTALIS DREADNOUGHT",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 160,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 1,
+          "points": 180,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "CAPTAIN",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 90,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "ASSAULT INTERCESSOR SQUAD",
+        "BLADEGUARD VETERAN SQUAD",
+        "COMPANY HEROES",
+        "CRUSADER SQUAD",
+        "DEATHWATCH VETERANS",
+        "DECIMUS KILL TEAM",
+        "DESOLATION SQUAD",
+        "FORTIS KILL TEAM",
+        "HELLBLASTER SQUAD",
+        "INFERNUS SQUAD",
+        "INNER CIRCLE COMPANIONS",
+        "INTERCESSOR SQUAD",
+        "STERNGUARD VETERAN SQUAD",
+        "SWORD BRETHREN SQUAD",
+        "VANGUARD VETERAN SQUAD",
+        "VICTRIX HONOUR GUARD"
+      ],
+      "support": []
+    },
+    {
+      "name": "CAPTAIN IN GRAVIS ARMOUR",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 90,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "AGGRESSOR SQUAD",
+        "ERADICATOR SQUAD WITH HEAVY BOLTERS",
+        "ERADICATOR SQUAD WITH MELTA RIFLES",
+        "HEAVY INTERCESSOR SQUAD",
+        "INDOMITOR KILL TEAM"
+      ],
+      "support": []
+    },
+    {
+      "name": "CAPTAIN IN PHOBOS ARMOUR",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 75,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "ELIMINATOR SQUAD",
+        "INCURSOR SQUAD",
+        "INFILTRATOR SQUAD",
+        "REIVER SQUAD",
+        "SCOUT SQUAD",
+        "SPECTRUS KILL TEAM",
+        "WOLF SCOUTS"
+      ],
+      "support": []
+    },
+    {
+      "name": "CAPTAIN IN TERMINATOR ARMOUR",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 90,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "DEATHWATCH TERMINATOR SQUAD",
+        "DEATHWING KNIGHTS",
+        "DEATHWING TERMINATOR SQUAD",
+        "TERMINATOR ASSAULT SQUAD",
+        "TERMINATOR SQUAD",
+        "WOLF GUARD TERMINATORS"
+      ],
+      "support": []
+    },
+    {
+      "name": "CAPTAIN ON BIKE",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 110,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "OUTRIDER SQUAD",
+        "RAVENWING BLACK KNIGHTS"
+      ],
+      "support": []
+    },
+    {
+      "name": "CAPTAIN WITH JUMP PACK",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 90,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "ASSAULT INTERCESSORS WITH JUMP PACKS",
+        "SANGUINARY GUARD",
+        "TALONSTRIKE KILL TEAM",
+        "VANGUARD VETERAN SQUAD WITH JUMP PACKS"
+      ],
+      "support": []
+    },
+    {
+      "name": "CHAPLAIN",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 60,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "ASSAULT INTERCESSOR SQUAD",
+        "BLADEGUARD VETERAN SQUAD",
+        "CRUSADER SQUAD",
+        "DEATH COMPANY MARINES",
+        "DEATHWATCH VETERANS",
+        "DECIMUS KILL TEAM",
+        "FORTIS KILL TEAM",
+        "HELLBLASTER SQUAD",
+        "INFERNUS SQUAD",
+        "INNER CIRCLE COMPANIONS",
+        "INTERCESSOR SQUAD",
+        "STERNGUARD VETERAN SQUAD",
+        "SWORD BRETHREN SQUAD",
+        "VANGUARD VETERAN SQUAD"
+      ],
+      "support": []
+    },
+    {
+      "name": "CHAPLAIN IN TERMINATOR ARMOUR",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 75,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "DEATHWATCH TERMINATOR SQUAD",
+        "DEATHWING KNIGHTS",
+        "DEATHWING TERMINATOR SQUAD",
+        "TERMINATOR ASSAULT SQUAD",
+        "TERMINATOR SQUAD",
+        "WOLF GUARD TERMINATORS"
+      ],
+      "support": []
+    },
+    {
+      "name": "CHAPLAIN ON BIKE",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 75,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "OUTRIDER SQUAD",
+        "RAVENWING BLACK KNIGHTS"
+      ],
+      "support": []
+    },
+    {
+      "name": "CHAPLAIN WITH JUMP PACK",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 75,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "ASSAULT INTERCESSORS WITH JUMP PACKS",
+        "DEATH COMPANY MARINES WITH JUMP PACKS",
+        "TALONSTRIKE KILL TEAM",
+        "VANGUARD VETERAN SQUAD WITH JUMP PACKS"
+      ],
+      "support": []
+    },
+    {
+      "name": "COMPANY HEROES",
+      "tiers": [
+        {
+          "models": 4,
+          "points": 125,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 4,
+          "points": 145,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "DESOLATION SQUAD",
+      "tiers": [
+        {
+          "models": 5,
+          "points": 140,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 5,
+          "points": 150,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [
+        {
+          "name": "Vengor Launcher",
+          "points": 5
+        }
+      ],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "DROP POD",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 60,
+          "copyFrom": 1,
+          "copyTo": 3
+        },
+        {
+          "models": 1,
+          "points": 70,
+          "copyFrom": 4,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "ELIMINATOR SQUAD",
+      "tiers": [
+        {
+          "models": 3,
+          "points": 85,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "ERADICATOR SQUAD WITH HEAVY BOLTERS",
+      "tiers": [
+        {
+          "models": 3,
+          "points": 100,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 6,
+          "points": 215,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 3,
+          "points": 130,
+          "copyFrom": 3,
+          "copyTo": null
+        },
+        {
+          "models": 6,
+          "points": 245,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "ERADICATOR SQUAD WITH MELTA RIFLES",
+      "tiers": [
+        {
+          "models": 3,
+          "points": 100,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 6,
+          "points": 200,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 3,
+          "points": 120,
+          "copyFrom": 3,
+          "copyTo": null
+        },
+        {
+          "models": 6,
+          "points": 220,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "FIRESTRIKE SERVO-TURRETS",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 80,
+          "copyFrom": 1,
+          "copyTo": null
+        },
+        {
+          "models": 2,
+          "points": 160,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "GLADIATOR LANCER",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 160,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 1,
+          "points": 180,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "GLADIATOR REAPER",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 165,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 1,
+          "points": 185,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "GLADIATOR VALIANT",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 165,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 1,
+          "points": 185,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "HEAVY INTERCESSOR SQUAD",
+      "tiers": [
+        {
+          "models": 5,
+          "points": 115,
+          "copyFrom": 1,
+          "copyTo": null
+        },
+        {
+          "models": 10,
+          "points": 230,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "HELLBLASTER SQUAD",
+      "tiers": [
+        {
+          "models": 5,
+          "points": 115,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 10,
+          "points": 230,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 5,
+          "points": 130,
+          "copyFrom": 3,
+          "copyTo": null
+        },
+        {
+          "models": 10,
+          "points": 245,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "IMPULSOR",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 70,
+          "copyFrom": 1,
+          "copyTo": 3
+        },
+        {
+          "models": 1,
+          "points": 80,
+          "copyFrom": 4,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [
+        {
+          "name": "Orbital Comms Array",
+          "points": 10
+        }
+      ],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "INCEPTOR SQUAD",
+      "tiers": [
+        {
+          "models": 3,
+          "points": 130,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 6,
+          "points": 260,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 3,
+          "points": 150,
+          "copyFrom": 3,
+          "copyTo": null
+        },
+        {
+          "models": 6,
+          "points": 280,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "INCURSOR SQUAD",
+      "tiers": [
+        {
+          "models": 5,
+          "points": 90,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 10,
+          "points": 170,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 5,
+          "points": 100,
+          "copyFrom": 3,
+          "copyTo": null
+        },
+        {
+          "models": 10,
+          "points": 180,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "INFERNUS SQUAD",
+      "tiers": [
+        {
+          "models": 5,
+          "points": 95,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 10,
+          "points": 190,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 5,
+          "points": 105,
+          "copyFrom": 3,
+          "copyTo": null
+        },
+        {
+          "models": 10,
+          "points": 200,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "INFILTRATOR SQUAD",
+      "tiers": [
+        {
+          "models": 5,
+          "points": 85,
+          "copyFrom": 1,
+          "copyTo": null
+        },
+        {
+          "models": 10,
+          "points": 150,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "INTERCESSOR SQUAD",
+      "tiers": [
+        {
+          "models": 5,
+          "points": 85,
+          "copyFrom": 1,
+          "copyTo": null
+        },
+        {
+          "models": 10,
+          "points": 170,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "INVADER ATVS",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 65,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 2,
+          "points": 130,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 1,
+          "points": 75,
+          "copyFrom": 3,
+          "copyTo": null
+        },
+        {
+          "models": 2,
+          "points": 140,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [
+        {
+          "name": "Multi-melta",
+          "points": 5
+        }
+      ],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "INVICTOR TACTICAL WARSUIT",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 135,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 1,
+          "points": 150,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "JUDICIAR",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 50,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": [
+        "ASSAULT INTERCESSOR SQUAD",
+        "BLADEGUARD VETERAN SQUAD",
+        "CRUSADER SQUAD",
+        "DEATHWATCH VETERANS",
+        "DECIMUS KILL TEAM",
+        "FORTIS KILL TEAM",
+        "INFERNUS SQUAD",
+        "INNER CIRCLE COMPANIONS",
+        "INTERCESSOR SQUAD",
+        "STERNGUARD VETERAN SQUAD",
+        "SWORD BRETHREN SQUAD",
+        "VANGUARD VETERAN SQUAD"
+      ]
+    },
+    {
+      "name": "LAND RAIDER",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 245,
+          "copyFrom": 1,
+          "copyTo": 1
+        },
+        {
+          "models": 1,
+          "points": 265,
+          "copyFrom": 2,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "LAND RAIDER CRUSADER",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 230,
+          "copyFrom": 1,
+          "copyTo": 1
+        },
+        {
+          "models": 1,
+          "points": 250,
+          "copyFrom": 2,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "LAND RAIDER REDEEMER",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 245,
+          "copyFrom": 1,
+          "copyTo": 1
+        },
+        {
+          "models": 1,
+          "points": 265,
+          "copyFrom": 2,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "LAND SPEEDER",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 105,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "LIBRARIAN",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 75,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "ASSAULT INTERCESSOR SQUAD",
+        "DEATHWATCH VETERANS",
+        "DECIMUS KILL TEAM",
+        "DESOLATION SQUAD",
+        "FORTIS KILL TEAM",
+        "HELLBLASTER SQUAD",
+        "INFERNUS SQUAD",
+        "INNER CIRCLE COMPANIONS",
+        "INTERCESSOR SQUAD",
+        "STERNGUARD VETERAN SQUAD",
+        "VANGUARD VETERAN SQUAD"
+      ],
+      "support": []
+    },
+    {
+      "name": "LIBRARIAN IN PHOBOS ARMOUR",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 75,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "ELIMINATOR SQUAD",
+        "INCURSOR SQUAD",
+        "INFILTRATOR SQUAD",
+        "REIVER SQUAD",
+        "SCOUT SQUAD",
+        "SPECTRUS KILL TEAM",
+        "WOLF SCOUTS"
+      ],
+      "support": []
+    },
+    {
+      "name": "LIBRARIAN IN TERMINATOR ARMOUR",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 80,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "DEATHWATCH TERMINATOR SQUAD",
+        "DEATHWING KNIGHTS",
+        "DEATHWING TERMINATOR SQUAD",
+        "TERMINATOR ASSAULT SQUAD",
+        "TERMINATOR SQUAD",
+        "WOLF GUARD TERMINATORS"
+      ],
+      "support": []
+    },
+    {
+      "name": "LIEUTENANT",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 50,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": [
+        "ASSAULT INTERCESSOR SQUAD",
+        "BLADEGUARD VETERAN SQUAD",
+        "COMPANY HEROES",
+        "CRUSADER SQUAD",
+        "DEATHWATCH VETERANS",
+        "DECIMUS KILL TEAM",
+        "DESOLATION SQUAD",
+        "FORTIS KILL TEAM",
+        "HELLBLASTER SQUAD",
+        "INFERNUS SQUAD",
+        "INNER CIRCLE COMPANIONS",
+        "INTERCESSOR SQUAD",
+        "STERNGUARD VETERAN SQUAD",
+        "SWORD BRETHREN SQUAD",
+        "VANGUARD VETERAN SQUAD"
+      ]
+    },
+    {
+      "name": "LIEUTENANT IN PHOBOS ARMOUR",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 40,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": [
+        "ELIMINATOR SQUAD",
+        "INCURSOR SQUAD",
+        "INFILTRATOR SQUAD",
+        "REIVER SQUAD",
+        "SPECTRUS KILL TEAM",
+        "WOLF SCOUTS"
+      ]
+    },
+    {
+      "name": "LIEUTENANT WITH COMBI-WEAPON",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 85,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "OUTRIDER SQUAD",
+      "tiers": [
+        {
+          "models": 3,
+          "points": 80,
+          "copyFrom": 1,
+          "copyTo": null
+        },
+        {
+          "models": 6,
+          "points": 160,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "REDEMPTOR DREADNOUGHT",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 170,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 1,
+          "points": 190,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [
+        {
+          "name": "Macro plasma incinerator",
+          "points": 10
+        }
+      ],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "REIVER SQUAD",
+      "tiers": [
+        {
+          "models": 5,
+          "points": 85,
+          "copyFrom": 1,
+          "copyTo": null
+        },
+        {
+          "models": 10,
+          "points": 165,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "REPULSOR",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 190,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 1,
+          "points": 210,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "REPULSOR EXECUTIONER",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 260,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 1,
+          "points": 280,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [
+        {
+          "name": "Heavy Laser Destroyer",
+          "points": 10
+        }
+      ],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "RHINO",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 70,
+          "copyFrom": 1,
+          "copyTo": 3
+        },
+        {
+          "models": 1,
+          "points": 80,
+          "copyFrom": 4,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "STERNGUARD VETERAN SQUAD",
+      "tiers": [
+        {
+          "models": 5,
+          "points": 105,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 10,
+          "points": 210,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 5,
+          "points": 120,
+          "copyFrom": 3,
+          "copyTo": null
+        },
+        {
+          "models": 10,
+          "points": 225,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "STORM SPEEDER HAILSTRIKE",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 110,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 1,
+          "points": 120,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "STORM SPEEDER HAMMERSTRIKE",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 140,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 1,
+          "points": 150,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "STORM SPEEDER THUNDERSTRIKE",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 140,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 1,
+          "points": 150,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "TECHMARINE",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 55,
+          "copyFrom": 1,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [
+        "ASSAULT INTERCESSOR SQUAD",
+        "CRUSADER SQUAD",
+        "DECIMUS KILL TEAM",
+        "DESOLATION SQUAD",
+        "FORTIS KILL TEAM",
+        "INTERCESSOR SQUAD",
+        "SWORD BRETHREN SQUAD"
+      ],
+      "support": []
+    },
+    {
+      "name": "THUNDERHAWK GUNSHIP",
+      "tiers": [
+        {
+          "models": 1,
+          "points": 850,
+          "copyFrom": 1,
+          "copyTo": 1
+        },
+        {
+          "models": 1,
+          "points": 950,
+          "copyFrom": 2,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    },
+    {
+      "name": "VANGUARD VETERAN SQUAD WITH JUMP PACKS",
+      "tiers": [
+        {
+          "models": 5,
+          "points": 110,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 10,
+          "points": 220,
+          "copyFrom": 1,
+          "copyTo": 2
+        },
+        {
+          "models": 5,
+          "points": 130,
+          "copyFrom": 3,
+          "copyTo": null
+        },
+        {
+          "models": 10,
+          "points": 240,
+          "copyFrom": 3,
+          "copyTo": null
+        }
+      ],
+      "paidWargear": [],
+      "leader": [],
+      "support": []
+    }
+  ]
+}
