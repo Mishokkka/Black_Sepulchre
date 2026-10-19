@@ -1,3 +1,5 @@
+import type { Choice } from './model.ts'
+
 export const SALVAGE_REWARDS = [
   '0 Supply',
   '+10 Supply',
@@ -29,4 +31,37 @@ export const CHOICE_LABELS: Record<string, string> = {
   evac: 'Эвакуировать: Damage 3, шрам и долг',
   title: 'Выбрать для эпилога',
   seal: 'Участник эпилога SEAL',
+  ward: 'Выдать отряду Null-field Ward',
+  item: 'Выдать найденное снаряжение отряду',
+  block: 'Заблокировать снаряжение выбранного отряда',
+  ledger: 'Получить Corpse Ledger · 10 Supply',
+  name: 'Назначить персонажа для Names in Static',
+  route: 'Выбрать пункт назначения маршрута',
+}
+export function choiceNeedsUnit(value: string) {
+  return !['skip', 'intel', 'supply', 'cache', 'inventory', 'relic', 'deposit', 'route'].includes(
+    value,
+  )
+}
+export function choiceNeedsSector(c: Choice, value: string) {
+  return value !== 'skip' && (c.sectorKeys.length > 0 || ['deposit', 'route'].includes(value))
+}
+/** The form and server use the same recipient and affordability checks. */
+export function choiceProblem(
+  c: Choice,
+  value: string,
+  id: string,
+  sector: string,
+  supply: number,
+) {
+  if (!c.options.includes(value)) return 'Выберите доступный вариант награды.'
+  if (choiceNeedsUnit(value) && !c.unitIds.includes(id))
+    return c.unitIds.length
+      ? 'Выберите подходящий отряд.'
+      : 'Нет подходящего отряда. Выберите другой вариант награды.'
+  if (choiceNeedsSector(c, value) && !c.sectorKeys.some((key) => key === sector))
+    return 'Выберите доступный сектор.'
+  if (['31', '56'].includes(c.kind) && value !== 'skip' && supply < 10)
+    return 'Нужно 10 Supply. Можно бесплатно отказаться от этой награды.'
+  return ''
 }

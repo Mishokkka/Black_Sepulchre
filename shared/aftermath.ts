@@ -43,6 +43,7 @@ import { addEffect, beginActivation, finishActivation } from './state.ts'
 import { capture, setExhausted } from './strategy.ts'
 import { armouryBlocked } from './rules.ts'
 import { applyTabletopFacts, validateTabletopFacts } from './tabletop-report.ts'
+import { choiceNeedsUnit, choiceNeedsSector, choiceProblem } from './aftermath-help.ts'
 export function outcome(s: State, r: Report): Battle['outcome'] {
   const b = s.battle!,
     t = b.table
@@ -464,16 +465,18 @@ export function aftermathCommand(s: State, c: Command, ctx: Context) {
       const ch = b.choices.find((ch) => ch.key === c.payload.key && ch.side === side)
       assert(ch && ch.value === undefined, 'Выбор уже закрыт')
       const value = String(c.payload.value)
-      assert(ch.options.includes(value), 'Недопустимый вариант')
-      if (
-        ch.unitIds.length &&
-        !['skip', 'intel', 'supply', 'cache', 'inventory', 'relic'].includes(value)
-      ) {
-        assert(ch.unitIds.includes(String(c.payload.unit)), 'ID не eligible')
+      const problem = choiceProblem(
+        ch,
+        value,
+        String(c.payload.unit ?? ''),
+        String(c.payload.sector ?? ''),
+        s.players[side].supply,
+      )
+      assert(!problem, problem)
+      if (choiceNeedsUnit(value)) {
         ch.unit = String(c.payload.unit)
       }
-      if (ch.sectorKeys.length && value !== 'skip') {
-        assert(ch.sectorKeys.includes(c.payload.sector as SectorKey), 'Сектор не eligible')
+      if (choiceNeedsSector(ch, value)) {
         ch.sector = c.payload.sector as SectorKey
       }
       if (['31', '56'].includes(ch.kind) && value !== 'skip') spend(s, side, 10)
@@ -778,17 +781,13 @@ function buildChoices(original: State, ctx: Context) {
     )
     if (ids.length) add('B1', winner, 'Reliquary Hunt XP', ['xp'], ids)
   }
-  if (b.mission === 'D2' && winner)
-    add(
-      'D2',
+  if (b.mission === 'D2' && winner) {
+    const ids = played(
       winner,
-      'Harvest Line',
-      ['supply', 'heal'],
-      played(
-        winner,
-        (u) => u.damage > 0 || b.report!.units.find((r) => r.id === u.id)?.destroyed === true,
-      ),
+      (u) => u.damage > 0 || b.report!.units.find((r) => r.id === u.id)?.destroyed === true,
     )
+    add('D2', winner, 'Harvest Line', ['supply', ...(ids.length ? ['heal'] : [])], ids)
+  }
   if (b.mission === 'G1' && winner) add('G1', winner, 'Pilgrimage reward', ['intel', 'relic'])
   if (b.mission === 'I1' && winner === 'necrons') {
     const ids = played(winner, (u) =>

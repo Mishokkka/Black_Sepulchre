@@ -5,7 +5,14 @@ import { ConfirmDialog } from './ConfirmDialog'
 import { ReportView } from './ReportView'
 export { ReportView } from './ReportView'
 import { AftermathSummary } from './AftermathSummary'
-import { SALVAGE_REWARDS, casualtyMeaning, CHOICE_LABELS } from '../../shared/aftermath-help'
+import {
+  SALVAGE_REWARDS,
+  casualtyMeaning,
+  CHOICE_LABELS,
+  choiceNeedsUnit,
+  choiceNeedsSector,
+  choiceProblem,
+} from '../../shared/aftermath-help'
 import { battleCommandError } from '../../shared/battle-ui'
 import { BattlePacket } from './BattlePacket'
 import { TabletopMission } from './TabletopMission'
@@ -580,6 +587,7 @@ function ChoiceView({ s, side, send, choiceKey }: Props & { choiceKey: string })
     [value, setValue] = useState(c.options[0]),
     [id, setId] = useState(c.unitIds[0] ?? ''),
     [sector, setSector] = useState<string>(c.sectorKeys[0] ?? '')
+  const problem = choiceProblem(c, value, id, sector, s.players[side].supply)
   return (
     <div className="choice">
       <h4>{c.kind === 'deposit' ? '25 Local Supply · местное снабжение' : c.label}</h4>
@@ -609,7 +617,7 @@ function ChoiceView({ s, side, send, choiceKey }: Props & { choiceKey: string })
             change={setValue}
             items={c.options.map((id) => ({ id, name: CHOICE_LABELS[id] ?? id }))}
           />
-          {c.unitIds.length > 0 && (
+          {choiceNeedsUnit(value) && c.unitIds.length > 0 && (
             <Options
               label="Отряд — получатель награды"
               value={id}
@@ -617,7 +625,7 @@ function ChoiceView({ s, side, send, choiceKey }: Props & { choiceKey: string })
               items={c.unitIds.map((id) => ({ id, name: unit(s, id).name }))}
             />
           )}{' '}
-          {c.sectorKeys.length > 0 && (
+          {choiceNeedsSector(c, value) && c.sectorKeys.length > 0 && (
             <Options
               label="Сектор"
               value={sector}
@@ -625,21 +633,23 @@ function ChoiceView({ s, side, send, choiceKey }: Props & { choiceKey: string })
               items={c.sectorKeys.map((id) => ({ id, name: id }))}
             />
           )}
+          {['31', '56'].includes(c.kind) && (
+            <p>Платный вариант стоит 10 Supply; отказ бесплатный.</p>
+          )}
+          {problem && (
+            <p className="validation" role="status">
+              {problem}
+            </p>
+          )}
           <button
             className="quiet"
-            disabled={
-              !value ||
-              (c.unitIds.length > 0 &&
-                !['skip', 'intel', 'supply', 'cache', 'inventory', 'relic'].includes(value) &&
-                !id) ||
-              (c.sectorKeys.length > 0 && value !== 'skip' && !sector)
-            }
+            disabled={!!problem}
             onClick={() =>
               send('aftermath_choice', {
                 key: c.key,
                 value,
-                unit: id || undefined,
-                sector: sector || undefined,
+                unit: choiceNeedsUnit(value) ? id || undefined : undefined,
+                sector: choiceNeedsSector(c, value) ? sector || undefined : undefined,
               })
             }
           >
