@@ -217,7 +217,7 @@ export default function Demo() {
       next.activation!.logistics = ['deathwatch', 'necrons']
       for (const who of SIDES) next.players[who].supply = 1000
     }
-    if (['live', 'live-start', 'result', 'aftermath', 'chronicle'].includes(mode)) {
+    if (['live', 'live-start', 'result', 'aftermath', 'rewards', 'chronicle'].includes(mode)) {
       const live = mode === 'live' || mode === 'live-start'
       next.players.deathwatch.mf = 'D'
       next.players.necrons.mf = 'F'
@@ -291,8 +291,13 @@ export default function Demo() {
           },
           context(),
         )
-      if (mode === 'aftermath' || mode === 'chronicle') {
+      if (mode === 'aftermath' || mode === 'chronicle' || mode === 'rewards') {
         next = command(next, { type: 'confirm_result', payload: {} }, context('necrons'))
+        if (mode === 'rewards') {
+          next.battle!.event = '31'
+          next.battle!.salvage = { deathwatch: 6, necrons: 6 }
+          for (const who of SIDES) next.players[who].supply = 0
+        }
         for (let i = 0; i < 2; i++) {
           const who = next.battle!.eventPass.length
             ? next.battle!.eventChooser === 'deathwatch'
@@ -301,7 +306,11 @@ export default function Demo() {
             : next.battle!.eventChooser
           next = command(next, { type: 'event_pass', payload: {} }, context(who))
         }
-        for (let attempt = 0; attempt < 4 && !next.pendingAftermath; attempt++) {
+        for (
+          let attempt = 0;
+          mode !== 'rewards' && attempt < 4 && !next.pendingAftermath;
+          attempt++
+        ) {
           for (const ch of next.battle!.choices.filter((ch) => ch.value === undefined)) {
             next = command(
               next,
@@ -341,6 +350,7 @@ export default function Demo() {
               'live-start',
               'result',
               'aftermath',
+              'rewards',
               'finale',
               'war',
               'pact',
@@ -537,6 +547,7 @@ export default function Demo() {
                 'epic-heroes',
                 'result',
                 'aftermath',
+                'rewards',
                 'chronicle',
                 'finale',
                 'war',
