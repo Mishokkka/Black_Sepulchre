@@ -6069,3 +6069,48 @@ button.campaign-choice {
 .request-recovery {
   border-color: var(--gold);
 }
+.asset-guide {
+  margin: 16px 0;
+}
+.asset-guide dd {
+  margin: 4px 0 14px;
+}
+.asset-groups > .asset-group {
+  margin: 24px 0;
+}
+.asset-group > summary {
+  font-weight: 700;
+}
+.asset-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+.asset-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  min-width: 0;
+}
+.asset-card.chosen {
+  border-color: var(--gold);
+}
+.asset-card > small,
+.asset-timing {
+  display: block;
+  margin-top: 8px;
+  color: var(--gold);
+}
+.asset-rule p {
+  margin: 10px 0;
+}
+.asset-unavailable {
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.selected-assets {
+  margin: 24px 0;
+}

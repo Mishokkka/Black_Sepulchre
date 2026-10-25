@@ -26,21 +26,8 @@ import { underdog } from '../../shared/muster'
 import { labels } from './common'
 import { Check, Options, type Props } from './common'
 import { RuleHelp } from './RulesContext'
-const ASSET_LABELS: Record<string, string> = {
-  barricades: 'Barricades',
-  smoke: 'Smoke Screen',
-  coordinates: 'Emergency Coordinates',
-  reserves: 'Field Reserves',
-  booby: 'Booby-trapped Objective',
-  evacuation: 'Hard Evacuation',
-  mines: 'Mine Corridor',
-  beacon: 'Reserve Beacon',
-  stores: 'Hardened Stores',
-  suppression: 'Suppression',
-  charge: 'Breach Charge',
-  infiltration: 'Infiltration Route',
-  extraction: 'Extraction Beacon',
-}
+import { ASSET_LABELS, ASSET_LISTS, assetError, type AssetList } from '../content/assets'
+import { AssetGuide, AssetRule } from './AssetGuide'
 export function BattleView({ s, side, send }: Props) {
   const b = s.battle
   if (s.phase === 'finale_mode')
@@ -163,8 +150,10 @@ export function BattleView({ s, side, send }: Props) {
         </section>
       )}
       {s.phase === 'muster' && <MusterView key={`${b.id}:${side}`} s={s} side={side} send={send} />}
-      {s.phase === 'interdict' && <InterdictView s={s} side={side} send={send} />}
-      {s.phase === 'assets' && <AssetView s={s} side={side} send={send} />}
+      {s.phase === 'interdict' && (
+        <InterdictView key={`${b.id}:${side}`} s={s} side={side} send={send} />
+      )}
+      {s.phase === 'assets' && <AssetView key={`${b.id}:${side}`} s={s} side={side} send={send} />}
       {['battle', 'result', 'aftermath'].includes(s.phase) && (
         <BattlePacket s={s} side={side} send={send} />
       )}{' '}
@@ -288,70 +277,168 @@ function crisisText(s: State) {
       : 'ENCODE: один старт на сторону за ход. Echo может быть живой при старте, должна погибнуть к completion. Два ключа стабилизируют Seal, Instability −2. PRIME ENGINE с R4 после трёх stable Seals. Любое движение / Battle-shock гасит Prime. Instability +2 в начале раунда; 12 — немедленное поражение. После Echo phase и Final Pulse R5: три stable Seals и два действующих Channeler дают CONCORDAT.'
 }
 function InterdictView({ s, side, send }: Props) {
-  const [asset, setAsset] = useState(''),
-    b = s.battle!
+  const b = s.battle!,
+    saved = b.interdict[side] !== undefined,
+    [asset, setAsset] = useState(b.interdict[side] ?? ''),
+    error = saved ? '' : battleCommandError(s, side, 'interdict', { asset: asset || null })
   return (
     <section className="panel" id="interdict-panel">
-      <h3>Одновременный Interdict</h3>
+      <h3>Interdict · запретить поддержку противника</h3>
+      <p>
+        Оба игрока одновременно выбирают по одному названию Tactical/Breach, которое противник не
+        сможет взять на этот бой. Запрет стоит <strong>2 Intel</strong>, выбор своих Assets будет
+        следующим шагом. Пропуск бесплатный. Ваш Intel: {s.players[side].intel}.
+      </p>
+      <p>
+        Defensive и обязательные эффекты миссии запретить нельзя. Выбранный запрет после фиксации не
+        меняется.
+      </p>
+      <AssetGuide />
       <Options
-        label="Запретить enemy Tactical / Breach"
+        label="Какой Tactical / Breach запретить противнику"
+        emptyLabel="Без запрета · бесплатно"
         value={asset}
         change={setAsset}
+        disabled={saved}
         items={[...new Set([...TACTICAL, ...BREACH])].map((id) => ({ id, name: ASSET_LABELS[id] }))}
       />
+      {asset && (
+        <article className="asset-card">
+          <strong>Вы запретите: {ASSET_LABELS[asset]}</strong>
+          <AssetRule list={TACTICAL.includes(asset) ? 'tactical' : 'breach'} id={asset} />
+          <p>Эта поддержка будет недоступна противнику при выборе Tactical/Breach.</p>
+        </article>
+      )}
+      <details className="asset-guide">
+        <summary>Сравнить все варианты запрета</summary>
+        <div className="asset-cards">
+          {(['tactical', 'breach'] as const).flatMap((list) =>
+            (list === 'tactical' ? TACTICAL : BREACH).map((id) => (
+              <article className="asset-card" key={id}>
+                <strong>{ASSET_LABELS[id]}</strong>
+                <AssetRule list={list} id={id} />
+              </article>
+            )),
+          )}
+        </div>
+      </details>
+      {error && (
+        <p className="validation" role="status">
+          {error} Можно бесплатно пропустить запрет.
+        </p>
+      )}
       <button
-        disabled={b.interdict[side] !== undefined}
+        disabled={saved || !!error}
         onClick={() => send('interdict', { asset: asset || null })}
       >
         {asset ? 'Запретить · 2 Intel' : 'Пропустить Interdict'}
       </button>
+      {saved && <p role="status">Ваше решение сохранено. Ожидается решение второго игрока.</p>}
     </section>
   )
 }
 function AssetView({ s, side, send }: Props) {
   const b = s.battle!,
-    [a, setA] = useState({
-      tactical: [] as string[],
-      defensive: [] as string[],
-      breach: [] as string[],
-    })
+    [a, setA] = useState(
+      b.assets[side] ?? {
+        tactical: [] as string[],
+        defensive: [] as string[],
+        breach: [] as string[],
+      },
+    ),
+    saved = !!b.assets[side],
+    budgets = {
+      tactical: underdog(b, side),
+      defensive: side === b.defender && b.defAsset ? 1 : 0,
+      breach: side === b.attacker ? b.breaches : 0,
+    },
+    error = saved ? '' : assetError(battleCommandError(s, side, 'commit_assets', { assets: a }))
   return (
     <section className="panel" id="assets-panel">
       <h3 className="rule-label">
-        Assets после reveal <RuleHelp topic="preparation" />
+        Assets · бесплатная поддержка на этот бой <RuleHelp topic="preparation" />
       </h3>
       <p>
-        Underdog {underdog(b, side)} · Defensive {side === b.defender && b.defAsset ? 1 : 0} ·
-        Breach {side === b.attacker ? b.breaches : 0}. Enemy Interdict:{' '}
-        {b.interdict[other(side)] ? ASSET_LABELS[b.interdict[other(side)]!] : 'нет'}.
+        Выберите до указанного числа в каждом списке. Supply и Intel за выбор не списываются. Можно
+        ничего не брать. После фиксации выбор не меняется.
       </p>
-      <div className="columns">
+      <p>
+        Запрет противника:{' '}
+        <strong>
+          {b.interdict[other(side)] ? ASSET_LABELS[b.interdict[other(side)]!] : 'нет'}
+        </strong>
+        . Он касается только ваших Tactical/Breach.
+      </p>
+      <AssetGuide />
+      <div className="asset-groups">
         {Object.entries({ tactical: TACTICAL, defensive: DEFENSIVE, breach: BREACH }).map(
-          ([list, items]) => (
-            <div key={list}>
-              <h4>{list}</h4>
-              {items.map((id) => (
-                <Check
-                  key={id}
-                  label={ASSET_LABELS[id]}
-                  value={a[list as keyof typeof a].includes(id)}
-                  change={(v) =>
-                    setA({
-                      ...a,
-                      [list]: v
-                        ? [...a[list as keyof typeof a], id]
-                        : a[list as keyof typeof a].filter((x) => x !== id),
-                    })
-                  }
-                />
-              ))}
-            </div>
-          ),
+          ([key, items]) => {
+            const list = key as AssetList
+            return (
+              <details className="asset-group" key={list} open={budgets[list] > 0}>
+                <summary>
+                  {ASSET_LISTS[list].name} · выбрано {a[list].length} / {budgets[list]}
+                </summary>
+                <p className="muted">{ASSET_LISTS[list].source}</p>
+                <div className="asset-cards">
+                  {items.map((id) => {
+                    const checked = a[list].includes(id),
+                      candidate = { ...a, [list]: [...a[list], id] },
+                      reason =
+                        saved || checked
+                          ? ''
+                          : budgets[list] === 0
+                            ? list === 'tactical'
+                              ? 'В этом бою у вашей стороны нет бонуса Underdog.'
+                              : list === 'defensive'
+                                ? side !== b.defender
+                                  ? 'Defensive выбирает только защитник.'
+                                  : 'В этом бою нет работающего Fortified для Defensive.'
+                                : side !== b.attacker
+                                  ? 'Breach выбирает только атакующий.'
+                                  : 'У этой цели нет Breach-выборов.'
+                            : a[list].length >= budgets[list]
+                              ? `Лимит ${budgets[list]} уже выбран. Снимите другой выбор в этом списке.`
+                              : assetError(
+                                  battleCommandError(s, side, 'commit_assets', {
+                                    assets: candidate,
+                                  }),
+                                )
+                    return (
+                      <article className={`asset-card${checked ? ' chosen' : ''}`} key={id}>
+                        <Check
+                          label={ASSET_LABELS[id]}
+                          value={checked}
+                          disabled={saved || !!reason}
+                          change={(v) =>
+                            setA({
+                              ...a,
+                              [list]: v ? [...a[list], id] : a[list].filter((x) => x !== id),
+                            })
+                          }
+                        />
+                        <AssetRule list={list} id={id} />
+                        {reason && <p className="asset-unavailable">Недоступно: {reason}</p>}
+                      </article>
+                    )
+                  })}
+                </div>
+              </details>
+            )
+          },
         )}
       </div>
-      <button disabled={!!b.assets[side]} onClick={() => send('commit_assets', { assets: a })}>
-        Зафиксировать Assets
+      {error && (
+        <p className="validation" role="status">
+          {error}
+        </p>
+      )}
+      <button disabled={saved || !!error} onClick={() => send('commit_assets', { assets: a })}>
+        {Object.values(a).some((ids) => ids.length)
+          ? 'Зафиксировать Assets · бесплатно'
+          : 'Продолжить без Assets'}
       </button>
+      {saved && <p role="status">Ваши Assets сохранены. Ожидается второй игрок.</p>}
     </section>
   )
 }

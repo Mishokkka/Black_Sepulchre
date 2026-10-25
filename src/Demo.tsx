@@ -217,10 +217,23 @@ export default function Demo() {
       next.activation!.logistics = ['deathwatch', 'necrons']
       for (const who of SIDES) next.players[who].supply = 1000
     }
-    if (['live', 'live-start', 'result', 'aftermath', 'rewards', 'chronicle'].includes(mode)) {
-      const live = mode === 'live' || mode === 'live-start'
+    if (
+      [
+        'live',
+        'live-start',
+        'interdict',
+        'assets',
+        'result',
+        'aftermath',
+        'rewards',
+        'chronicle',
+      ].includes(mode)
+    ) {
+      const preparation = mode === 'interdict' || mode === 'assets'
+      const live = mode === 'live' || mode === 'live-start' || preparation
       next.players.deathwatch.mf = 'D'
       next.players.necrons.mf = 'F'
+      if (preparation) next.sectors.F.fortified = true
       if (live) declareBattle(next, 'F', 'deathwatch', false, context())
       else declareBattle(next, 'X', 'deathwatch', false, context(), 'encounter')
       const b = next.battle!
@@ -263,6 +276,13 @@ export default function Demo() {
         b.assets[who] = { tactical: [], defensive: [], breach: [] }
       }
       next.phase = 'battle'
+      if (preparation) {
+        b.muster.deathwatch!.picks.pop()
+        b.muster.necrons!.picks.at(-1)!.role = 'pool'
+        b.assets = {}
+        b.interdict = mode === 'interdict' ? {} : { deathwatch: null, necrons: 'charge' }
+        next.phase = mode
+      }
       if (!live)
         next = command(
           next,
@@ -348,6 +368,8 @@ export default function Demo() {
               'muster',
               'live',
               'live-start',
+              'interdict',
+              'assets',
               'result',
               'aftermath',
               'rewards',
@@ -543,6 +565,8 @@ export default function Demo() {
                 'muster',
                 'live',
                 'live-start',
+                'interdict',
+                'assets',
                 'logistics',
                 'epic-heroes',
                 'result',
