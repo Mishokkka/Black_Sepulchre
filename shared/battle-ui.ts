@@ -183,7 +183,13 @@ export function battleProgress(s: State) {
 export function battleCommandError(
   s: State,
   side: Side,
-  type: 'commit_muster' | 'submit_result' | 'request_correction' | 'table_action',
+  type:
+    | 'commit_muster'
+    | 'submit_result'
+    | 'request_correction'
+    | 'table_action'
+    | 'interdict'
+    | 'commit_assets',
   payload: Record<string, unknown>,
 ) {
   try {

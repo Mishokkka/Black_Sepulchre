@@ -9,6 +9,7 @@ import type { Unit } from '../../shared/model'
 import { sizeKey, priceKey } from '../../shared/unit-choices'
 import { LogisticsAction } from './LogisticsAction'
 import { UnitChoice } from './UnitChoice'
+import { ArmouryGuide } from './AssetGuide'
 import { Options, type Props } from './common'
 export function UnitService({ s, side, send, u }: Props & { u: Unit }) {
   const [honour, setHonour] = useState(''),
@@ -182,6 +183,7 @@ export function UnitService({ s, side, send, u }: Props & { u: Unit }) {
             )}
           </div>
           <div>
+            <ArmouryGuide />
             <Options
               label="Armoury"
               value={item}

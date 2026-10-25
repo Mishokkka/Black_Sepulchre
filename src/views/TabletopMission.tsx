@@ -2,6 +2,7 @@ import { createTable } from '../../shared/table'
 import { STAGES } from '../../shared/rules'
 import { EVENTS, MISSION_CARDS, CRISIS_CARDS } from '../../shared/rules.generated'
 import { MissionBrief } from './MissionBrief'
+import { SelectedAssets } from './AssetGuide'
 import { labels, type Props } from './common'
 
 export function TabletopMission({ s }: Pick<Props, 's'>) {
@@ -134,6 +135,7 @@ export function TabletopMission({ s }: Pick<Props, 's'>) {
         точек взаимодействия измеряются от центра. Обычных matched-play secondaries нет, максимум 50
         VP на сторону.
       </p>
+      <SelectedAssets s={s} />
       <MissionBrief
         code={code}
         exact={MISSION_CARDS[code]?.body ?? CRISIS_CARDS[b.type] ?? ''}

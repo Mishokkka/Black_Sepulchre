@@ -1,4 +1,6 @@
-import { HONOURS, SCARS, EQUIPMENT_EFFECTS, ASSET_EFFECTS } from '../../shared/rules.generated'
+import { HONOURS, SCARS, EQUIPMENT_EFFECTS } from '../../shared/rules.generated'
+import { ASSET_LABELS, type AssetList } from '../content/assets'
+import { AssetRule } from './AssetGuide'
 import { SIDES } from '../../shared/model'
 import { ARMOURY, RELICS, armouryBlocked } from '../../shared/rules'
 import { labels, type Props } from './common'
@@ -94,9 +96,10 @@ export function BattlePacket({ s }: Props) {
           {b.assets[who] &&
             Object.entries(b.assets[who]!).flatMap(([list, ids]) =>
               ids.map((id) => (
-                <p key={list + id}>
-                  <strong>{id}</strong> — {ASSET_EFFECTS[list + ':' + id]}
-                </p>
+                <div className="asset-card" key={list + id}>
+                  <strong>{ASSET_LABELS[id]}</strong>
+                  <AssetRule list={list as AssetList} id={id} />
+                </div>
               )),
             )}
         </section>

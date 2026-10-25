@@ -49,6 +49,54 @@ function draft(s: ReturnType<typeof setup>, side: Side = 'deathwatch'): Muster {
   }
 }
 
+test('Asset and Interdict previews validate a public state without spending Intel or fixing choices', () => {
+  let s = setup()
+  for (const side of SIDES)
+    s = command(s, { type: 'commit_muster', payload: { muster: draft(s, side) } }, context(side))
+  s.players.deathwatch.intel = 1
+  const publicState = project(s, 'deathwatch') as unknown as typeof s
+  const before = structuredClone(publicState)
+  assert.notEqual(
+    battleCommandError(publicState, 'deathwatch', 'interdict', { asset: 'charge' }),
+    '',
+  )
+  assert.equal(battleCommandError(publicState, 'deathwatch', 'interdict', { asset: null }), '')
+  assert.deepEqual(publicState, before)
+  for (const side of SIDES)
+    s = command(s, { type: 'interdict', payload: { asset: null } }, context(side))
+  s.battle!.interdict.necrons = 'charge'
+  s.battle!.breaches = 2
+  const empty = { tactical: [], defensive: [], breach: [] }
+  const visible = project(s, 'deathwatch') as unknown as typeof s
+  const original = structuredClone(visible)
+  assert.equal(battleCommandError(visible, 'deathwatch', 'commit_assets', { assets: empty }), '')
+  assert.match(
+    battleCommandError(visible, 'deathwatch', 'commit_assets', {
+      assets: { ...empty, breach: ['charge'] },
+    }),
+    /Interdict/,
+  )
+  assert.match(
+    battleCommandError(visible, 'deathwatch', 'commit_assets', {
+      assets: { ...empty, breach: ['suppression'] },
+    }),
+    /Pool/,
+  )
+  assert.match(
+    battleCommandError(visible, 'deathwatch', 'commit_assets', {
+      assets: { ...empty, defensive: ['stores'] },
+    }),
+    /Defensive/,
+  )
+  assert.equal(
+    battleCommandError(visible, 'deathwatch', 'commit_assets', {
+      assets: { ...empty, breach: ['extraction'] },
+    }),
+    '',
+  )
+  assert.deepEqual(visible, original)
+})
+
 test('An unfinished Muster keeps exact budgets while Commander validation blocks commitment; previews are pure', () => {
   const s = setup(),
     m = draft(s)

@@ -22,6 +22,8 @@ import { StatusBadge } from './StatusBadge'
 import { UnitChoice } from './UnitChoice'
 import { PackageEditor } from './PackageEditor'
 import { RuleHelp } from './RulesContext'
+import { ArmouryGuide } from './AssetGuide'
+import { EQUIPMENT_EFFECTS } from '../../shared/rules.generated'
 import { Check, labels, Options, phases, type Props } from './common'
 
 export function LogisticsView({ s, side, send }: Props) {
@@ -347,18 +349,30 @@ export function LogisticsView({ s, side, send }: Props) {
             </div>
             <div>
               <h3>Расходные предметы</h3>
+              <ArmouryGuide />
+              <p>
+                Покупка ниже отправляет предмет на склад. Для применения Medicae выдайте его ID до
+                фиксации состава; Cache можно расходовать со склада при лечении.
+              </p>
               <p>{p.inventory.map((i) => ARMOURY[i]?.name ?? i).join(', ') || 'Запасы пусты'}</p>
               {['medicae', 'cache'].map((item) => (
-                <LogisticsAction
-                  key={item}
-                  s={s}
-                  side={side}
-                  send={send}
-                  type="buy_armoury"
-                  payload={{ item }}
-                  label={ARMOURY[item].name}
-                  quiet
-                />
+                <div className="asset-card" key={item}>
+                  <p>
+                    <strong>
+                      {ARMOURY[item].name} · {ARMOURY[item].cost} Supply
+                    </strong>
+                  </p>
+                  <p>{EQUIPMENT_EFFECTS[ARMOURY[item].name]}</p>
+                  <LogisticsAction
+                    s={s}
+                    side={side}
+                    send={send}
+                    type="buy_armoury"
+                    payload={{ item }}
+                    label={`Купить на склад · ${ARMOURY[item].cost} Supply`}
+                    quiet
+                  />
+                </div>
               ))}
             </div>
           </div>
