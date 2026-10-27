@@ -314,8 +314,12 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
           maxWallThickness: 0.45,
           elevatedFloors: 0,
         })
-        await plan.getByLabel(`Описание террейна ${dense.id}`, { exact: true }).click()
-        const recipe = plan.locator('.terrain-piece-details[open]')
+        const recipe = plan
+          .getByLabel(`Описание террейна ${dense.id}`, { exact: true })
+          .locator('..')
+        if (!(await recipe.evaluate((e) => e.hasAttribute('open'))))
+          await recipe.locator('summary').click()
+        await expect(recipe).toHaveAttribute('open', '')
         await expect(recipe).toContainText('Высота физических стен — 4″')
         await expect(recipe.locator('li')).toHaveCount(dense.walls!.length)
         if (mission === 'I2') {
