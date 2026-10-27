@@ -6084,7 +6084,7 @@ button.campaign-choice {
 }
 .terrain-guide-cards article {
   padding: 14px 16px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 8px;
   background: rgba(138, 158, 124, 0.08);
 }
