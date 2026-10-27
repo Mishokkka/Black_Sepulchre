@@ -6,7 +6,7 @@ import { command, project } from '../shared/engine.ts'
 import type { Battle, SectorKey, State } from '../shared/model.ts'
 import { MISSION_CARDS } from '../shared/rules.generated.ts'
 import { createTable } from '../shared/table.ts'
-import { terrainWalls } from '../shared/terrain.ts'
+import { terrainProfile, terrainWalls } from '../shared/terrain.ts'
 import { context, fixture } from './fixture.ts'
 
 function selected(mission: string, stage = 0) {
@@ -41,6 +41,12 @@ test('every mission freezes public battlefield geometry that survives JSON and b
       for (const p of setup.terrain.pieces) {
         assert.ok(p.walls?.length)
         assert.deepEqual(terrainWalls(p), p.walls)
+        assert.deepEqual(p.profile, {
+          wallHeight: p.kind === 'dense' ? 4 : 1,
+          maxWallThickness: 0.45,
+          elevatedFloors: 0,
+        })
+        assert.deepEqual(terrainProfile(p), p.profile)
       }
       const restored = JSON.parse(JSON.stringify(s)) as State
       assert.deepEqual(battlefieldFor(restored), setup)
@@ -60,6 +66,8 @@ test('later table movement and campaign changes cannot change a saved starting b
   assert.ok(!battlefieldFor(s).objects.some((o) => o.id === 'index'))
   const piece = saved.terrain.pieces[0]
   assert.deepEqual(terrainWalls({ ...piece, x: piece.x + 1 }), piece.walls)
+  const custom = { wallHeight: 5, maxWallThickness: 0.3, elevatedFloors: 0 as const }
+  assert.deepEqual(terrainProfile({ ...piece, profile: custom }), custom)
 })
 
 test('a mission reroll replaces the saved setup without spending extra game dice', () => {

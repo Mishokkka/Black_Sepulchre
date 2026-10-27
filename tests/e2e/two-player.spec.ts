@@ -308,6 +308,16 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
         await expect(plan.locator('h3')).toContainText(setup.terrain.code)
         if (!(await plan.locator('.terrain-details').evaluate((e) => e.hasAttribute('open'))))
           await plan.getByText('Размеры и координаты для расстановки').click()
+        const dense = setup.terrain.pieces.find((piece) => piece.kind === 'dense')!
+        expect(dense.profile).toEqual({
+          wallHeight: 4,
+          maxWallThickness: 0.45,
+          elevatedFloors: 0,
+        })
+        await plan.getByLabel(`Описание террейна ${dense.id}`, { exact: true }).click()
+        const recipe = plan.locator('.terrain-piece-details[open]')
+        await expect(recipe).toContainText('Высота физических стен — 4″')
+        await expect(recipe.locator('li')).toHaveCount(dense.walls!.length)
         if (mission === 'I2') {
           await expect(plan.locator('td').filter({ hasText: /^Objective: область / })).toHaveCount(
             3,

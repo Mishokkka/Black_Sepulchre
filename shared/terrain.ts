@@ -20,6 +20,27 @@ export interface TerrainPiece {
   symmetric?: boolean
   /** Saved wall segments keep physical geometry stable after future client updates. */
   walls?: TerrainWall[]
+  /** Physical construction preset, saved with new battlefield setups. */
+  profile?: TerrainProfile
+}
+
+export interface TerrainProfile {
+  wallHeight: number
+  maxWallThickness: number
+  elevatedFloors: 0
+}
+
+const MAX_WALL_THICKNESS = 0.45
+
+/** Campaign construction defaults, separate from the official terrain categories. */
+export function terrainProfile(p: TerrainPiece): TerrainProfile {
+  return (
+    p.profile ?? {
+      wallHeight: p.kind === 'dense' ? 4 : 1,
+      maxWallThickness: MAX_WALL_THICKNESS,
+      elevatedFloors: 0,
+    }
+  )
 }
 
 export interface TerrainPlan {
@@ -207,7 +228,11 @@ export function vehicleCanCross(
     for (let x = 1; x < length - 1; x++)
       // Half a grid step is added so the segments between adjacent samples,
       // not just their endpoints, retain clearance for the whole base.
-      if (walls.some((w) => distanceToSegment(w, x + 0.5, y + 0.5) < 2.225))
+      if (
+        walls.some(
+          (w) => distanceToSegment(w, x + 0.5, y + 0.5) < 1.5 + MAX_WALL_THICKNESS / 2 + 0.5,
+        )
+      )
         blocked[y * length + x] = 1
   const add = (x: number, y: number) => {
     if (x < 1 || y < 1 || x >= length - 1 || y >= width - 1) return
@@ -369,5 +394,9 @@ export function generateTerrain(input: Input): TerrainPlan {
       break
     }
   }
-  return { version: 1, code, pieces: pieces.map((p) => ({ ...p, walls: terrainWalls(p) })) }
+  return {
+    version: 1,
+    code,
+    pieces: pieces.map((p) => ({ ...p, walls: terrainWalls(p), profile: terrainProfile(p) })),
+  }
 }

@@ -3,6 +3,7 @@ import { battlefieldFor } from '../../shared/battlefield'
 import { terrainWalls, type TerrainPiece } from '../../shared/terrain'
 import { labels, type Props } from './common'
 import { TerrainGuide } from './TerrainGuide'
+import { TerrainPieceDetails } from './TerrainPieceDetails'
 
 const format = (value: number) => +value.toFixed(2)
 type LabelBox = { left: number; right: number; top: number; bottom: number }
@@ -311,10 +312,10 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
         обычным roll-off.
       </p>
       <p>
-        Зелёные области содержат плотные руины или здания, песочные — лёгкие препятствия. Плотные
-        стены рекомендуется сделать непрозрачными и высотой не менее 3″. Разместите элементы внутри
-        областей и оставьте место для моделей; проверьте реальные проходы для самых крупных баз и
-        доступ к каждой точке с обеих сторон.
+        Зелёные области содержат открытые плотные руины, песочные — низкие лёгкие баррикады. Базовый
+        набор — глухие стены 4″ и баррикады 1″, без верхних этажей. Форму и размеры каждого элемента
+        можно раскрыть в таблице ниже. Перед игрой проверьте проходы для самых крупных баз и доступ
+        к каждой точке с обеих сторон.
       </p>
       <p>
         У цели-области контроль определяется моделями внутри её границы. Для objective-маркера
@@ -340,7 +341,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
         <p>
           Все значения в дюймах. Начало координат — верхний левый угол поля. Для террейна указаны
           координаты верхнего левого угла области, для объектов — их центры. Значения округлены до
-          0,01″.
+          0,01″. Нажмите название постройки, чтобы увидеть высоту, толщину и расположение стен.
         </p>
         <div className="mission-coordinates">
           <table>
@@ -358,7 +359,9 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
               {plan.pieces.map((p) => (
                 <tr key={p.id}>
                   <td>{p.id}</td>
-                  <td>{p.kind === 'dense' ? 'Плотный' : 'Лёгкий'}</td>
+                  <td>
+                    <TerrainPieceDetails piece={p} />
+                  </td>
                   <td>
                     {p.width} × {p.height}
                   </td>

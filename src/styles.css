@@ -6109,6 +6109,23 @@ button.campaign-choice {
   font-weight: 700;
   padding-bottom: 8px;
 }
+.terrain-piece-details {
+  min-width: 210px;
+  max-width: 440px;
+  font-size: 14px;
+  white-space: normal;
+}
+.terrain-piece-details summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.terrain-piece-details p,
+.terrain-piece-details ol {
+  margin: 12px 0;
+}
+.terrain-piece-details ol {
+  padding-left: 20px;
+}
 .mission-basics dd {
   margin: 4px 0 14px;
 }
