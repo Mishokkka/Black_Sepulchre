@@ -16,6 +16,7 @@ import {
 import { battleCommandError } from '../../shared/battle-ui'
 import { BattlePacket } from './BattlePacket'
 import { TabletopMission } from './TabletopMission'
+import { BattlefieldPlan } from './BattlefieldPlan'
 import { useState } from 'react'
 import Markdown from 'react-markdown'
 import { MissionBrief } from './MissionBrief'
@@ -122,6 +123,11 @@ export function BattleView({ s, side, send }: Props) {
               </div>
             </>
           )}
+        </section>
+      )}
+      {b.mission && ['mission', 'lock', 'muster', 'interdict', 'assets'].includes(s.phase) && (
+        <section className="panel" aria-label="Расстановка поля боя">
+          <BattlefieldPlan s={s} />
         </section>
       )}
       {s.phase === 'lock' && (

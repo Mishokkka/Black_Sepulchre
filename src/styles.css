@@ -6049,6 +6049,20 @@ button.campaign-choice {
   fill: #eee9db;
   font: 1.7px sans-serif;
 }
+.mission-layout svg .terrain-number {
+  font-size: 1.55px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #19231e;
+  stroke-width: 0.3px;
+}
+.mission-layout svg .object-number {
+  font-size: 1.45px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #111914;
+  stroke-width: 0.45px;
+}
 .mission-layout figcaption {
   color: var(--muted);
   font-size: 14px;
@@ -6058,6 +6072,17 @@ button.campaign-choice {
 }
 .mission-coordinates table {
   width: 100%;
+}
+.terrain-details {
+  margin: 20px 0;
+}
+.terrain-details table {
+  margin: 16px 0;
+}
+.terrain-details caption {
+  text-align: left;
+  font-weight: 700;
+  padding-bottom: 8px;
 }
 .mission-basics dd {
   margin: 4px 0 14px;
