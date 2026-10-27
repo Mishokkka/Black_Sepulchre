@@ -39,9 +39,16 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
     else groups.push([object])
     return groups
   }, [])
-  const label = (id: string) =>
-    (({ engine: 'Engine', overlay: 'Terminal', index: 'Index' }) as Record<string, string>)[id] ??
-    id
+  const label = (id: string) => {
+    if (id === 'engine') return code === 'J2' ? 'Mouth' : code === 'J3' ? 'Reactor' : 'Engine'
+    if (id === 'overlay') return b.number <= 14 ? 'Echo Terminal' : 'Contest Anchor'
+    if (id === 'index') return 'Index'
+    if (id === '1' && code === 'B3') return 'Procession'
+    if (id === '1' && code === 'E1') return 'Train'
+    if (id === '1' && code === 'C2') return 'Platform'
+    if (id === '5' && /^[AK]3$/.test(code)) return 'Throne'
+    return id
+  }
   const kind = (value: string) =>
     value === 'objective' ? 'Objective' : value === 'item' ? 'Предмет' : 'Точка взаимодействия'
   const attackers = b.type === 'PACT' ? 'Deathwatch' : labels[b.attacker]
