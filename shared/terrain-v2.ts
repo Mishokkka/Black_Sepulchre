@@ -264,6 +264,19 @@ function anchors(input: TerrainInput): TerrainPiece[] {
 
 function keepsMissionRoutes(p: TerrainPiece, input: TerrainInput) {
   const { mission, length, width, objects } = input
+  // Mission objects start on the ground; do not put a low ceiling over their bases.
+  if (
+    p.platforms?.some((f) =>
+      objects.some(
+        (o) =>
+          Math.hypot(
+            Math.max(f.x - o.x, o.x - f.x - f.width, 0),
+            Math.max(f.y - o.y, o.y - f.y - f.height, 0),
+          ) < 1.05,
+      ),
+    )
+  )
+    return false
   if (mission === 'PACT' && objects.some((o) => o.x >= p.x - 0.5 && o.x <= p.x + p.width + 0.5))
     return false
   if (p.kind === 'dense' && ['B3', 'E1', 'C2'].includes(mission)) {

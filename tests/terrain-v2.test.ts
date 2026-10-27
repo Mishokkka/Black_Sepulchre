@@ -170,6 +170,14 @@ test('all campaign missions scale their v2 kit, retain goals and provide paired 
             assert.equal(f.elevation, 3, label)
             assert.equal(f.thickness, 0.15, label)
             assert.ok(f.width >= 3 && f.height >= 3, label)
+            for (const o of objects)
+              assert.ok(
+                Math.hypot(
+                  Math.max(f.x - o.x, o.x - f.x - f.width, 0),
+                  Math.max(f.y - o.y, o.y - f.y - f.height, 0),
+                ) >= 1.05,
+                `${label}: low ceiling over a mission object`,
+              )
             for (const x of [f.x, f.x + f.width])
               for (const y of [f.y, f.y + f.height])
                 assert.ok(containsPoint(p, x, y), `${label}: floor outside area`)
