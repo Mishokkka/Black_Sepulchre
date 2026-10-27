@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { declareBattle } from '../shared/battle.ts'
-import { battlefieldFor } from '../shared/battlefield.ts'
+import { battlefieldFor, createBattlefield } from '../shared/battlefield.ts'
 import { command, project } from '../shared/engine.ts'
 import type { Battle, SectorKey, State } from '../shared/model.ts'
 import { MISSION_CARDS } from '../shared/rules.generated.ts'
 import { createTable } from '../shared/table.ts'
 import { terrainProfile, terrainWalls } from '../shared/terrain.ts'
+import { generateTerrainV2, TerrainPlacementError } from '../shared/terrain-v2.ts'
 import { context, fixture } from './fixture.ts'
 
 function selected(mission: string, stage = 0) {
@@ -33,7 +34,8 @@ test('every mission freezes public battlefield geometry that survives JSON and b
       const s = selected(mission, stage)
       const setup = s.battle!.battlefield!
       assert.equal(setup.mission, mission)
-      assert.equal(setup.version, 1)
+      assert.equal(setup.version, 2)
+      assert.equal(setup.terrain.version, 2)
       assert.ok(setup.terrain.pieces.length >= 10)
       for (const object of setup.objects)
         assert.deepEqual(Object.keys(object).sort(), ['id', 'kind', 'x', 'y'])
@@ -44,10 +46,11 @@ test('every mission freezes public battlefield geometry that survives JSON and b
         assert.deepEqual(p.profile, {
           wallHeight: p.kind === 'dense' ? 4 : 1,
           maxWallThickness: 0.45,
-          elevatedFloors: 0,
+          elevatedFloors: p.platforms?.length ? 1 : 0,
         })
         assert.deepEqual(terrainProfile(p), p.profile)
       }
+      assert.equal(setup.terrain.pieces.filter((p) => p.platforms?.length).length, 2)
       const restored = JSON.parse(JSON.stringify(s)) as State
       assert.deepEqual(battlefieldFor(restored), setup)
       for (const side of ['deathwatch', 'necrons'] as const)
@@ -68,6 +71,17 @@ test('later table movement and campaign changes cannot change a saved starting b
   assert.deepEqual(terrainWalls({ ...piece, x: piece.x + 1 }), piece.walls)
   const custom = { wallHeight: 5, maxWallThickness: 0.3, elevatedFloors: 0 as const }
   assert.deepEqual(terrainProfile({ ...piece, profile: custom }), custom)
+})
+
+test('saved v1 and unsaved legacy battles keep their original ground-only setup', () => {
+  const s = selected('F1', 2)
+  s.battle!.battlefield = createBattlefield(s, s.battle!.table.objects, 1)
+  const saved = structuredClone(s.battle!.battlefield)
+  assert.equal(saved.terrain.version, 1)
+  assert.ok(saved.terrain.pieces.every((p) => !p.outline && !p.platforms))
+  assert.deepEqual(battlefieldFor(JSON.parse(JSON.stringify(s))), saved)
+  delete s.battle!.battlefield
+  assert.deepEqual(battlefieldFor(s), saved)
 })
 
 test('a mission reroll replaces the saved setup without spending extra game dice', () => {
@@ -93,6 +107,7 @@ test('legacy I2 keeps its markers and coordinates without mutating state on read
   })
   const before = JSON.stringify(s)
   const setup = battlefieldFor(s)
+  assert.equal(setup.version, 1)
   assert.equal(setup.legacyI2, true)
   assert.deepEqual(
     setup.objects.map((o) => o.x),
@@ -117,4 +132,39 @@ test('legacy moving objects are reconstructed at their initial positions', () =>
       y: initial.y,
     })
   }
+})
+
+test('exhausted v2 packing saves a coherent v1 setup that both players retain', () => {
+  const s = selected('C2')
+  // Public interaction points occupy every possible elevated home platform.
+  // Smaller ground-only ruins still fit: exercise the actual failure, without a mock.
+  const objects = [3.5, 26.5].flatMap((y, row) =>
+    [6, 12, 18, 24, 30, 36, 42].map((x, i) => ({
+      id: `point-${row}-${i}`,
+      kind: 'interaction' as const,
+      x,
+      y,
+    })),
+  )
+  assert.throws(
+    () =>
+      generateTerrainV2({
+        battleId: s.battle!.id,
+        mission: 'C2',
+        length: 44,
+        width: 30,
+        deployment: 7,
+        objects,
+      }),
+    TerrainPlacementError,
+  )
+  const setup = createBattlefield(s, objects)
+  assert.equal(setup.version, 1)
+  assert.equal(setup.terrain.version, 1)
+  assert.ok(setup.terrain.pieces.length >= 10)
+  assert.deepEqual(setup, createBattlefield(s, objects, 1))
+  assert.deepEqual(setup.objects, objects)
+  s.battle!.battlefield = setup
+  for (const side of ['deathwatch', 'necrons'] as const)
+    assert.deepEqual(battlefieldFor(project(JSON.parse(JSON.stringify(s)), side)), setup)
 })

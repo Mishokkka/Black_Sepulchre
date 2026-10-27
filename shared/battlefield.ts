@@ -2,12 +2,13 @@ import type { MissionObject, State } from './model.ts'
 import { STAGES } from './rules.ts'
 import { createTable } from './table.ts'
 import { generateTerrain, hasLegacyI2Coordinates, type TerrainPlan } from './terrain.ts'
+import { generateTerrainV2, TerrainPlacementError } from './terrain-v2.ts'
 
 export type BattlefieldObject = Pick<MissionObject, 'id' | 'kind' | 'x' | 'y'>
 
 /** Public setup frozen with the battle, independently of later table actions. */
 export interface BattlefieldSetup {
-  version: 1
+  version: 1 | 2
   mission: string
   length: number
   width: number
@@ -21,6 +22,7 @@ export interface BattlefieldSetup {
 export function createBattlefield(
   s: State,
   initialObjects?: readonly BattlefieldObject[],
+  version: 1 | 2 = 2,
 ): BattlefieldSetup {
   const b = s.battle
   if (!b) throw new Error('Нет текущего боя')
@@ -43,23 +45,34 @@ export function createBattlefield(
         object.y = saved.y
       }
     }
+  const input = {
+    battleId: b.id,
+    mission,
+    length: size.l,
+    width: size.w,
+    deployment: size.d,
+    objects,
+    legacyI2,
+  }
+  let terrain: TerrainPlan
+  if (version === 1) terrain = generateTerrain(input)
+  else {
+    try {
+      terrain = generateTerrainV2(input)
+    } catch (error) {
+      if (!(error instanceof TerrainPlacementError)) throw error
+      terrain = generateTerrain(input)
+    }
+  }
   return {
-    version: 1,
+    version: terrain.version,
     mission,
     length: size.l,
     width: size.w,
     deployment: size.d,
     legacyI2,
     objects,
-    terrain: generateTerrain({
-      battleId: b.id,
-      mission,
-      length: size.l,
-      width: size.w,
-      deployment: size.d,
-      objects,
-      legacyI2,
-    }),
+    terrain,
   }
 }
 
@@ -67,5 +80,7 @@ export function createBattlefield(
 export function battlefieldFor(s: State): BattlefieldSetup {
   const b = s.battle
   if (!b) throw new Error('Нет текущего боя')
-  return b.battlefield?.mission === (b.mission ?? b.type) ? b.battlefield : createBattlefield(s)
+  return b.battlefield?.mission === (b.mission ?? b.type)
+    ? b.battlefield
+    : createBattlefield(s, undefined, 1)
 }
