@@ -254,33 +254,11 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
               />
             )}
             {plan.pieces.map((p) => {
-              const number = terrainNumbers.get(p.id)!
-              const anchor = { x: number.x, y: number.y - 0.6 }
-              const boundary = terrainOutline(p)
-              const leader = boundary
-                .map((a, i) => {
-                  const b = boundary[(i + 1) % boundary.length],
-                    dx = b.x - a.x,
-                    dy = b.y - a.y
-                  const t = Math.max(
-                    0,
-                    Math.min(
-                      1,
-                      ((anchor.x - a.x) * dx + (anchor.y - a.y) * dy) / (dx * dx + dy * dy),
-                    ),
-                  )
-                  return { x: a.x + t * dx, y: a.y + t * dy }
-                })
-                .sort(
-                  (a, b) =>
-                    Math.hypot(a.x - anchor.x, a.y - anchor.y) -
-                    Math.hypot(b.x - anchor.x, b.y - anchor.y),
-                )[0]
               const wall = terrainWalls(p)
                 .map((segment) => `M ${segment.x1} ${segment.y1} L ${segment.x2} ${segment.y2}`)
                 .join(' ')
               return (
-                <g key={p.id}>
+                <g key={p.id} data-terrain-id={p.id}>
                   <title>{`${p.id}: ${p.kind === 'dense' ? 'плотный' : 'лёгкий'} террейн, ${p.width} × ${p.height}″`}</title>
                   <polygon
                     points={terrainOutline(p)
@@ -313,6 +291,34 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
                       <title>{`${p.id}: доступный этаж +${floor.elevation}″, ${floor.width} × ${floor.height}″`}</title>
                     </rect>
                   ))}
+                </g>
+              )
+            })}
+            {plan.pieces.map((p) => {
+              const number = terrainNumbers.get(p.id)!
+              const anchor = { x: number.x, y: number.y - 0.6 }
+              const boundary = terrainOutline(p)
+              const leader = boundary
+                .map((a, i) => {
+                  const b = boundary[(i + 1) % boundary.length],
+                    dx = b.x - a.x,
+                    dy = b.y - a.y
+                  const t = Math.max(
+                    0,
+                    Math.min(
+                      1,
+                      ((anchor.x - a.x) * dx + (anchor.y - a.y) * dy) / (dx * dx + dy * dy),
+                    ),
+                  )
+                  return { x: a.x + t * dx, y: a.y + t * dy }
+                })
+                .sort(
+                  (a, b) =>
+                    Math.hypot(a.x - anchor.x, a.y - anchor.y) -
+                    Math.hypot(b.x - anchor.x, b.y - anchor.y),
+                )[0]
+              return (
+                <g key={p.id}>
                   {!containsPoint(p, anchor.x, anchor.y) && (
                     <line
                       x1={leader.x}
