@@ -167,10 +167,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
                     : `M ${x1} ${y1} H ${x2}`
               return (
                 <g key={p.id}>
-                  <title>
-                    {p.id}: {p.kind === 'dense' ? 'плотный' : 'лёгкий'} террейн, {p.width} ×{' '}
-                    {p.height}″
-                  </title>
+                  <title>{`${p.id}: ${p.kind === 'dense' ? 'плотный' : 'лёгкий'} террейн, ${p.width} × ${p.height}″`}</title>
                   <rect
                     x={p.x}
                     y={p.y}
