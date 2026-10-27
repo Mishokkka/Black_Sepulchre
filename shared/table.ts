@@ -138,6 +138,8 @@ export function createTable(s: State, mission: string, ctx: Context): TableState
   }))
   if (code === 'A2') objects[1].kind = 'objective'
   if (code === 'I1') objects[4].kind = 'objective'
+  // Tomb Street places one objective at the centre of each of its three lanes.
+  if (code === 'I2') objects.forEach((o, i) => (o.x = (l * (2 * i + 1)) / 6))
   if (code === 'J3') objects[1].y = w * 0.5 - g / 4
   if (['WAR', 'PACT', 'J2', 'J3'].includes(code))
     objects.push({

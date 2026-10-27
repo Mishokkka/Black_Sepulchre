@@ -264,6 +264,8 @@ export interface Battle {
   breaches: number
   defAsset: boolean
   table: TableState
+  /** Public initial terrain and objectives, saved by the engine after mission selection. */
+  battlefield?: import('./battlefield.ts').BattlefieldSetup
   report: Report | null
   confirm: Side[]
   outcome: Side | 'draw' | 'both_win' | 'both_lose' | null

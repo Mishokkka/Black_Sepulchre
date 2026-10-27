@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { randomUUID } from 'node:crypto'
 import { declareBattle } from '../../shared/battle'
+import { createBattlefield } from '../../shared/battlefield'
 import { command } from '../../shared/engine'
 import { createTable } from '../../shared/table'
 import { stageFor } from '../../shared/rules'
@@ -246,12 +247,103 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
     await contexts[0].setOffline(false)
     await expect(a.getByLabel('Связь и синхронизация')).toContainText('Состояние проверено')
 
+    // Select two mission types through the real Edge endpoint, then compare the
+    // persisted public setup across both sessions and a full browser reload.
+    for (const mission of ['I2', 'F2']) {
+      const current = await load(0),
+        selection = structuredClone(current)
+      selection.phase = 'mission'
+      selection.battle!.mission = null
+      selection.battle!.options = [mission]
+      selection.battle!.missionPass = []
+      delete selection.battle!.battlefield
+      selection.version = current.version + 1
+      const seeded = await admin.rpc('v221_commit', {
+        p_campaign: id,
+        p_actor: accounts[0].id,
+        p_expected: current.version,
+        p_request: randomUUID(),
+        p_fingerprint: `terrain-fixture-${mission}`,
+        p_command: 'e2e_terrain_fixture',
+        p_state: selection,
+      })
+      if (seeded.error) throw seeded.error
+      const request = {
+        campaignId: id,
+        requestId: randomUUID(),
+        expectedVersion: selection.version,
+        command: { type: 'choose_mission', payload: { code: mission } },
+      }
+      const selected = await accounts[1].api.functions.invoke('campaign-engine', { body: request })
+      if (selected.error) throw selected.error
+      const views = await Promise.all([load(0), load(1)])
+      const setup = views[0].battle!.battlefield!
+      expect(setup.mission).toBe(mission)
+      expect(setup.version).toBe(1)
+      expect(views[1].battle!.battlefield).toEqual(setup)
+      const stored = await admin.rpc('v221_load', { p_campaign: id, p_actor: accounts[0].id })
+      if (stored.error) throw stored.error
+      expect(stored.data.state.battle.battlefield).toEqual(setup)
+      expect(setup.objects.every((o) => Object.keys(o).sort().join(',') === 'id,kind,x,y')).toBe(
+        true,
+      )
+      expect(JSON.stringify(setup)).not.toContain('trueSignal')
+      if (mission === 'F2')
+        for (const view of views) {
+          expect(view.battle!.hiddenSignal).toBe('')
+          expect(view.battle!.table.records).not.toHaveProperty('trueSignal')
+        }
+      const replay = await accounts[1].api.functions.invoke('campaign-engine', { body: request })
+      if (replay.error) throw replay.error
+      expect(replay.data.replayed).toBe(true)
+      expect(replay.data.state.version).toBe(views[0].version)
+      expect(replay.data.state.battle.battlefield).toEqual(setup)
+      for (const p of pages) {
+        await refresh(p)
+        await expect(p.getByLabel('Связь и синхронизация')).toContainText(
+          `Версия состояния: ${views[0].version}`,
+        )
+        await p.getByRole('button', { name: 'Текущий бой', exact: true }).click()
+        const plan = p.locator('.battlefield-plan')
+        await expect(plan.locator('h3')).toContainText(setup.terrain.code)
+        if (!(await plan.locator('.terrain-details').evaluate((e) => e.hasAttribute('open'))))
+          await plan.getByText('Размеры и координаты для расстановки').click()
+        const dense = setup.terrain.pieces.find((piece) => piece.kind === 'dense')!
+        expect(dense.profile).toEqual({
+          wallHeight: 4,
+          maxWallThickness: 0.45,
+          elevatedFloors: 0,
+        })
+        const recipe = plan
+          .getByLabel(`Описание террейна ${dense.id}`, { exact: true })
+          .locator('..')
+        if (!(await recipe.evaluate((e) => e.hasAttribute('open'))))
+          await recipe.locator('summary').click()
+        await expect(recipe).toHaveAttribute('open', '')
+        await expect(recipe).toContainText('Высота физических стен — 4″')
+        await expect(recipe.locator('li')).toHaveCount(dense.walls!.length)
+        if (mission === 'I2') {
+          await expect(plan.locator('td').filter({ hasText: /^Objective: область / })).toHaveCount(
+            3,
+          )
+          await expect(plan.locator('table').first()).toContainText('4.33')
+        }
+      }
+      await a.reload()
+      await expect(a.getByLabel('Связь и синхронизация')).toContainText(
+        `Версия состояния: ${views[0].version}`,
+      )
+      await a.getByRole('button', { name: 'Текущий бой', exact: true }).click()
+      await expect(a.locator('.battlefield-plan h3')).toContainText(setup.terrain.code)
+    }
+
     // Seed only this disposable campaign's tabletop. All events and agreement use real clients.
     const beforeTable = await load(0),
       live = structuredClone(beforeTable),
       battle = live.battle!
     battle.mission = 'F1'
     battle.table = createTable(live, 'F1', ctx('deathwatch'))
+    battle.battlefield = createBattlefield(live, battle.table.objects)
     for (const side of ['deathwatch', 'necrons'] as Side[]) {
       const units = live.units.filter((u) => u.side === side)
       battle.muster[side] = {
@@ -291,6 +383,18 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
     await b.getByRole('button', { name: 'Текущий бой', exact: true }).click()
     await expect(b.getByRole('button', { name: 'Завершить шаг', exact: true })).toHaveCount(0)
     await expect(b.getByLabel('Начальная расстановка и координаты объектов миссии')).toBeVisible()
+    await refresh(a)
+    await a.getByRole('button', { name: 'Текущий бой', exact: true }).click()
+    await expect(a.getByLabel('Начальная расстановка и координаты объектов миссии')).toBeVisible()
+    const aPlan = a.locator('.battlefield-plan'),
+      bPlan = b.locator('.battlefield-plan')
+    await expect(aPlan.locator('h3')).toHaveText(await bPlan.locator('h3').innerText())
+    await aPlan.getByText('Размеры и координаты для расстановки').click()
+    await bPlan.getByText('Размеры и координаты для расстановки').click()
+    const aTerrain = aPlan.locator('table').first().locator('tbody tr')
+    const bTerrain = bPlan.locator('table').first().locator('tbody tr')
+    expect(await aTerrain.count()).toBeGreaterThanOrEqual(6)
+    expect(await aTerrain.allTextContents()).toEqual(await bTerrain.allTextContents())
     await b.getByText('Внести результат боя', { exact: true }).click()
     await b.getByLabel('VP Deathwatch', { exact: true }).fill('20')
     await b.getByLabel('VP Necrons', { exact: true }).fill('20')

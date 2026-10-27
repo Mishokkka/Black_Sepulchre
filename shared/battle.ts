@@ -25,6 +25,7 @@ import {
 import { underdog, validateMuster } from './muster.ts'
 import { enhancementBearers, bindEnhancement } from './enhancements.ts'
 import { createTable } from './table.ts'
+import { createBattlefield } from './battlefield.ts'
 export function declareBattle(
   s: State,
   sector: SectorKey | 'X',
@@ -184,6 +185,7 @@ export function battleCommand(s: State, c: Command, ctx: Context) {
       b.mission = String(c.payload.code)
       b.options = []
       b.table = createTable(s, b.mission, ctx)
+      b.battlefield = createBattlefield(s, b.table.objects)
       if (b.type === 'assault' && /[AK]2/.test(b.mission))
         b.pool += Math.floor((b.al * 0.1) / 5) * 5
       return
@@ -213,6 +215,7 @@ export function battleCommand(s: State, c: Command, ctx: Context) {
         if (b.type === 'assault' && b.mission.endsWith('2'))
           b.pool += Math.floor((b.al * 0.1) / 5) * 5
         b.table = createTable(s, b.mission, ctx)
+        b.battlefield = createBattlefield(s, b.table.objects)
       }
       return
     case 'mission_pass':

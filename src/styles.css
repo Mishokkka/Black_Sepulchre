@@ -6049,6 +6049,20 @@ button.campaign-choice {
   fill: #eee9db;
   font: 1.7px sans-serif;
 }
+.mission-layout svg .terrain-number {
+  font-size: 1.55px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #19231e;
+  stroke-width: 0.3px;
+}
+.mission-layout svg .object-number {
+  font-size: 1.45px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #111914;
+  stroke-width: 0.45px;
+}
 .mission-layout figcaption {
   color: var(--muted);
   font-size: 14px;
@@ -6058,6 +6072,59 @@ button.campaign-choice {
 }
 .mission-coordinates table {
   width: 100%;
+}
+.terrain-guide {
+  margin: 24px 0;
+}
+.terrain-guide-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+.terrain-guide-cards article {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(138, 158, 124, 0.08);
+}
+.terrain-guide-cards p {
+  margin: 8px 0 0;
+}
+.terrain-guide details {
+  margin: 14px 0;
+}
+.terrain-guide summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.terrain-details {
+  margin: 20px 0;
+}
+.terrain-details table {
+  margin: 16px 0;
+}
+.terrain-details caption {
+  text-align: left;
+  font-weight: 700;
+  padding-bottom: 8px;
+}
+.terrain-piece-details {
+  min-width: 210px;
+  max-width: 440px;
+  font-size: 14px;
+  white-space: normal;
+}
+.terrain-piece-details summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.terrain-piece-details p,
+.terrain-piece-details ol {
+  margin: 12px 0;
+}
+.terrain-piece-details ol {
+  padding-left: 20px;
 }
 .mission-basics dd {
   margin: 4px 0 14px;
