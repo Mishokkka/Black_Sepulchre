@@ -65,46 +65,48 @@ test('all campaign mission geometries have paired terrain, accessible points and
       if (['WAR', 'PACT'].includes(mission) && stage !== 2) continue
       const size = ['WAR', 'PACT'].includes(mission) ? { l: 60, w: 44, d: 12 } : STAGES[stage]
       const objects = createTable(s, mission, context()).objects
-      const plan = generateTerrain({
-        battleId: `battle-${stage}-${mission}`,
-        mission,
-        length: size.l,
-        width: size.w,
-        deployment: size.d,
-        objects,
-      })
-      assert.ok(plan.pieces.length >= 6, `${mission} / ${size.l}×${size.w}: too little terrain`)
-      assert.ok(
-        infantryCanReachObjects(size.l, size.w, mission === 'C3', plan.pieces, objects),
-        mission,
-      )
-      const onAttackerSide = (p: (typeof plan.pieces)[number]) =>
-        mission === 'C3' ? p.x + p.width <= size.d : p.y + p.height <= size.d
-      const inMiddle = (p: (typeof plan.pieces)[number]) =>
-        mission === 'C3'
-          ? p.x >= size.d && p.x + p.width <= size.l - size.d
-          : p.y >= size.d && p.y + p.height <= size.w - size.d
-      assert.ok(
-        plan.pieces.some((p) => p.kind === 'dense' && onAttackerSide(p)),
-        `${mission}: deployment cover`,
-      )
-      assert.ok(
-        plan.pieces.some((p) => p.kind === 'dense' && inMiddle(p)),
-        `${mission}: forward cover`,
-      )
-      for (let i = 0; i < plan.pieces.length; i += 2) {
-        const a = plan.pieces[i],
-          b = plan.pieces[i + 1]
-        assert.equal(a.kind, b.kind)
-        assert.equal(a.x + b.x + a.width, size.l)
-        assert.equal(a.y + b.y + a.height, size.w)
-        for (const p of [a, b]) {
-          assert.ok(p.x >= 0 && p.y >= 0 && p.x + p.width <= size.l && p.y + p.height <= size.w)
-          for (const o of objects)
-            assert.ok(distance(p, o.x, o.y) >= 3, `${mission}: object clearance`)
-          if (mission === 'PACT')
+      for (let variant = 0; variant < 8; variant++) {
+        const plan = generateTerrain({
+          battleId: `sample-${variant}-${mission}`,
+          mission,
+          length: size.l,
+          width: size.w,
+          deployment: size.d,
+          objects,
+        })
+        assert.ok(plan.pieces.length >= 6, `${mission} / ${size.l}×${size.w}: too little terrain`)
+        assert.ok(
+          infantryCanReachObjects(size.l, size.w, mission === 'C3', plan.pieces, objects),
+          mission,
+        )
+        const onAttackerSide = (p: (typeof plan.pieces)[number]) =>
+          mission === 'C3' ? p.x + p.width <= size.d : p.y + p.height <= size.d
+        const inMiddle = (p: (typeof plan.pieces)[number]) =>
+          mission === 'C3'
+            ? p.x >= size.d && p.x + p.width <= size.l - size.d
+            : p.y >= size.d && p.y + p.height <= size.w - size.d
+        assert.ok(
+          plan.pieces.some((p) => p.kind === 'dense' && onAttackerSide(p)),
+          `${mission}: deployment cover`,
+        )
+        assert.ok(
+          plan.pieces.some((p) => p.kind === 'dense' && inMiddle(p)),
+          `${mission}: forward cover`,
+        )
+        for (let i = 0; i < plan.pieces.length; i += 2) {
+          const a = plan.pieces[i],
+            b = plan.pieces[i + 1]
+          assert.equal(a.kind, b.kind)
+          assert.equal(a.x + b.x + a.width, size.l)
+          assert.equal(a.y + b.y + a.height, size.w)
+          for (const p of [a, b]) {
+            assert.ok(p.x >= 0 && p.y >= 0 && p.x + p.width <= size.l && p.y + p.height <= size.w)
             for (const o of objects)
-              assert.ok(o.x < p.x - 0.5 || o.x > p.x + p.width + 0.5, 'PACT sight line')
+              assert.ok(distance(p, o.x, o.y) >= 3, `${mission}: object clearance`)
+            if (mission === 'PACT')
+              for (const o of objects)
+                assert.ok(o.x < p.x - 0.5 || o.x > p.x + p.width + 0.5, 'PACT sight line')
+          }
         }
       }
     }
