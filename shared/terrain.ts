@@ -18,6 +18,8 @@ export interface TerrainPiece {
   objectiveId?: string
   /** Two opposite corners keep an area on the centre line symmetric. */
   symmetric?: boolean
+  /** Saved wall segments keep physical geometry stable after future client updates. */
+  walls?: TerrainWall[]
 }
 
 export interface TerrainPlan {
@@ -37,7 +39,7 @@ interface Input {
   legacyI2?: boolean
 }
 
-interface Segment {
+export interface TerrainWall {
   x1: number
   y1: number
   x2: number
@@ -86,7 +88,8 @@ export const containsPoint = (r: Rect, x: number, y: number) =>
   x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height
 
 /** Suggested physical walls inside an area. These are not the area boundary. */
-export function terrainWalls(p: TerrainPiece): Segment[] {
+export function terrainWalls(p: TerrainPiece): TerrainWall[] {
+  if (p.walls) return p.walls
   const x1 = p.x + 0.7,
     x2 = p.x + p.width - 0.7,
     y1 = p.y + 0.7,
@@ -113,7 +116,7 @@ export function terrainWalls(p: TerrainPiece): Segment[] {
       ]
 }
 
-const distanceToSegment = (wall: Segment, x: number, y: number) => {
+const distanceToSegment = (wall: TerrainWall, x: number, y: number) => {
   const dx = wall.x2 - wall.x1,
     dy = wall.y2 - wall.y1,
     square = dx * dx + dy * dy
@@ -366,5 +369,5 @@ export function generateTerrain(input: Input): TerrainPlan {
       break
     }
   }
-  return { version: 1, code, pieces }
+  return { version: 1, code, pieces: pieces.map((p) => ({ ...p, walls: terrainWalls(p) })) }
 }

@@ -2,6 +2,11 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
+import { declareBattle } from '../shared/battle.ts'
+import { battlefieldFor } from '../shared/battlefield.ts'
+import { command, project } from '../shared/engine.ts'
+import type { State } from '../shared/model.ts'
+import { context, fixture } from './fixture.ts'
 test('SQL migration enforces membership, private state, replay and optimistic commit', async () => {
   const db = new PGlite()
   await db.exec(
@@ -117,5 +122,58 @@ test('SQL migration enforces membership, private state, replay and optimistic co
     'select state from campaign_private.states',
   )
   assert.equal(saved.rows[0].state.version, 1)
+
+  // Exercise the actual JSONB commit/load path with a complete mission setup.
+  const campaign = fixture()
+  campaign.id = cid
+  campaign.version = 1
+  declareBattle(campaign, 'I', 'deathwatch', false, context())
+  campaign.battle!.options = ['I2']
+  const selected = command(campaign, { type: 'choose_mission', payload: { code: 'I2' } }, context())
+  const battlefield = structuredClone(selected.battle!.battlefield!)
+  const terrainRequest = '00000000-0000-4000-8000-000000000006'
+  const terrainParams = [
+    cid,
+    actor,
+    1,
+    terrainRequest,
+    'terrain-selection',
+    'choose_mission',
+    JSON.stringify(selected),
+  ]
+  await db.query('select v221_commit($1,$2,$3,$4,$5,$6,$7::jsonb)', terrainParams)
+  for (const [account, side] of [
+    [actor, 'deathwatch'],
+    [outsider, 'necrons'],
+  ] as const) {
+    const loaded = await db.query<{ data: { state: State; side: typeof side } }>(
+      'select v221_load($1,$2) data',
+      [cid, account],
+    )
+    assert.equal(loaded.rows[0].data.side, side)
+    assert.deepEqual(loaded.rows[0].data.state.battle!.battlefield, battlefield)
+    assert.deepEqual(battlefieldFor(project(loaded.rows[0].data.state, side)), battlefield)
+  }
+  const altered = structuredClone(selected)
+  altered.battle!.battlefield!.terrain.pieces = []
+  const repeated = await db.query<{ v221_commit: { replayed: boolean } }>(
+    'select v221_commit($1,$2,$3,$4,$5,$6,$7::jsonb)',
+    [...terrainParams.slice(0, 6), JSON.stringify(altered)],
+  )
+  assert.equal(repeated.rows[0].v221_commit.replayed, true)
+  const unchanged = await db.query<{ state: State }>('select state from campaign_private.states')
+  assert.deepEqual(unchanged.rows[0].state.battle!.battlefield, battlefield)
+  await assert.rejects(
+    db.query('select v221_commit($1,$2,$3,$4,$5,$6,$7::jsonb)', [
+      cid,
+      actor,
+      1,
+      '00000000-0000-4000-8000-000000000007',
+      'stale-terrain',
+      'choose_mission',
+      JSON.stringify(selected),
+    ]),
+    /STATE_CONFLICT/,
+  )
   await db.close()
 })

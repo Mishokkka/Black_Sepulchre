@@ -1,57 +1,57 @@
 import { useId, useMemo } from 'react'
-import { STAGES } from '../../shared/rules'
-import { createTable } from '../../shared/table'
-import {
-  generateTerrain,
-  hasLegacyI2Coordinates,
-  isTerrainObjective,
-  terrainWalls,
-} from '../../shared/terrain'
+import { battlefieldFor } from '../../shared/battlefield'
+import { terrainWalls, type TerrainPiece } from '../../shared/terrain'
 import { labels, type Props } from './common'
 import { TerrainGuide } from './TerrainGuide'
 
 const format = (value: number) => +value.toFixed(2)
+type LabelBox = { left: number; right: number; top: number; bottom: number }
+
+/** Prefer the centre, then a free corner, so mission symbols cannot cover area IDs. */
+function terrainNumberPosition(p: TerrainPiece, occupied: LabelBox[], boardHeight: number) {
+  const halfWidth = Math.max(0.8, p.id.length * 0.45)
+  const left = p.x + halfWidth + 0.25,
+    right = p.x + p.width - halfWidth - 0.25
+  const top = p.y + 1.5,
+    bottom = p.y + p.height - 0.4
+  const centre = { x: p.x + p.width / 2, y: p.y + p.height / 2 + 0.5 }
+  const candidates = [
+    ...(p.objectiveId ? [] : [centre]),
+    { x: right, y: top },
+    { x: left, y: bottom },
+    { x: left, y: top },
+    { x: right, y: bottom },
+    { x: centre.x, y: p.y - 0.4 },
+    { x: centre.x, y: p.y + p.height + 1.5 },
+  ].filter(({ y }) => y >= 1.4 && y + 0.4 <= boardHeight)
+  const collisions = ({ x, y }: { x: number; y: number }) =>
+    occupied.reduce(
+      (sum, box) =>
+        sum +
+        Math.max(0, Math.min(x + halfWidth, box.right) - Math.max(x - halfWidth, box.left)) *
+          Math.max(0, Math.min(y + 0.4, box.bottom) - Math.max(y - 1.4, box.top)),
+      0,
+    )
+  return candidates.reduce((best, candidate) =>
+    collisions(candidate) < collisions(best) ? candidate : best,
+  )
+}
 
 export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
   const b = s.battle!
   const code = b.mission ?? b.type
-  const size = ['WAR', 'PACT'].includes(b.type) ? { l: 60, w: 44, d: 12 } : STAGES[b.stage]
-  const short = code === 'C3'
   const clipId = useId()
-  // Reconstruct the starting positions, independent of any old battle journal.
-  const table = createTable({ ...s, stage: b.stage, battles: b.number - 1 }, code, {
-    actor: b.attacker,
-    dice: () => 1,
-    id: () => '',
-  })
-  // I2 objectives are stationary. Preserve the published starting coordinates
-  // of already-created battles rather than silently moving them after deployment.
-  const legacyI2 = code === 'I2' && hasLegacyI2Coordinates(size.l, size.w, b.table?.objects ?? [])
-  if (legacyI2) {
-    for (const object of table.objects) {
-      const saved = b.table.objects.find((o) => o.id === object.id)
-      if (saved && ['1', '2', '3'].includes(object.id)) {
-        object.x = saved.x
-        object.y = saved.y
-      }
-    }
-  }
-  const objectKey = table.objects.map((o) => `${o.id}:${o.kind}:${o.x}:${o.y}`).join('|')
-  const plan = useMemo(
-    () =>
-      generateTerrain({
-        battleId: b.id,
-        mission: code,
-        length: size.l,
-        width: size.w,
-        deployment: size.d,
-        objects: table.objects,
-        legacyI2,
-      }),
-    // The key contains every coordinate that influences placement.
+  const objectKey = b.table.objects.map((o) => `${o.id}:${o.kind}:${o.x}:${o.y}`).join('|')
+  const setup = useMemo(
+    () => battlefieldFor(s),
+    // Old battles reconstruct v1 from public starting geometry; new battles use their saved setup.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [b.id, code, size.l, size.w, size.d, objectKey, legacyI2],
+    [b.battlefield, b.id, code, b.type, b.stage, b.number, s.choir, objectKey],
   )
+  const size = { l: setup.length, w: setup.width, d: setup.deployment }
+  const short = code === 'C3'
+  const { terrain: plan, legacyI2 } = setup
+  const table = { objects: setup.objects }
   const grouped = table.objects.reduce<(typeof table.objects)[]>((groups, object) => {
     const group = groups.find((g) => g[0].x === object.x && g[0].y === object.y)
     if (group) group.push(object)
@@ -70,12 +70,44 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
   }
   const kind = (o: (typeof table.objects)[number]) =>
     o.kind === 'objective'
-      ? isTerrainObjective(code, o, legacyI2)
+      ? plan.pieces.some((p) => p.objectiveId === o.id)
         ? `Objective: область ${plan.pieces.find((p) => p.objectiveId === o.id)?.id ?? '?'}`
         : 'Objective: маркер Ø40 мм'
       : o.kind === 'item'
         ? 'Предмет'
         : 'Точка взаимодействия'
+  const objectPresentation = grouped.map((group) => {
+    const o = group[0]
+    const areaObjective = group.some((v) => plan.pieces.some((p) => p.objectiveId === v.id))
+    const name = group.map((v) => label(v.id)).join(' / ')
+    const edge = Math.max(2, name.length * 0.5)
+    const anchor: 'start' | 'end' | 'middle' =
+      o.x < edge ? 'start' : o.x > size.l - edge ? 'end' : 'middle'
+    const labelX = anchor === 'start' ? o.x + 0.8 : anchor === 'end' ? o.x - 0.8 : o.x
+    const labelY = o.y < (areaObjective ? 4.5 : 3) ? o.y + 2.5 : o.y - (areaObjective ? 2.8 : 1.4)
+    return { group, o, areaObjective, name, anchor, labelX, labelY }
+  })
+  const occupied = objectPresentation.flatMap(({ o, name, anchor, labelX, labelY }) => {
+    const width = Math.max(0.9, name.length * 0.8)
+    const left =
+      anchor === 'start' ? labelX : anchor === 'end' ? labelX - width : labelX - width / 2
+    return [
+      { left: o.x - 1.1, right: o.x + 1.1, top: o.y - 1.1, bottom: o.y + 1.1 },
+      { left, right: left + width, top: labelY - 1.4, bottom: labelY + 0.3 },
+    ]
+  })
+  const terrainNumbers = new Map<string, { x: number; y: number }>()
+  for (const p of plan.pieces) {
+    const position = terrainNumberPosition(p, occupied, size.w)
+    terrainNumbers.set(p.id, position)
+    const halfWidth = Math.max(0.8, p.id.length * 0.45)
+    occupied.push({
+      left: position.x - halfWidth,
+      right: position.x + halfWidth,
+      top: position.y - 1.4,
+      bottom: position.y + 0.4,
+    })
+  }
   const attackers = b.type === 'PACT' ? 'Deathwatch' : labels[b.attacker]
   const defenders = b.type === 'PACT' ? 'Necrons' : labels[b.defender]
   const dense = plan.pieces.filter((p) => p.kind === 'dense').length
@@ -184,6 +216,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
               />
             )}
             {plan.pieces.map((p) => {
+              const number = terrainNumbers.get(p.id)!
               const wall = terrainWalls(p)
                 .map((segment) => `M ${segment.x1} ${segment.y1} L ${segment.x2} ${segment.y2}`)
                 .join(' ')
@@ -205,27 +238,15 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
                     stroke={p.kind === 'dense' ? '#c9d7bd' : '#e6d7ab'}
                     strokeWidth=".45"
                   />
-                  <text
-                    x={p.objectiveId ? p.x + p.width - 1.1 : p.x + p.width / 2}
-                    y={p.objectiveId ? p.y + 1.45 : p.y + p.height / 2 + 0.5}
-                    textAnchor="middle"
-                    className="terrain-number"
-                  >
+                  <text x={number.x} y={number.y} textAnchor="middle" className="terrain-number">
                     {p.id}
                   </text>
                 </g>
               )
             })}
-            {grouped.map((group) => {
-              const o = group[0]
-              const areaObjective = group.some((v) => isTerrainObjective(code, v, legacyI2))
+            {objectPresentation.map(({ group, o, areaObjective, name, anchor, labelX, labelY }) => {
               const objective = group.some((v) => v.kind === 'objective')
               const item = group.some((v) => v.kind === 'item')
-              const name = group.map((v) => label(v.id)).join(' / ')
-              // Long labels at the table edge must stay inside the SVG clip.
-              const edge = Math.max(2, name.length * 0.5)
-              const anchor = o.x < edge ? 'start' : o.x > size.l - edge ? 'end' : 'middle'
-              const labelX = anchor === 'start' ? o.x + 0.8 : anchor === 'end' ? o.x - 0.8 : o.x
               return (
                 <g key={group.map((v) => v.id).join('-')}>
                   <title>{group.map((v) => `${label(v.id)}: ${kind(v)}`).join('; ')}</title>
@@ -262,16 +283,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
                       strokeWidth=".22"
                     />
                   )}
-                  <text
-                    x={labelX}
-                    y={
-                      o.y < (areaObjective ? 4.5 : 3)
-                        ? o.y + 2.5
-                        : o.y - (areaObjective ? 2.8 : 1.4)
-                    }
-                    textAnchor={anchor}
-                    className="object-number"
-                  >
+                  <text x={labelX} y={labelY} textAnchor={anchor} className="object-number">
                     {name}
                   </text>
                 </g>
