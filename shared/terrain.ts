@@ -33,6 +33,8 @@ interface Input {
   width: number
   deployment: number
   objects: TerrainObject[]
+  /** Battles created before I2's geometry fix used objective markers. */
+  legacyI2?: boolean
 }
 
 interface Segment {
@@ -52,9 +54,26 @@ const AREA_OBJECTIVES: Record<string, readonly string[]> = {
   I2: ['1', '2', '3'],
 }
 
-export function isTerrainObjective(mission: string, object: TerrainObject) {
+export function isTerrainObjective(mission: string, object: TerrainObject, legacyI2 = false) {
   const code = mission.replace(/^K/, 'A')
-  return object.kind === 'objective' && !!object.id && !!AREA_OBJECTIVES[code]?.includes(object.id)
+  return (
+    !(code === 'I2' && legacyI2) &&
+    object.kind === 'objective' &&
+    !!object.id &&
+    !!AREA_OBJECTIVES[code]?.includes(object.id)
+  )
+}
+
+/** I2 battles created before its coordinate correction keep their saved points. */
+export function hasLegacyI2Coordinates(length: number, width: number, objects: TerrainObject[]) {
+  return [0.25, 0.5, 0.75].every((fraction, i) => {
+    const object = objects.find((o) => o.id === String(i + 1))
+    return (
+      object?.kind === 'objective' &&
+      Math.abs(object.x - length * fraction) < 0.001 &&
+      Math.abs(object.y - width / 2) < 0.001
+    )
+  })
 }
 
 const rectDistance = (a: Rect, b: Rect) =>
@@ -217,7 +236,7 @@ export function generateTerrain(input: Input): TerrainPlan {
   const roll = random(seed)
   const code = seed.toString(36).toUpperCase().padStart(7, '0')
   const pieces: TerrainPiece[] = []
-  const areaObjects = objects.filter((o) => isTerrainObjective(mission, o))
+  const areaObjects = objects.filter((o) => isTerrainObjective(mission, o, input.legacyI2))
   const done = new Set<string>()
   let index = 1
 

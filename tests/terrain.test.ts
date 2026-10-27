@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   containsPoint,
   generateTerrain,
+  hasLegacyI2Coordinates,
   infantryCanReachObjects,
   isTerrainObjective,
   terrainWalls,
@@ -42,6 +43,37 @@ test('Tomb Street objectives are at the centres of its three lanes', () => {
     createTable(s, 'I2', context()).objects.map((o) => o.x),
     [10, 30, 50],
   )
+})
+
+test('already-created I2 battles retain their legacy coordinates', () => {
+  const s = fixture()
+  for (const stage of [0, 1, 2]) {
+    s.stage = stage
+    const { l, w } = STAGES[stage]
+    const objects = createTable(s, 'I2', context()).objects
+    assert.equal(hasLegacyI2Coordinates(l, w, objects), false)
+    const old = objects.map((o) => ({ ...o }))
+    old.forEach((o, i) => {
+      o.x = l * [0.25, 0.5, 0.75][i]
+    })
+    assert.equal(hasLegacyI2Coordinates(l, w, old), true)
+    assert.ok(old.every((o) => !isTerrainObjective('I2', o, true)))
+    const plan = generateTerrain({
+      battleId: 'old-i2',
+      mission: 'I2',
+      length: l,
+      width: w,
+      deployment: STAGES[stage].d,
+      objects: old,
+      legacyI2: true,
+    })
+    assert.ok(
+      plan.pieces.every((p) => !p.objectiveId),
+      'legacy I2 must keep marker objectives',
+    )
+    old[0].kind = 'item'
+    assert.equal(hasLegacyI2Coordinates(l, w, old), false)
+  }
 })
 
 test('terrain remains reproducible and varies with the shared battle ID', () => {

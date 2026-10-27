@@ -1,7 +1,12 @@
 import { useId, useMemo } from 'react'
 import { STAGES } from '../../shared/rules'
 import { createTable } from '../../shared/table'
-import { generateTerrain, isTerrainObjective, terrainWalls } from '../../shared/terrain'
+import {
+  generateTerrain,
+  hasLegacyI2Coordinates,
+  isTerrainObjective,
+  terrainWalls,
+} from '../../shared/terrain'
 import { labels, type Props } from './common'
 import { TerrainGuide } from './TerrainGuide'
 
@@ -19,6 +24,18 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
     dice: () => 1,
     id: () => '',
   })
+  // I2 objectives are stationary. Preserve the published starting coordinates
+  // of already-created battles rather than silently moving them after deployment.
+  const legacyI2 = code === 'I2' && hasLegacyI2Coordinates(size.l, size.w, b.table?.objects ?? [])
+  if (legacyI2) {
+    for (const object of table.objects) {
+      const saved = b.table.objects.find((o) => o.id === object.id)
+      if (saved && ['1', '2', '3'].includes(object.id)) {
+        object.x = saved.x
+        object.y = saved.y
+      }
+    }
+  }
   const objectKey = table.objects.map((o) => `${o.id}:${o.kind}:${o.x}:${o.y}`).join('|')
   const plan = useMemo(
     () =>
@@ -29,10 +46,11 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
         width: size.w,
         deployment: size.d,
         objects: table.objects,
+        legacyI2,
       }),
     // The key contains every coordinate that influences placement.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [b.id, code, size.l, size.w, size.d, objectKey],
+    [b.id, code, size.l, size.w, size.d, objectKey, legacyI2],
   )
   const grouped = table.objects.reduce<(typeof table.objects)[]>((groups, object) => {
     const group = groups.find((g) => g[0].x === object.x && g[0].y === object.y)
@@ -52,7 +70,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
   }
   const kind = (o: (typeof table.objects)[number]) =>
     o.kind === 'objective'
-      ? isTerrainObjective(code, o)
+      ? isTerrainObjective(code, o, legacyI2)
         ? `Objective: область ${plan.pieces.find((p) => p.objectiveId === o.id)?.id ?? '?'}`
         : 'Objective: маркер Ø40 мм'
       : o.kind === 'item'
@@ -69,6 +87,12 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
         элементами, {plan.pieces.length - dense} с лёгкими. Схема одинакова у обоих игроков и
         сохраняется при обновлении страницы; переброс миссии создаёт новую схему.
       </p>
+      {legacyI2 && (
+        <p>
+          Этот бой I2 был создан со старыми координатами и маркерами целей: схема сохраняет их.
+          Исправленные центры дорожек и цели-области используются для новых боёв.
+        </p>
+      )}
       <figure className="mission-layout">
         <svg
           viewBox={`-4 -6 ${size.l + 8} ${size.w + 12}`}
@@ -194,7 +218,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
             })}
             {grouped.map((group) => {
               const o = group[0]
-              const areaObjective = group.some((v) => isTerrainObjective(code, v))
+              const areaObjective = group.some((v) => isTerrainObjective(code, v, legacyI2))
               const objective = group.some((v) => v.kind === 'objective')
               const item = group.some((v) => v.kind === 'item')
               const name = group.map((v) => label(v.id)).join(' / ')
