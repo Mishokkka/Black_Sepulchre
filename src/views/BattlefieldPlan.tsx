@@ -66,7 +66,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
         <svg
           viewBox={`-4 -6 ${size.l + 8} ${size.w + 12}`}
           role="img"
-          aria-label={`Начальная расстановка объектов и террейна, схема ${plan.code}`}
+          aria-label="Начальная расстановка и координаты объектов миссии"
         >
           <title>Поле боя, области террейна и начальные позиции объектов миссии</title>
           <defs>
