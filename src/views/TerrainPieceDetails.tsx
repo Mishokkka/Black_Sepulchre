@@ -1,24 +1,24 @@
 import { terrainProfile, terrainWalls, type TerrainPiece } from '../../shared/terrain'
+import { terrainPieceName } from '../lib/battlefield-info'
 
 const format = (value: number) => +value.toFixed(2)
 
 /** A buildable recipe for the exact wall segments shown on the battlefield plan. */
-export function TerrainPieceDetails({ piece: p }: { piece: TerrainPiece }) {
+export function TerrainPieceDetails({
+  piece: p,
+  summary,
+}: {
+  piece: TerrainPiece
+  summary?: string
+}) {
   const profile = terrainProfile(p)
-  const name =
-    p.kind === 'light'
-      ? 'Низкая баррикада'
-      : p.platforms?.length
-        ? 'Руина с этажом'
-        : p.symmetric
-          ? 'Два угла руин'
-          : 'Угол руин'
+  const name = terrainPieceName(p)
   const walls = terrainWalls(p)
   const point = (x: number, y: number) => `(${format(x - p.x)}; ${format(y - p.y)})`
   return (
     <details className="terrain-piece-details">
-      <summary aria-label={`Описание террейна ${p.id}`}>
-        {name} · {p.kind === 'dense' ? 'Dense' : 'Light'}
+      <summary aria-label={summary ?? `Описание террейна ${p.id}`}>
+        {summary ?? `${name} · ${p.kind === 'dense' ? 'Dense' : 'Light'}`}
       </summary>
       <p>
         {p.outline ? 'Габариты области' : 'Область'} {p.width} × {p.height}″.{' '}

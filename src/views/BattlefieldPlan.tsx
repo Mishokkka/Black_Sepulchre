@@ -1,5 +1,7 @@
-import { useId, useMemo } from 'react'
+import { useId, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { Download } from 'lucide-react'
 import { battlefieldFor } from '../../shared/battlefield'
+import { MISSION_CARDS } from '../../shared/rules.generated'
 import {
   containsPoint,
   terrainOutline,
@@ -9,6 +11,15 @@ import {
 import { labels, type Props } from './common'
 import { TerrainGuide } from './TerrainGuide'
 import { TerrainPieceDetails } from './TerrainPieceDetails'
+import { BattlefieldInfoCard } from './BattlefieldInfoCard'
+import {
+  mapObjectLabel,
+  missionObjectInfo,
+  terrainInfo,
+  type BattlefieldInfo,
+} from '../lib/battlefield-info'
+import { battlefieldFilename, battlefieldPng, downloadBattlefield } from '../lib/battlefield-export'
+import { EXTRA_MISSION_RULES } from '../content/rules-guide.generated'
 
 const format = (value: number) => +value.toFixed(2)
 type LabelBox = { left: number; right: number; top: number; bottom: number }
@@ -78,6 +89,10 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
   const b = s.battle!
   const code = b.mission ?? b.type
   const clipId = useId()
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [selected, setSelected] = useState<{ context: string; id: string }>()
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState('')
   const objectKey = b.table.objects.map((o) => `${o.id}:${o.kind}:${o.x}:${o.y}`).join('|')
   const setup = useMemo(
     () => battlefieldFor(s),
@@ -95,16 +110,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
     else groups.push([object])
     return groups
   }, [])
-  const label = (id: string) => {
-    if (id === 'engine') return code === 'J2' ? 'Mouth' : code === 'J3' ? 'Reactor' : 'Engine'
-    if (id === 'overlay') return b.number <= 14 ? 'Echo Terminal' : 'Contest Anchor'
-    if (id === 'index') return 'Index'
-    if (id === '1' && code === 'B3') return 'Procession'
-    if (id === '1' && code === 'E1') return 'Train'
-    if (id === '1' && code === 'C2') return 'Platform'
-    if (id === '5' && /^[AK]3$/.test(code)) return 'Throne'
-    return id
-  }
+  const label = (id: string) => mapObjectLabel(code, b.number, id)
   const kind = (o: (typeof table.objects)[number]) =>
     o.kind === 'objective'
       ? plan.pieces.some((p) => p.objectiveId === o.id)
@@ -149,6 +155,147 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
   const defenders = b.type === 'PACT' ? 'Necrons' : labels[b.defender]
   const dense = plan.pieces.filter((p) => p.kind === 'dense').length
   const elevated = plan.pieces.some((p) => p.platforms?.length)
+  const context = `${b.id}:${code}:${plan.version}:${plan.code}`
+  const roleNames =
+    b.type === 'PACT'
+      ? [attackers, defenders]
+      : [`Атакующий: ${attackers}`, `Защитник: ${defenders}`]
+  const deployment = [
+    `${roleNames[0]} — ${short ? 'слева' : 'сверху'}, ${short ? 'x' : 'y'} ≤ ${size.d}″.`,
+    `${roleNames[1]} — ${short ? 'справа' : 'снизу'}, ${short ? 'x' : 'y'} ≥ ${(short ? size.l : size.w) - size.d}″.`,
+  ]
+  const zoneInfo: BattlefieldInfo[] = roleNames.map((name, i) => ({
+    id: `zone:${i}`,
+    title: name,
+    category: 'Зона расстановки',
+    summary:
+      'Здесь расставляются модели этой стороны — целиком внутри зоны, с учётом правил миссии.',
+    facts: [
+      ['Сторона поля', i ? (short ? 'Справа' : 'Снизу') : short ? 'Слева' : 'Сверху'],
+      [
+        'Граница',
+        `${short ? 'x' : 'y'} ${i ? '≥' : '≤'} ${i ? (short ? size.l : size.w) - size.d : size.d}″`,
+      ],
+      ['Глубина зоны', `${size.d}″`],
+    ],
+    missionRules: true,
+  }))
+  const specialInfo: BattlefieldInfo[] = []
+  const special = (id: string, title: string, summary: string, facts: [string, string][]) =>
+    specialInfo.push({ id, title, category: 'Область миссии', summary, facts, missionRules: true })
+  if (code === 'C3')
+    special(
+      'special:centre',
+      'Центральная полоса',
+      'Отмеченная полоса миссии C3. Её значение для боя задано карточкой миссии.',
+      [
+        ['Ширина', '8″'],
+        ['Границы x', `${+(size.l / 2 - 4).toFixed(2)}–${+(size.l / 2 + 4).toFixed(2)}″`],
+      ],
+    )
+  if (code === 'D3')
+    for (const [i, x] of [0.25, 0.5, 0.75].entries())
+      special(
+        `special:strip:${i}`,
+        `Полоса ${i + 1}`,
+        'Одна из трёх полос в ничейной территории. Особые условия действуют по карточке D3.',
+        [
+          ['Ширина', '4″'],
+          ['Границы x', `${+(size.l * x - 2).toFixed(2)}–${+(size.l * x + 2).toFixed(2)}″`],
+          ['Границы y', `${size.d}–${size.w - size.d}″`],
+        ],
+      )
+  if (code === 'I2')
+    for (let i = 0; i < 3; i++)
+      special(
+        `special:lane:${i}`,
+        `Дорожка ${i + 1}`,
+        'Дорожка проходит через всё поле по y. Контроль и присутствие в чужой половине считаются по правилам I2.',
+        [
+          [
+            'Границы x',
+            `${+((size.l * i) / 3).toFixed(2)}–${+((size.l * (i + 1)) / 3).toFixed(2)}″`,
+          ],
+          ['Чужая половина', `За средней линией y = ${size.w / 2}″`],
+        ],
+      )
+  if (code === 'H3')
+    special(
+      'special:safe',
+      'Начальная Safe Zone',
+      'Показана начальная безопасная зона. Она уменьшается во время боя по карточке H3; схема сохраняет стартовое положение.',
+      [
+        ['Центр', `x ${size.l / 2}″, y ${size.w / 2}″`],
+        ['Начальный радиус', '18″'],
+      ],
+    )
+  if (['B3', 'E1', 'C2'].includes(code))
+    special(
+      'special:route',
+      code === 'C2'
+        ? 'Ось движения платформы'
+        : code === 'B3'
+          ? 'Маршрут процессии'
+          : 'Маршрут поезда',
+      'Пунктир показывает ось движения. Значок объекта отмечает только старт; перемещение и остановки определены миссией.',
+      [['Ось', code === 'C2' ? `x = ${size.l / 2}″` : `y = ${size.w / 2}″`]],
+    )
+  const infos = [
+    ...zoneInfo,
+    ...specialInfo,
+    ...plan.pieces.map(terrainInfo),
+    ...objectPresentation.map((p) => missionObjectInfo(setup, p.group, b.number)),
+  ]
+  const active =
+    selected?.context === context ? infos.find((info) => info.id === selected.id) : undefined
+  const mission =
+    MISSION_CARDS[code] ??
+    (EXTRA_MISSION_RULES as Record<string, { title: string; body: string }>)[code]
+  const showInfo = (id: string, fromMap = false) => {
+    if (fromMap)
+      Array.from(svgRef.current?.querySelectorAll<SVGElement>('[data-card-id]') ?? [])
+        .find((el) => el.dataset.cardId === id)
+        ?.focus({ preventScroll: true })
+    setSelected({ context, id })
+  }
+  const mapTrigger = (id: string) => ({
+    className: 'battlefield-map-target',
+    role: 'button' as const,
+    tabIndex: 0,
+    'aria-haspopup': 'dialog' as const,
+    'aria-label': `Открыть: ${infos.find((info) => info.id === id)?.title ?? id}`,
+    'data-card-id': id,
+    onClick: (e: MouseEvent<SVGElement>) => {
+      e.stopPropagation()
+      showInfo(id, true)
+    },
+    onKeyDown: (e: KeyboardEvent<SVGElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        e.stopPropagation()
+        showInfo(id, true)
+      }
+    },
+  })
+  const exportMap = async () => {
+    if (!svgRef.current || exporting) return
+    setExporting(true)
+    setExportError('')
+    try {
+      const blob = await battlefieldPng(svgRef.current, {
+        setup,
+        missionTitle: mission?.title ?? `Миссия ${code}`,
+        deployment,
+      })
+      downloadBattlefield(blob, battlefieldFilename(setup))
+    } catch (e) {
+      setExportError(
+        e instanceof Error ? e.message : 'Не удалось скачать карту. Повторите попытку.',
+      )
+    } finally {
+      setExporting(false)
+    }
+  }
   return (
     <div className="battlefield-plan">
       <h3>Поле боя · схема {plan.code}</h3>
@@ -163,10 +310,42 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
           Исправленные центры дорожек и цели-области используются для новых боёв.
         </p>
       )}
+      <div className="battlefield-map-tools">
+        <label>
+          <span className="sr-only">Выбрать элемент схемы</span>
+          <select
+            value={active?.id ?? ''}
+            onChange={(e) => {
+              if (e.target.value) showInfo(e.target.value)
+            }}
+            aria-label="Выбрать элемент схемы"
+          >
+            <option value="">Что на карте?</option>
+            {infos.map((info) => (
+              <option key={info.id} value={info.id}>
+                {info.title}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="button" className="quiet" onClick={exportMap} disabled={exporting}>
+          <Download size={17} aria-hidden="true" />
+          {exporting ? 'Подготовка PNG…' : 'Скачать карту PNG'}
+        </button>
+      </div>
+      <p className="muted battlefield-map-hint">
+        Нажмите на область, значок или номер на схеме, чтобы открыть карточку.
+      </p>
+      {exportError && (
+        <p role="alert" className="validation">
+          {exportError}
+        </p>
+      )}
       <figure className="mission-layout">
         <svg
+          ref={svgRef}
           viewBox={`-4 -6 ${size.l + 8} ${size.w + 12}`}
-          role="img"
+          role="group"
           aria-label="Начальная расстановка и координаты объектов миссии"
         >
           <title>Поле боя, области террейна и начальные позиции объектов миссии</title>
@@ -177,12 +356,14 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
           </defs>
           <rect width={size.l} height={size.w} fill="#111914" stroke="#a69b77" strokeWidth=".35" />
           <rect
+            {...mapTrigger('zone:0')}
             width={short ? size.d : size.l}
             height={short ? size.w : size.d}
             fill="#786044"
             opacity=".42"
           />
           <rect
+            {...mapTrigger('zone:1')}
             x={short ? size.l - size.d : 0}
             y={short ? 0 : size.w - size.d}
             width={short ? size.d : size.l}
@@ -192,18 +373,39 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
           />
           <g clipPath={`url(#${clipId})`}>
             {code === 'C3' && (
-              <rect x={size.l / 2 - 4} width="8" height={size.w} fill="#d8bf70" opacity=".13" />
+              <rect
+                {...mapTrigger('special:centre')}
+                x={size.l / 2 - 4}
+                width="8"
+                height={size.w}
+                fill="#d8bf70"
+                opacity=".13"
+              />
             )}
             {code === 'D3' &&
               [0.25, 0.5, 0.75].map((x) => (
                 <rect
                   key={x}
+                  {...mapTrigger(`special:strip:${[0.25, 0.5, 0.75].indexOf(x)}`)}
                   x={size.l * x - 2}
                   y={size.d}
                   width="4"
                   height={size.w - 2 * size.d}
                   fill="#d8bf70"
                   opacity=".13"
+                />
+              ))}
+            {code === 'I2' &&
+              [0, 1, 2].map((i) => (
+                <rect
+                  key={`lane-${i}`}
+                  {...mapTrigger(`special:lane:${i}`)}
+                  data-export-ignore="true"
+                  x={(size.l * i) / 3}
+                  y={size.d}
+                  width={size.l / 3}
+                  height={size.w - 2 * size.d}
+                  fill="transparent"
                 />
               ))}
             {code === 'I2' &&
@@ -221,6 +423,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
               ))}
             {code === 'H3' && (
               <circle
+                {...mapTrigger('special:safe')}
                 cx={size.l / 2}
                 cy={size.w / 2}
                 r="18"
@@ -253,12 +456,24 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
                 strokeDasharray="1 1"
               />
             )}
+            {['B3', 'E1', 'C2'].includes(code) && (
+              <line
+                {...mapTrigger('special:route')}
+                data-export-ignore="true"
+                x1={code === 'C2' ? size.l / 2 : 0}
+                y1={code === 'C2' ? 0 : size.w / 2}
+                x2={code === 'C2' ? size.l / 2 : size.l}
+                y2={code === 'C2' ? size.w : size.w / 2}
+                stroke="transparent"
+                strokeWidth="3"
+              />
+            )}
             {plan.pieces.map((p) => {
               const wall = terrainWalls(p)
                 .map((segment) => `M ${segment.x1} ${segment.y1} L ${segment.x2} ${segment.y2}`)
                 .join(' ')
               return (
-                <g key={p.id} data-terrain-id={p.id}>
+                <g key={p.id} data-terrain-id={p.id} {...mapTrigger(`terrain:${p.id}`)}>
                   <title>{`${p.id}: ${p.kind === 'dense' ? 'плотный' : 'лёгкий'} террейн, ${p.width} × ${p.height}″`}</title>
                   <polygon
                     points={terrainOutline(p)
@@ -318,7 +533,15 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
                     Math.hypot(b.x - anchor.x, b.y - anchor.y),
                 )[0]
               return (
-                <g key={p.id}>
+                <g
+                  key={p.id}
+                  className="battlefield-map-label"
+                  aria-hidden="true"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    showInfo(`terrain:${p.id}`, true)
+                  }}
+                >
                   {!containsPoint(p, anchor.x, anchor.y) && (
                     <line
                       x1={leader.x}
@@ -333,6 +556,14 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
                   <text x={number.x} y={number.y} textAnchor="middle" className="terrain-number">
                     {p.id}
                   </text>
+                  <rect
+                    data-export-ignore="true"
+                    x={number.x - 1.3}
+                    y={number.y - 1.5}
+                    width="2.6"
+                    height="2"
+                    fill="transparent"
+                  />
                 </g>
               )
             })}
@@ -340,7 +571,10 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
               const objective = group.some((v) => v.kind === 'objective')
               const item = group.some((v) => v.kind === 'item')
               return (
-                <g key={group.map((v) => v.id).join('-')}>
+                <g
+                  key={group.map((v) => v.id).join('-')}
+                  {...mapTrigger(`object:${group.map((v) => v.id).join(':')}`)}
+                >
                   <title>{group.map((v) => `${label(v.id)}: ${kind(v)}`).join('; ')}</title>
                   {areaObjective ? (
                     <path
@@ -378,6 +612,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
                   <text x={labelX} y={labelY} textAnchor={anchor} className="object-number">
                     {name}
                   </text>
+                  <circle data-export-ignore="true" cx={o.x} cy={o.y} r="1.8" fill="transparent" />
                 </g>
               )
             })}
@@ -396,13 +631,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
           {elevated && 'Голубые пунктирные площадки — доступные этажи на высоте 3″.'}
         </figcaption>
       </figure>
-      <p>
-        {b.type === 'PACT' ? attackers : `Атакующий: ${attackers}`} — {short ? 'слева' : 'сверху'},
-        зона {short ? 'x' : 'y'} ≤ {size.d}″.{' '}
-        {b.type === 'PACT' ? defenders : `Защитник: ${defenders}`} — {short ? 'справа' : 'снизу'},
-        зона {short ? 'x' : 'y'} ≥ {(short ? size.l : size.w) - size.d}″. Первый ход определите
-        обычным roll-off.
-      </p>
+      <p>{deployment.join(' ')} Первый ход определите обычным roll-off.</p>
       <p>
         Зелёные области содержат открытые плотные руины, песочные — низкие лёгкие баррикады. Базовый
         набор — глухие стены 4″ и баррикады 1″
@@ -488,6 +717,14 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
           </table>
         </div>
       </details>
+      {active && (
+        <BattlefieldInfoCard
+          key={`${context}:${active.id}`}
+          info={active}
+          missionBody={mission?.body}
+          onClose={() => setSelected(undefined)}
+        />
+      )}
     </div>
   )
 }

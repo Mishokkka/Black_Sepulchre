@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { randomUUID } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 import { declareBattle } from '../../shared/battle'
 import { createBattlefield } from '../../shared/battlefield'
 import { command } from '../../shared/engine'
@@ -324,11 +325,37 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
         await expect(recipe.locator('li')).toHaveCount(dense.walls!.length)
         await expect(recipe).toContainText('Этаж +3″')
         await expect(plan.locator('.terrain-platform')).toHaveCount(2)
+        const terrainTarget = plan.getByRole('button', {
+          name: `Открыть: ${dense.id} · Руина с этажом`,
+          exact: true,
+        })
+        await terrainTarget.focus()
+        await terrainTarget.press('Enter')
+        const card = p.getByRole('dialog', { name: `${dense.id} · Руина с этажом` })
+        await expect(card).toBeVisible()
+        await expect(card).toContainText('высота 3″')
+        await expect(card.getByLabel('Свойства террейна')).toContainText('Obscuring')
+        await p.keyboard.press('Escape')
+        await expect(card).toHaveCount(0)
+        await expect(terrainTarget).toBeFocused()
         if (mission === 'I2') {
           await expect(plan.locator('td').filter({ hasText: /^Objective: область / })).toHaveCount(
             3,
           )
           await expect(plan.locator('table').first()).toContainText('4.33')
+          if (p === pages[0]) {
+            const pending = p.waitForEvent('download')
+            await plan.getByRole('button', { name: 'Скачать карту PNG', exact: true }).click()
+            const download = await pending
+            expect(download.suggestedFilename()).toBe(
+              `Black-Sepulchre_I2_44x30_${setup.terrain.code}.png`,
+            )
+            const png = await readFile((await download.path())!)
+            expect(png.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+            expect(png.readUInt32BE(16)).toBeGreaterThan(1000)
+            expect(png.readUInt32BE(20)).toBeGreaterThan(1000)
+            expect(png.length).toBeGreaterThan(15000)
+          }
         }
       }
       await a.reload()
