@@ -327,7 +327,8 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
         <summary>Размеры и координаты для расстановки</summary>
         <p>
           Все значения в дюймах. Начало координат — верхний левый угол поля. Для террейна указаны
-          координаты верхнего левого угла области, для объектов — их центры.
+          координаты верхнего левого угла области, для объектов — их центры. Значения округлены до
+          0,01″.
         </p>
         <div className="mission-coordinates">
           <table>
@@ -349,8 +350,8 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
                   <td>
                     {p.width} × {p.height}
                   </td>
-                  <td>{p.x}</td>
-                  <td>{p.y}</td>
+                  <td>{format(p.x)}</td>
+                  <td>{format(p.y)}</td>
                 </tr>
               ))}
             </tbody>
