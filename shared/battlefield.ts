@@ -2,7 +2,7 @@ import type { MissionObject, State } from './model.ts'
 import { STAGES } from './rules.ts'
 import { createTable } from './table.ts'
 import { generateTerrain, hasLegacyI2Coordinates, type TerrainPlan } from './terrain.ts'
-import { generateTerrainV2 } from './terrain-v2.ts'
+import { generateTerrainV2, TerrainPlacementError } from './terrain-v2.ts'
 
 export type BattlefieldObject = Pick<MissionObject, 'id' | 'kind' | 'x' | 'y'>
 
@@ -45,23 +45,34 @@ export function createBattlefield(
         object.y = saved.y
       }
     }
+  const input = {
+    battleId: b.id,
+    mission,
+    length: size.l,
+    width: size.w,
+    deployment: size.d,
+    objects,
+    legacyI2,
+  }
+  let terrain: TerrainPlan
+  if (version === 1) terrain = generateTerrain(input)
+  else {
+    try {
+      terrain = generateTerrainV2(input)
+    } catch (error) {
+      if (!(error instanceof TerrainPlacementError)) throw error
+      terrain = generateTerrain(input)
+    }
+  }
   return {
-    version,
+    version: terrain.version,
     mission,
     length: size.l,
     width: size.w,
     deployment: size.d,
     legacyI2,
     objects,
-    terrain: (version === 1 ? generateTerrain : generateTerrainV2)({
-      battleId: b.id,
-      mission,
-      length: size.l,
-      width: size.w,
-      deployment: size.d,
-      objects,
-      legacyI2,
-    }),
+    terrain,
   }
 }
 

@@ -385,6 +385,14 @@ function pack(input: TerrainInput, seed: number) {
   return { pieces, core: homeFloor && homeSmall && large && long }
 }
 
+/** A valid mission can continue with the v1 kit if packing exhausts its budget. */
+export class TerrainPlacementError extends Error {
+  constructor() {
+    super('Не удалось разместить террейн с доступом к целям и проходом техники')
+    this.name = 'TerrainPlacementError'
+  }
+}
+
 /** New battles use v2. Legacy reconstruction continues to call the frozen v1 generator. */
 export function generateTerrainV2(input: TerrainInput): TerrainPlan {
   const seed = hash(
@@ -411,5 +419,5 @@ export function generateTerrainV2(input: TerrainInput): TerrainPlan {
         pieces,
       }
   }
-  throw new Error('Не удалось разместить террейн с доступом к целям и проходом техники')
+  throw new TerrainPlacementError()
 }

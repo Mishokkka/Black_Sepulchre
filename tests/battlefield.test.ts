@@ -7,6 +7,7 @@ import type { Battle, SectorKey, State } from '../shared/model.ts'
 import { MISSION_CARDS } from '../shared/rules.generated.ts'
 import { createTable } from '../shared/table.ts'
 import { terrainProfile, terrainWalls } from '../shared/terrain.ts'
+import { generateTerrainV2, TerrainPlacementError } from '../shared/terrain-v2.ts'
 import { context, fixture } from './fixture.ts'
 
 function selected(mission: string, stage = 0) {
@@ -131,4 +132,39 @@ test('legacy moving objects are reconstructed at their initial positions', () =>
       y: initial.y,
     })
   }
+})
+
+test('exhausted v2 packing saves a coherent v1 setup that both players retain', () => {
+  const s = selected('C2')
+  // Public interaction points occupy every possible elevated home platform.
+  // Smaller ground-only ruins still fit: exercise the actual failure, without a mock.
+  const objects = [3.5, 26.5].flatMap((y, row) =>
+    [6, 12, 18, 24, 30, 36, 42].map((x, i) => ({
+      id: `point-${row}-${i}`,
+      kind: 'interaction' as const,
+      x,
+      y,
+    })),
+  )
+  assert.throws(
+    () =>
+      generateTerrainV2({
+        battleId: s.battle!.id,
+        mission: 'C2',
+        length: 44,
+        width: 30,
+        deployment: 7,
+        objects,
+      }),
+    TerrainPlacementError,
+  )
+  const setup = createBattlefield(s, objects)
+  assert.equal(setup.version, 1)
+  assert.equal(setup.terrain.version, 1)
+  assert.ok(setup.terrain.pieces.length >= 10)
+  assert.deepEqual(setup, createBattlefield(s, objects, 1))
+  assert.deepEqual(setup.objects, objects)
+  s.battle!.battlefield = setup
+  for (const side of ['deathwatch', 'necrons'] as const)
+    assert.deepEqual(battlefieldFor(project(JSON.parse(JSON.stringify(s)), side)), setup)
 })
