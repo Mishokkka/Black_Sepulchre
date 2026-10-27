@@ -352,8 +352,8 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
             )
             const png = await readFile((await download.path())!)
             expect(png.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
-            expect(png.readUInt32BE(16)).toBeGreaterThan(1000)
-            expect(png.readUInt32BE(20)).toBeGreaterThan(1000)
+            expect(png.readUInt32BE(16)).toBe(setup.length * 64)
+            expect(png.readUInt32BE(20)).toBe(setup.width * 64)
             expect(png.length).toBeGreaterThan(15000)
           }
         }
