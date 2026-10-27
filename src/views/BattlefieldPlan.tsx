@@ -282,11 +282,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
     setExporting(true)
     setExportError('')
     try {
-      const blob = await battlefieldPng(svgRef.current, {
-        setup,
-        missionTitle: mission?.title ?? `Миссия ${code}`,
-        deployment,
-      })
+      const blob = await battlefieldPng(svgRef.current, setup)
       downloadBattlefield(blob, battlefieldFilename(setup))
     } catch (e) {
       setExportError(
@@ -617,10 +613,10 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
               )
             })}
           </g>
-          <text x={size.l / 2} y="-2" textAnchor="middle">
+          <text data-export-ignore="true" x={size.l / 2} y="-2" textAnchor="middle">
             {size.l}″ · x →
           </text>
-          <text x={size.l / 2} y={size.w + 4} textAnchor="middle">
+          <text data-export-ignore="true" x={size.l / 2} y={size.w + 4} textAnchor="middle">
             {size.w}″ · y ↓
           </text>
         </svg>
