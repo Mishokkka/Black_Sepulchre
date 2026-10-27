@@ -279,7 +279,7 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
       const views = await Promise.all([load(0), load(1)])
       const setup = views[0].battle!.battlefield!
       expect(setup.mission).toBe(mission)
-      expect(setup.version).toBe(1)
+      expect(setup.version).toBe(2)
       expect(views[1].battle!.battlefield).toEqual(setup)
       const stored = await admin.rpc('v221_load', { p_campaign: id, p_actor: accounts[0].id })
       if (stored.error) throw stored.error
@@ -308,11 +308,11 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
         await expect(plan.locator('h3')).toContainText(setup.terrain.code)
         if (!(await plan.locator('.terrain-details').evaluate((e) => e.hasAttribute('open'))))
           await plan.getByText('Размеры и координаты для расстановки').click()
-        const dense = setup.terrain.pieces.find((piece) => piece.kind === 'dense')!
+        const dense = setup.terrain.pieces.find((piece) => piece.platforms?.length)!
         expect(dense.profile).toEqual({
           wallHeight: 4,
           maxWallThickness: 0.45,
-          elevatedFloors: 0,
+          elevatedFloors: 1,
         })
         const recipe = plan
           .getByLabel(`Описание террейна ${dense.id}`, { exact: true })
@@ -322,6 +322,8 @@ test('Two real Auth accounts create/join, submit sealed choices, resolve a race 
         await expect(recipe).toHaveAttribute('open', '')
         await expect(recipe).toContainText('Высота физических стен — 4″')
         await expect(recipe.locator('li')).toHaveCount(dense.walls!.length)
+        await expect(recipe).toContainText('Этаж +3″')
+        await expect(plan.locator('.terrain-platform')).toHaveCount(2)
         if (mission === 'I2') {
           await expect(plan.locator('td').filter({ hasText: /^Objective: область / })).toHaveCount(
             3,

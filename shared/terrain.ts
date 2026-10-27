@@ -22,12 +22,29 @@ export interface TerrainPiece {
   walls?: TerrainWall[]
   /** Physical construction preset, saved with new battlefield setups. */
   profile?: TerrainProfile
+  /** Absolute vertices of a convex footprint; absent for legacy rectangles. */
+  outline?: TerrainPoint[]
+  /** Walkable elevated surfaces, stored in absolute board coordinates. */
+  platforms?: TerrainPlatform[]
+}
+
+export interface TerrainPoint {
+  x: number
+  y: number
+}
+export interface TerrainPlatform {
+  x: number
+  y: number
+  width: number
+  height: number
+  elevation: number
+  thickness: number
 }
 
 export interface TerrainProfile {
   wallHeight: number
   maxWallThickness: number
-  elevatedFloors: 0
+  elevatedFloors: 0 | 1
 }
 
 const MAX_WALL_THICKNESS = 0.45
@@ -44,12 +61,13 @@ export function terrainProfile(p: TerrainPiece): TerrainProfile {
 }
 
 export interface TerrainPlan {
-  version: 1
+  version: 1 | 2
   code: string
   pieces: TerrainPiece[]
+  tableProfile?: 'compact' | 'square' | 'full'
 }
 
-interface Input {
+export interface TerrainInput {
   battleId: string
   mission: string
   length: number
@@ -105,8 +123,38 @@ const rectDistance = (a: Rect, b: Rect) =>
     Math.max(a.y - b.y - b.height, b.y - a.y - a.height, 0),
   )
 
-export const containsPoint = (r: Rect, x: number, y: number) =>
-  x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height
+export function terrainOutline(r: Rect & { outline?: TerrainPoint[] }): TerrainPoint[] {
+  return (
+    r.outline ?? [
+      { x: r.x, y: r.y },
+      { x: r.x + r.width, y: r.y },
+      { x: r.x + r.width, y: r.y + r.height },
+      { x: r.x, y: r.y + r.height },
+    ]
+  )
+}
+
+export function terrainArea(r: Rect & { outline?: TerrainPoint[] }): number {
+  if (!r.outline) return r.width * r.height
+  return (
+    Math.abs(
+      r.outline.reduce((sum, p, i, points) => {
+        const q = points[(i + 1) % points.length]
+        return sum + p.x * q.y - q.x * p.y
+      }, 0),
+    ) / 2
+  )
+}
+
+export function containsPoint(r: Rect & { outline?: TerrainPoint[] }, x: number, y: number) {
+  if (x < r.x || x > r.x + r.width || y < r.y || y > r.y + r.height) return false
+  if (!r.outline) return true
+  const crosses = r.outline.map((a, i, points) => {
+    const b = points[(i + 1) % points.length]
+    return (b.x - a.x) * (y - a.y) - (b.y - a.y) * (x - a.x)
+  })
+  return crosses.every((v) => v >= -1e-7) || crosses.every((v) => v <= 1e-7)
+}
 
 /** Suggested physical walls inside an area. These are not the area boundary. */
 export function terrainWalls(p: TerrainPiece): TerrainWall[] {
@@ -257,7 +305,7 @@ export function vehicleCanCross(
 }
 
 /** The version is stable for a battle and uses only public mission information. */
-export function generateTerrain(input: Input): TerrainPlan {
+export function generateTerrain(input: TerrainInput): TerrainPlan {
   const { battleId, mission, length, width, deployment, objects } = input
   const short = mission === 'C3'
   const seed = hash(`black-sepulchre-terrain-v1:${battleId}:${mission}:${length}:${width}`)

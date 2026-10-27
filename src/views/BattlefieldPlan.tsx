@@ -1,6 +1,11 @@
 import { useId, useMemo } from 'react'
 import { battlefieldFor } from '../../shared/battlefield'
-import { terrainWalls, type TerrainPiece } from '../../shared/terrain'
+import {
+  containsPoint,
+  terrainOutline,
+  terrainWalls,
+  type TerrainPiece,
+} from '../../shared/terrain'
 import { labels, type Props } from './common'
 import { TerrainGuide } from './TerrainGuide'
 import { TerrainPieceDetails } from './TerrainPieceDetails'
@@ -9,13 +14,21 @@ const format = (value: number) => +value.toFixed(2)
 type LabelBox = { left: number; right: number; top: number; bottom: number }
 
 /** Prefer the centre, then a free corner, so mission symbols cannot cover area IDs. */
-function terrainNumberPosition(p: TerrainPiece, occupied: LabelBox[], boardHeight: number) {
-  const halfWidth = Math.max(0.8, p.id.length * 0.45)
+function terrainNumberPosition(
+  p: TerrainPiece,
+  occupied: LabelBox[],
+  boardWidth: number,
+  boardHeight: number,
+) {
+  const halfWidth = Math.max(1, p.id.length * 0.6)
   const left = p.x + halfWidth + 0.25,
     right = p.x + p.width - halfWidth - 0.25
   const top = p.y + 1.5,
     bottom = p.y + p.height - 0.4
   const centre = { x: p.x + p.width / 2, y: p.y + p.height / 2 + 0.5 }
+  const interior: { x: number; y: number }[] = []
+  for (let y = top; y <= bottom; y += 0.5)
+    for (let x = left; x <= right; x += 0.5) interior.push({ x, y })
   const candidates = [
     ...(p.objectiveId ? [] : [centre]),
     { x: right, y: top },
@@ -24,7 +37,30 @@ function terrainNumberPosition(p: TerrainPiece, occupied: LabelBox[], boardHeigh
     { x: right, y: bottom },
     { x: centre.x, y: p.y - 0.4 },
     { x: centre.x, y: p.y + p.height + 1.5 },
-  ].filter(({ y }) => y >= 1.4 && y + 0.4 <= boardHeight)
+    ...interior,
+    ...[centre.y, top, bottom].flatMap((y) => [
+      { x: p.x - halfWidth - 0.4, y },
+      { x: p.x + p.width + halfWidth + 0.4, y },
+    ]),
+    ...[1, 2].flatMap((padding) =>
+      [centre.y, top, bottom].flatMap((y) => [
+        { x: p.x - halfWidth - 0.4 - padding, y },
+        { x: p.x + p.width + halfWidth + 0.4 + padding, y },
+      ]),
+    ),
+  ].filter(
+    ({ x, y }) =>
+      y >= 1.4 &&
+      y + 0.4 <= boardHeight &&
+      x - halfWidth >= 0 &&
+      x + halfWidth <= boardWidth &&
+      (!p.outline ||
+        y < p.y ||
+        y > p.y + p.height ||
+        [x - halfWidth, x + halfWidth].every((px) =>
+          [y - 1.4, y + 0.4].every((py) => containsPoint(p, px, py)),
+        )),
+  )
   const collisions = ({ x, y }: { x: number; y: number }) =>
     occupied.reduce(
       (sum, box) =>
@@ -89,19 +125,19 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
     return { group, o, areaObjective, name, anchor, labelX, labelY }
   })
   const occupied = objectPresentation.flatMap(({ o, name, anchor, labelX, labelY }) => {
-    const width = Math.max(0.9, name.length * 0.8)
+    const width = Math.max(0.9, name.length * 0.8) + 0.6
     const left =
       anchor === 'start' ? labelX : anchor === 'end' ? labelX - width : labelX - width / 2
     return [
       { left: o.x - 1.1, right: o.x + 1.1, top: o.y - 1.1, bottom: o.y + 1.1 },
-      { left, right: left + width, top: labelY - 1.4, bottom: labelY + 0.3 },
+      { left, right: left + width, top: labelY - 1.6, bottom: labelY + 0.6 },
     ]
   })
   const terrainNumbers = new Map<string, { x: number; y: number }>()
   for (const p of plan.pieces) {
-    const position = terrainNumberPosition(p, occupied, size.w)
+    const position = terrainNumberPosition(p, occupied, size.l, size.w)
     terrainNumbers.set(p.id, position)
-    const halfWidth = Math.max(0.8, p.id.length * 0.45)
+    const halfWidth = Math.max(1, p.id.length * 0.6)
     occupied.push({
       left: position.x - halfWidth,
       right: position.x + halfWidth,
@@ -112,6 +148,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
   const attackers = b.type === 'PACT' ? 'Deathwatch' : labels[b.attacker]
   const defenders = b.type === 'PACT' ? 'Necrons' : labels[b.defender]
   const dense = plan.pieces.filter((p) => p.kind === 'dense').length
+  const elevated = plan.pieces.some((p) => p.platforms?.length)
   return (
     <div className="battlefield-plan">
       <h3>Поле боя · схема {plan.code}</h3>
@@ -218,17 +255,37 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
             )}
             {plan.pieces.map((p) => {
               const number = terrainNumbers.get(p.id)!
+              const anchor = { x: number.x, y: number.y - 0.6 }
+              const boundary = terrainOutline(p)
+              const leader = boundary
+                .map((a, i) => {
+                  const b = boundary[(i + 1) % boundary.length],
+                    dx = b.x - a.x,
+                    dy = b.y - a.y
+                  const t = Math.max(
+                    0,
+                    Math.min(
+                      1,
+                      ((anchor.x - a.x) * dx + (anchor.y - a.y) * dy) / (dx * dx + dy * dy),
+                    ),
+                  )
+                  return { x: a.x + t * dx, y: a.y + t * dy }
+                })
+                .sort(
+                  (a, b) =>
+                    Math.hypot(a.x - anchor.x, a.y - anchor.y) -
+                    Math.hypot(b.x - anchor.x, b.y - anchor.y),
+                )[0]
               const wall = terrainWalls(p)
                 .map((segment) => `M ${segment.x1} ${segment.y1} L ${segment.x2} ${segment.y2}`)
                 .join(' ')
               return (
                 <g key={p.id}>
                   <title>{`${p.id}: ${p.kind === 'dense' ? 'плотный' : 'лёгкий'} террейн, ${p.width} × ${p.height}″`}</title>
-                  <rect
-                    x={p.x}
-                    y={p.y}
-                    width={p.width}
-                    height={p.height}
+                  <polygon
+                    points={terrainOutline(p)
+                      .map((v) => `${v.x},${v.y}`)
+                      .join(' ')}
                     fill={p.kind === 'dense' ? '#41544b' : '#655d48'}
                     stroke={p.objectiveId ? '#f4cb76' : p.kind === 'dense' ? '#a9c3a9' : '#d4bd88'}
                     strokeWidth={p.objectiveId ? '.5' : '.25'}
@@ -239,6 +296,34 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
                     stroke={p.kind === 'dense' ? '#c9d7bd' : '#e6d7ab'}
                     strokeWidth=".45"
                   />
+                  {p.platforms?.map((floor, i) => (
+                    <rect
+                      key={i}
+                      x={floor.x}
+                      y={floor.y}
+                      width={floor.width}
+                      height={floor.height}
+                      className="terrain-platform"
+                      fill="#80c4df"
+                      fillOpacity=".3"
+                      stroke="#b7e4f4"
+                      strokeWidth=".2"
+                      strokeDasharray=".5 .3"
+                    >
+                      <title>{`${p.id}: доступный этаж +${floor.elevation}″, ${floor.width} × ${floor.height}″`}</title>
+                    </rect>
+                  ))}
+                  {!containsPoint(p, anchor.x, anchor.y) && (
+                    <line
+                      x1={leader.x}
+                      y1={leader.y}
+                      x2={anchor.x}
+                      y2={anchor.y}
+                      stroke="#b9c9ad"
+                      strokeWidth=".12"
+                      strokeDasharray=".25 .15"
+                    />
+                  )}
                   <text x={number.x} y={number.y} textAnchor="middle" className="terrain-number">
                     {p.id}
                   </text>
@@ -301,7 +386,8 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
         <figcaption>
           Начальные позиции. Золотая граница — objective-область; круг — objective-маркер, ромб —
           переносимый предмет, квадрат — точка взаимодействия. Линии внутри площадей — рекомендуемое
-          расположение физических элементов.
+          расположение физических элементов.{' '}
+          {elevated && 'Голубые пунктирные площадки — доступные этажи на высоте 3″.'}
         </figcaption>
       </figure>
       <p>
@@ -313,9 +399,10 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
       </p>
       <p>
         Зелёные области содержат открытые плотные руины, песочные — низкие лёгкие баррикады. Базовый
-        набор — глухие стены 4″ и баррикады 1″, без верхних этажей. Форму и размеры каждого элемента
-        можно раскрыть в таблице ниже. Перед игрой проверьте проходы для самых крупных баз и доступ
-        к каждой точке с обеих сторон.
+        набор — глухие стены 4″ и баррикады 1″
+        {elevated ? ', с парой доступных этажей на высоте 3″' : ', без верхних этажей'}. Форму и
+        размеры каждого элемента можно раскрыть в таблице ниже. Перед игрой проверьте проходы для
+        самых крупных баз и доступ к каждой точке с обеих сторон.
       </p>
       <p>
         У цели-области контроль определяется моделями внутри её границы. Для objective-маркера
@@ -323,7 +410,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
         этой кампании цель-маркер остаётся маркером, даже если лежит внутри области террейна. Точки
         взаимодействия и переносимые предметы сами по себе не являются objectives.
       </p>
-      <TerrainGuide />
+      <TerrainGuide elevated={elevated} />
       {code === 'PACT' && (
         <p>
           Для PACT области не пересекают прямые линии к каждому Seal. При установке самих элементов
@@ -341,7 +428,8 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
         <p>
           Все значения в дюймах. Начало координат — верхний левый угол поля. Для террейна указаны
           координаты верхнего левого угла области, для объектов — их центры. Значения округлены до
-          0,01″. Нажмите название постройки, чтобы увидеть высоту, толщину и расположение стен.
+          0,01″. У многоугольника размер задаёт габариты; точный контур приведён в описании. Нажмите
+          название постройки, чтобы увидеть высоту, толщину и расположение стен и этажей.
         </p>
         <div className="mission-coordinates">
           <table>
