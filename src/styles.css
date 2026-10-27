@@ -6073,6 +6073,31 @@ button.campaign-choice {
 .mission-coordinates table {
   width: 100%;
 }
+.terrain-guide {
+  margin: 24px 0;
+}
+.terrain-guide-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+.terrain-guide-cards article {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(138, 158, 124, 0.08);
+}
+.terrain-guide-cards p {
+  margin: 8px 0 0;
+}
+.terrain-guide details {
+  margin: 14px 0;
+}
+.terrain-guide summary {
+  cursor: pointer;
+  font-weight: 700;
+}
 .terrain-details {
   margin: 20px 0;
 }

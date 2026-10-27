@@ -1,8 +1,9 @@
 import { useId, useMemo } from 'react'
 import { STAGES } from '../../shared/rules'
 import { createTable } from '../../shared/table'
-import { generateTerrain } from '../../shared/terrain'
+import { generateTerrain, isTerrainObjective, terrainWalls } from '../../shared/terrain'
 import { labels, type Props } from './common'
+import { TerrainGuide } from './TerrainGuide'
 
 const format = (value: number) => +value.toFixed(2)
 
@@ -18,7 +19,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
     dice: () => 1,
     id: () => '',
   })
-  const objectKey = table.objects.map((o) => `${o.id}:${o.x}:${o.y}`).join('|')
+  const objectKey = table.objects.map((o) => `${o.id}:${o.kind}:${o.x}:${o.y}`).join('|')
   const plan = useMemo(
     () =>
       generateTerrain({
@@ -49,8 +50,14 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
     if (id === '5' && /^[AK]3$/.test(code)) return 'Throne'
     return id
   }
-  const kind = (value: string) =>
-    value === 'objective' ? 'Objective' : value === 'item' ? 'Предмет' : 'Точка взаимодействия'
+  const kind = (o: (typeof table.objects)[number]) =>
+    o.kind === 'objective'
+      ? isTerrainObjective(code, o)
+        ? `Objective: область ${plan.pieces.find((p) => p.objectiveId === o.id)?.id ?? '?'}`
+        : 'Objective: маркер Ø40 мм'
+      : o.kind === 'item'
+        ? 'Предмет'
+        : 'Точка взаимодействия'
   const attackers = b.type === 'PACT' ? 'Deathwatch' : labels[b.attacker]
   const defenders = b.type === 'PACT' ? 'Necrons' : labels[b.defender]
   const dense = plan.pieces.filter((p) => p.kind === 'dense').length
@@ -58,9 +65,9 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
     <div className="battlefield-plan">
       <h3>Поле боя · схема {plan.code}</h3>
       <p>
-        {size.l} × {size.w}″ · {plan.pieces.length} областей террейна: {dense} плотных,{' '}
-        {plan.pieces.length - dense} лёгких. Схема одинакова у обоих игроков и сохраняется при
-        обновлении страницы; переброс миссии создаёт новую схему.
+        {size.l} × {size.w}″ · {plan.pieces.length} областей террейна: {dense} с плотными
+        элементами, {plan.pieces.length - dense} с лёгкими. Схема одинакова у обоих игроков и
+        сохраняется при обновлении страницы; переброс миссии создаёт новую схему.
       </p>
       <figure className="mission-layout">
         <svg
@@ -153,18 +160,9 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
               />
             )}
             {plan.pieces.map((p) => {
-              const x1 = p.x + 0.7,
-                x2 = p.x + p.width - 0.7
-              const y1 = p.y + 0.7,
-                y2 = p.y + p.height - 0.7
-              const wall =
-                p.kind === 'dense'
-                  ? p.mirrored
-                    ? `M ${x1} ${y2} H ${x2} V ${y1}`
-                    : `M ${x2} ${y1} H ${x1} V ${y2}`
-                  : p.mirrored
-                    ? `M ${x1} ${y2} H ${x2}`
-                    : `M ${x1} ${y1} H ${x2}`
+              const wall = terrainWalls(p)
+                .map((segment) => `M ${segment.x1} ${segment.y1} L ${segment.x2} ${segment.y2}`)
+                .join(' ')
               return (
                 <g key={p.id}>
                   <title>{`${p.id}: ${p.kind === 'dense' ? 'плотный' : 'лёгкий'} террейн, ${p.width} × ${p.height}″`}</title>
@@ -174,8 +172,8 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
                     width={p.width}
                     height={p.height}
                     fill={p.kind === 'dense' ? '#41544b' : '#655d48'}
-                    stroke={p.kind === 'dense' ? '#a9c3a9' : '#d4bd88'}
-                    strokeWidth=".25"
+                    stroke={p.objectiveId ? '#f4cb76' : p.kind === 'dense' ? '#a9c3a9' : '#d4bd88'}
+                    strokeWidth={p.objectiveId ? '.5' : '.25'}
                   />
                   <path
                     d={wall}
@@ -184,8 +182,8 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
                     strokeWidth=".45"
                   />
                   <text
-                    x={p.x + p.width / 2}
-                    y={p.y + p.height / 2 + 0.5}
+                    x={p.objectiveId ? p.x + p.width - 1.1 : p.x + p.width / 2}
+                    y={p.objectiveId ? p.y + 1.45 : p.y + p.height / 2 + 0.5}
                     textAnchor="middle"
                     className="terrain-number"
                   >
@@ -196,12 +194,24 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
             })}
             {grouped.map((group) => {
               const o = group[0]
+              const areaObjective = group.some((v) => isTerrainObjective(code, v))
               const objective = group.some((v) => v.kind === 'objective')
               const item = group.some((v) => v.kind === 'item')
+              const name = group.map((v) => label(v.id)).join(' / ')
+              // Long labels at the table edge must stay inside the SVG clip.
+              const edge = Math.max(2, name.length * 0.5)
+              const anchor = o.x < edge ? 'start' : o.x > size.l - edge ? 'end' : 'middle'
+              const labelX = anchor === 'start' ? o.x + 0.8 : anchor === 'end' ? o.x - 0.8 : o.x
               return (
                 <g key={group.map((v) => v.id).join('-')}>
-                  <title>{group.map((v) => `${label(v.id)}: ${kind(v.kind)}`).join('; ')}</title>
-                  {objective ? (
+                  <title>{group.map((v) => `${label(v.id)}: ${kind(v)}`).join('; ')}</title>
+                  {areaObjective ? (
+                    <path
+                      d={`M ${o.x - 0.45} ${o.y} h .9 M ${o.x} ${o.y - 0.45} v .9`}
+                      stroke="#f4cb76"
+                      strokeWidth=".35"
+                    />
+                  ) : objective ? (
                     <circle
                       cx={o.x}
                       cy={o.y}
@@ -229,12 +239,16 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
                     />
                   )}
                   <text
-                    x={o.x}
-                    y={o.y < 3 ? o.y + 2.5 : o.y - 1.4}
-                    textAnchor="middle"
+                    x={labelX}
+                    y={
+                      o.y < (areaObjective ? 4.5 : 3)
+                        ? o.y + 2.5
+                        : o.y - (areaObjective ? 2.8 : 1.4)
+                    }
+                    textAnchor={anchor}
                     className="object-number"
                   >
-                    {group.map((v) => label(v.id)).join(' / ')}
+                    {name}
                   </text>
                 </g>
               )
@@ -248,8 +262,9 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
           </text>
         </svg>
         <figcaption>
-          Начальные позиции. Круг — objective, ромб — переносимый предмет, квадрат — точка
-          взаимодействия. Фигуры внутри областей показывают пример расположения элементов.
+          Начальные позиции. Золотая граница — objective-область; круг — objective-маркер, ромб —
+          переносимый предмет, квадрат — точка взаимодействия. Линии внутри площадей — рекомендуемое
+          расположение физических элементов.
         </figcaption>
       </figure>
       <p>
@@ -260,11 +275,18 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
         обычным roll-off.
       </p>
       <p>
-        Прямоугольник — граница области, а линия внутри — пример элемента: плотные руины или здания
-        показаны зелёным, лёгкие препятствия — песочным. Разместите элементы внутри областей,
-        оставив место для моделей. Согласуйте их категории до игры; проверьте реальные проходы для
-        ваших самых крупных баз и доступ к каждой точке с обеих сторон.
+        Зелёные области содержат плотные руины или здания, песочные — лёгкие препятствия. Плотные
+        стены рекомендуется сделать непрозрачными и высотой не менее 3″. Разместите элементы внутри
+        областей и оставьте место для моделей; проверьте реальные проходы для самых крупных баз и
+        доступ к каждой точке с обеих сторон.
       </p>
+      <p>
+        У цели-области контроль определяется моделями внутри её границы. Для objective-маркера
+        диаметром 40 мм контроль проверяется в 3″ по горизонтали и 5″ по вертикали от его края. В
+        этой кампании цель-маркер остаётся маркером, даже если лежит внутри области террейна. Точки
+        взаимодействия и переносимые предметы сами по себе не являются objectives.
+      </p>
+      <TerrainGuide />
       {code === 'PACT' && (
         <p>
           Для PACT области не пересекают прямые линии к каждому Seal. При установке самих элементов
@@ -323,7 +345,7 @@ export function BattlefieldPlan({ s }: Pick<Props, 's'>) {
               {table.objects.map((o) => (
                 <tr key={o.id}>
                   <td>{label(o.id)}</td>
-                  <td>{kind(o.kind)}</td>
+                  <td>{kind(o)}</td>
                   <td>{format(o.x)}</td>
                   <td>{format(o.y)}</td>
                 </tr>
